@@ -14,7 +14,7 @@ typedef struct {
 
 // TODO : figure out why we connot create static array of struct in C
 static espAP_t    foundAPs[ MAX_NUM_AP_FOUND ];
-static PRIVILEGED_DATA apEntry_t  preferredAP = { "FamilyOps", "F0963369701", 9, 11 };
+static PRIVILEGED_DATA apEntry_t  preferredAP = { "your_ssid", "your_passwd", 9, 11 };
  
 
 
