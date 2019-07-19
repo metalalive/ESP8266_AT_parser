@@ -33,16 +33,10 @@ void    vESPthreadATreqHandler ( void* const arg )
         // once AT command string was sent, this thread has to wait for response handling thread
         // getting its job done by taking internal semaphore.
         if(response == espOK) {
-            if(eESPconnIsServerActive() == ESP_DISABLE) {
-                eESPlowLvlRecvStartFn(); // enable low-level receiving function
-            }
             eESPcoreUnlock();
             // waiting until it's released by response handling thread.
             response = eESPsysSemWait( espGlobal.sem_th_sync, block_time ); 
             eESPcoreLock();
-            if(eESPconnIsServerActive() == ESP_DISABLE) {
-                vESPlowLvlRecvStopFn(); // disable  low-level receiving function
-            }
         }
         if(response == espTIMEOUT) {
             msg->res = espTIMEOUT;

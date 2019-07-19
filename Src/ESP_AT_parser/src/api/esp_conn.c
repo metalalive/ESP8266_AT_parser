@@ -360,10 +360,6 @@ espRes_t    eESPstartServer( espNetConnPtr serverconn, espPort_t port, espEvtCbF
     response = eESPsetServer( serverconn, ESP_ENABLE, port, evt_cb,  NULL, NULL, ESP_AT_CMD_BLOCKING );
     if(response == espERRARGS){ return response; }
     eESPsetServerTimeout( serverconn, timeout,  NULL, NULL, ESP_AT_CMD_BLOCKING );
-    // turn on low-level receiving function so ESP/host microcontroller can get IPD data from other clients.
-    eESPcoreLock();
-    eESPlowLvlRecvStartFn();
-    eESPcoreUnlock();
     return   response;
 } // end of eESPstartServer
 
@@ -373,10 +369,6 @@ espRes_t    eESPstartServer( espNetConnPtr serverconn, espPort_t port, espEvtCbF
 espRes_t    eESPstopServer(  espNetConnPtr serverconn )
 {
     espRes_t response = espOK ; 
-    // turn off low-level receiving function before we shut down the server.
-    eESPcoreLock();
-    vESPlowLvlRecvStopFn();
-    eESPcoreUnlock();
     response = eESPsetServer( serverconn, ESP_DISABLE, 0, NULL,  NULL,  NULL, ESP_AT_CMD_BLOCKING );
     return   response;
 } // end of eESPstopServer
