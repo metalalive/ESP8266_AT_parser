@@ -32,7 +32,7 @@ extern "C" {
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f4xx_hal.h"
 #include "tests/testlogger.h"
-#include "tests/integration/ESP_AT_lib/test_runner.h"
+#include "tests/integration/ESP_AT_parser/test_runner.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */

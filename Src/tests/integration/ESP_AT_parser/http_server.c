@@ -1,4 +1,4 @@
-#include "tests/integration/ESP_AT_lib/http_server.h"
+#include "tests/integration/ESP_AT_parser/http_server.h"
 
 #define  TASK_MIN_STACK_SIZE      (( unsigned portSHORT ) 0x7e)
 #define  TEST_MAX_CHARS_URI       0x40

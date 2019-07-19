@@ -1,4 +1,4 @@
-#include "tests/integration/ESP_AT_lib/test_runner.h"
+#include "tests/integration/ESP_AT_parser/test_runner.h"
 
 
 void vCreateAllTestTasks( void )

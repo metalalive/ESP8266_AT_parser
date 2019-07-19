@@ -1,4 +1,4 @@
-#include "tests/integration/ESP_AT_lib/connect_ap_ping.h"
+#include "tests/integration/ESP_AT_parser/connect_ap_ping.h"
 
 #define  TASK_MIN_STACK_SIZE      (( unsigned portSHORT ) 0x7e)
 
