@@ -16,6 +16,7 @@ espPbuf_t*  pxESPpktBufCreate( size_t len )
     buf_p->next = NULL; 
     buf_p->payload_len = len;   
     buf_p->chain_len   = 0; 
+    buf_p->rd_ptr      = 0;    
     buf_p->payload     = payload; 
     return  buf_p;
 } // end of pxESPpktBufCreate
