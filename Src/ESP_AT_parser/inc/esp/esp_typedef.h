@@ -53,8 +53,8 @@ typedef enum {
 
 
 typedef enum {
-    ESP_DISABLE  = 0 , 
-    ESP_ENABLE , 
+    ESP_DISABLE  = 0, 
+    ESP_ENABLE   = 1, 
 } espFnEn_t;
 
 

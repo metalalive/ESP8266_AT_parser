@@ -256,6 +256,10 @@
 #define ESP_MEMFREE( mptr )                 free( (void *)(mptr) )
 #endif
 
+#ifndef ESP_STRLEN
+#define ESP_STRLEN( src )                   strlen( src )
+#endif
+
 
 #define ESP_MIN_AT_VERSION_MAJOR_ESP8266    1   // Minimal major version for ESP8266 
 #define ESP_MIN_AT_VERSION_MINOR_ESP8266    6   // Minimal minor version for ESP8266 

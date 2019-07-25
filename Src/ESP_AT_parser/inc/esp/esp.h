@@ -99,12 +99,12 @@ espRes_t       eESPsetIPDextraMsg( espFnEn_t en );
 
 void           vESPconnRunEvtCallback( espConn_t *conn, espEvtType_t evt_type );
 
-espRes_t       eESPnetconnRecvPkt( espNetConnPtr  nc, espPbuf_t * pbuf );
+espRes_t       eESPnetconnRecvPkt( espNetConnPtr  nc, espPbuf_t *pbuf );
 
-espRes_t       eESPnetconnGrabNextPkt( espNetConnPtr  nc, espPbuf_t **pbuf );
+espRes_t       eESPnetconnGrabNextPkt( espNetConnPtr  nc, espPbuf_t **pbuf, uint32_t block_time_ms );
 
 espRes_t       eESPconnClientStart( espConn_t *conn_in, espConnType_t type, const char* const host, uint16_t host_len, espPort_t port, 
-                                    espEvtCbFn evt_cb,  espEvtCbFn cb,  void* const cb_arg,  const uint32_t blocking );
+                                    espEvtCbFn evt_cb,  espEvtCbFn api_cb,  void* const api_cb_arg,  const uint32_t blocking );
 espRes_t       eESPconnClientClose( espConn_t *conn_in, espEvtCbFn cb,  void* const cb_arg, const uint32_t blocking);
 
 espRes_t       eESPconnClientSend( espConn_t *conn, const uint8_t *data, size_t d_size, espEvtCbFn cb,  
@@ -112,6 +112,7 @@ espRes_t       eESPconnClientSend( espConn_t *conn, const uint8_t *data, size_t 
 
 uint8_t       ucESPconnGetID( espConn_t * conn );
 
+espConn_t*    pxESPgetNxtAvailConn( void );
 
 
 

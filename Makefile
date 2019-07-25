@@ -168,6 +168,10 @@ else
             Src/tests/integration/ESP_AT_parser/common.c                \
             Src/tests/integration/ESP_AT_parser/connect_ap_ping.c       \
             Src/tests/integration/ESP_AT_parser/http_server.c           \
+            Src/tests/integration/ESP_AT_parser/mqtt_client.c           \
+            Src/tests/integration/ESP_AT_parser/mqtt/mqtt_client_conn.c	\
+            Src/tests/integration/ESP_AT_parser/mqtt/mqtt_packet.c      \
+            Src/tests/integration/ESP_AT_parser/mqtt/mqtt_sys.c         \
             Src/tests/integration/ESP_AT_parser/test_runner.c           \
             Src/tests/integration/integration_test_entry.c           
         C_INCLUDES += \
@@ -179,6 +183,10 @@ else
         else
             ifeq ($(TESTNAME), http_server)
                 C_DEFS += -DESP_TEST_HTTP_SERVER 
+            else
+                ifeq ($(TESTNAME), mqtt_client)
+                    C_DEFS += -DESP_TEST_MQTT_CLIENT 
+                endif #### end of TESTNAME
             endif #### end of TESTNAME
         endif #### end of TESTNAME
     else
