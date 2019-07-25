@@ -7,6 +7,8 @@ void vCreateAllTestTasks( void )
         vESPtestStartPingTask();
     #elif defined(ESP_TEST_HTTP_SERVER)
         vESPtestStartHttpServerTask();
+    #elif defined(ESP_TEST_MQTT_CLIENT)
+        vESPtestStartMqttClientTask();
     #endif
 } // end of vCreateAllTestTasks
 

@@ -177,7 +177,8 @@ static void vESPtestHttpServerTask(void *params)
         for(idx=0; idx<max_req_cnt; idx++)
         {   // call API function to wait for request message sent from client.
             pktbuf = NULL;
-            eESPnetconnGrabNextPkt( serverconn, &pktbuf );
+            response  = eESPnetconnGrabNextPkt( serverconn, &pktbuf, ESP_SYS_MAX_TIMEOUT );
+            if( response != espOK ){  continue; }
             // analyze rquest header at here, then generate HTTP response
             vESPtestHttpSimpleApp( pktbuf, &http_msg );
             //  send HTTP response by performing AT+CIPSEND immediately
@@ -233,7 +234,7 @@ void  vESPtestStartHttpServerTask( void )
 {
     espRes_t response ;
     uint8_t isPrivileged = 0x1;
-    // the ESP initialization thread takes the smae priority as the 2 internal threads working 
+    // the ESP initialization thread takes the same priority as the 2 internal threads working 
     // in ESP AT software.
     response = eESPsysThreadCreate( NULL, "espInitTask", vESPtestInitTask, NULL ,
                                     TASK_MIN_STACK_SIZE, ESP_SYS_THREAD_PRIO ,  isPrivileged
