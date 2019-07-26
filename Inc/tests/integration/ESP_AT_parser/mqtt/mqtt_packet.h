@@ -131,8 +131,8 @@ word32 mqttDecodeVarBytes( byte *buf, word32 *value );
 word32 mqttEncodeVarBytes( byte *buf, word32  value );
 
 // encode/decode property for certain types of packets
-word32 mqttDecodeProps( byte *buf, mqttProp_t *props );
-word32 mqttEncodeProps( byte *buf, mqttProp_t *props );
+word32 mqttDecodeProps( byte *buf, mqttProp_t **props, word32  props_len );
+word32 mqttEncodeProps( byte *buf, mqttProp_t  *props );
 
 
 // encode/decode  different types of MQTT packet 
@@ -155,6 +155,10 @@ word32  mqttEncodePktDisconn( byte *tx_buf, word32 tx_buf_len, mqttPktDisconn_t 
 word32  mqttEncodePktAuth( byte *tx_buf, word32 tx_buf_len, mqttPktAuth_t *auth );
 
 
+// decode the received packet, it will call other decode functions according
+// to the type of received packet.
+int mqttDecodePkt( mqttConn_t *mconn, byte *buf, word32 buf_len,
+                   void *p_decode );
 
 
 #ifdef __cplusplus

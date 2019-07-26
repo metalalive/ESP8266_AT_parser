@@ -104,6 +104,19 @@ word32 mqttEncodeWord16( byte *buf , word16 value )
 
 
 
+
+word32 mqttDecodeWord16( byte *buf , word16 *value )
+{
+    if((buf != NULL) && (value != NULL)) {
+        *value  =  buf[1]; 
+        *value |=  buf[0] << 8 ;
+    }
+    return  (word32)2; 
+} // end of mqttDecodeWord16
+
+
+
+
 word32 mqttEncodeWord32( byte *buf , word32  value )
 {
     if(buf != NULL){
@@ -118,12 +131,26 @@ word32 mqttEncodeWord32( byte *buf , word32  value )
 
 
 
+
+word32 mqttDecodeWord32( byte *buf , word32 *value )
+{
+    if((buf != NULL) && (value != NULL)) {
+        *value  = buf[3]; 
+        *value |= buf[2] << 8  ;
+        *value |= buf[1] << 16 ;
+        *value |= buf[0] << 24 ;
+    }
+    return  (word32)4; 
+} // end of mqttDecodeWord32
+
+
+
+
 word32 mqttEncodeStr( byte *buf, const char   *str, word16   strlen )
 {
     word32  len  = 0;
-
     len = mqttEncodeWord16( buf, strlen );
-    if(buf != NULL){
+    if((buf != NULL) && (str != NULL)){
         buf += len;
         ESP_MEMCPY( buf, str, strlen );
     }
@@ -131,6 +158,19 @@ word32 mqttEncodeStr( byte *buf, const char   *str, word16   strlen )
     return  len;
 } // end of mqttEncodeStr
 
+
+
+
+word32 mqttDecodeStr( byte *buf, const char **pstr, word16 *pstrlen )
+{
+    word32  len  = 0;
+    if((buf != NULL) && (pstrlen != NULL) && (pstr != NULL)){
+        len    = mqttDecodeWord16( buf, pstrlen );
+        *pstr  = &buf[len] ;
+        len   += *pstrlen;
+    }
+    return  len;
+} // end of mqttDecodeStr
 
 
 
@@ -152,40 +192,28 @@ word32 mqttEncodeProps( byte *buf, mqttProp_t *props )
         switch( mqttQueryPropDataType[curr_prop->type] )
         {
             case MQTT_DATA_TYPE_BYTE         : 
-            {
                 len = 1;
                 if(buf != NULL){ *buf  = curr_prop->body.u8; }
                 break;
-            } 
             case MQTT_DATA_TYPE_SHORT        :
-            {
                 len = mqttEncodeWord16( buf, curr_prop->body.u16 );
                 break;
-            } 
             case MQTT_DATA_TYPE_INT          : 
-            {
                 len = mqttEncodeWord32( buf, curr_prop->body.u32 );
                 break;
-            } 
             case MQTT_DATA_TYPE_VAR_INT      :
-            {
                 len = mqttEncodeVarBytes( buf, curr_prop->body.u32 );
                 break;
-            } 
             case MQTT_DATA_TYPE_BINARY       : 
             case MQTT_DATA_TYPE_STRING       :
-            {
                 len = mqttEncodeStr( buf, curr_prop->body.str.data,  curr_prop->body.str.len );
                 break;
-            } 
             case MQTT_DATA_TYPE_STRING_PAIR  :
-            {
-                len = mqttEncodeStr( buf, curr_prop->body.strpair[0].data,  curr_prop->body.strpair[0].len );
+                len  = mqttEncodeStr( buf, curr_prop->body.strpair[0].data,  curr_prop->body.strpair[0].len );
                 if(buf != NULL){ buf  += len; }
                 total_len += len;
-                len = mqttEncodeStr( buf, curr_prop->body.strpair[1].data,  curr_prop->body.strpair[1].len );
+                len += mqttEncodeStr( buf, curr_prop->body.strpair[1].data,  curr_prop->body.strpair[1].len );
                 break;
-            } 
             default:
                 len = 0;
                 break;
@@ -199,21 +227,102 @@ word32 mqttEncodeProps( byte *buf, mqttProp_t *props )
 } // end of mqttEncodeProps
 
 
+
+
+
+word32 mqttDecodeProps( byte *buf, mqttProp_t **props , word32  props_len )
+{
+    mqttProp_t *curr_prop   = NULL;
+    word32      len ;
+    word32      copied_len = 0;
+
+    if(buf == NULL){ return copied_len; }
+    while(props_len > 0) 
+    {
+        // create new empty node to the given property list.
+        curr_prop = mqttPropertyCreate( props );
+        if(curr_prop == NULL) {
+            mqttPropertyDel( *props );
+            break; // memory error
+        }
+        // first byte of each property must represent the type
+        len           = mqttDecodeVarBytes( buf, (word32 *)&curr_prop->type );
+        props_len    -= len;
+        copied_len   += len;
+        buf          += len;
+        switch( mqttQueryPropDataType[curr_prop->type] )
+        {
+            case MQTT_DATA_TYPE_BYTE         : 
+                len  = 1;
+                curr_prop->body.u8 = *buf;
+                break;
+            case MQTT_DATA_TYPE_SHORT        :
+                len = mqttDecodeWord16( buf, &curr_prop->body.u16 );
+                break;
+            case MQTT_DATA_TYPE_INT          : 
+                len = mqttDecodeWord32( buf, &curr_prop->body.u32 );
+                break;
+            case MQTT_DATA_TYPE_VAR_INT      :
+                len = mqttDecodeVarBytes( buf, &curr_prop->body.u32 );
+                break;
+            case MQTT_DATA_TYPE_BINARY       : 
+            case MQTT_DATA_TYPE_STRING       :
+                len = mqttDecodeStr( buf, &curr_prop->body.str.data,  &curr_prop->body.str.len );
+                break;
+            case MQTT_DATA_TYPE_STRING_PAIR  :
+                len  = mqttDecodeStr( &buf[0]  , &curr_prop->body.strpair[0].data,  &curr_prop->body.strpair[0].len );
+                len += mqttDecodeStr( &buf[len], &curr_prop->body.strpair[1].data,  &curr_prop->body.strpair[1].len );
+                break;
+            default:
+                len = 0;
+                break;
+        } // end of switch-case statement
+        props_len    -= len;
+        copied_len   += len;
+        buf          += len;
+    } // end of loop
+    return  copied_len;
+} // end of mqttDecodeProps
+
+
+
     
+
 
 static word32 mqttEncodeFxHeader( byte *tx_buf, word32 tx_buf_len, word32 remain_len, 
                                   mqttCtrlPktType cmdtype, byte retain, byte qos, byte duplicate )
 {
     word32  len = 0;
     mqttPktFxHead_t  *header = (mqttPktFxHead_t *) tx_buf;
-    header->type_flgs  = MQTT_CTRL_PKT_TYPE_SET(cmdtype);
-    header->type_flgs |= ((duplicate & 0x1) << 3) | ((qos & 0x3) << 1) | (retain & 0x1);
+    MQTT_CTRL_PKT_TYPE_SET( header->type_flgs, cmdtype );
+    header->type_flgs |= (duplicate & 0x1) << 3 ;
+    header->type_flgs |= (qos       & 0x3) << 1 ;
+    header->type_flgs |= (retain    & 0x1) << 0 ;
     len += mqttEncodeVarBytes( &header->remain_len[0], remain_len );
     len  = (len == 0 ? 2 : len+1); // TODO: test this part
     return  len;
 } // end of  mqttEncodeFxHeader
 
 
+
+static word32 mqttDecodeFxHeader( byte *rx_buf, word32 rx_buf_len, word32 *remain_len, 
+                                  mqttCtrlPktType cmdtype, byte *retain, byte *qos, byte *duplicate )
+{
+    const    mqttPktFxHead_t  *header = (mqttPktFxHead_t *) rx_buf;
+    word32   len = 0;
+    word32   _remain_len ;
+
+    if(MQTT_CTRL_PKT_TYPE_GET(header->type_flgs) != type) {
+        return len;
+    }
+    if(retain != NULL) {    *retain    = (header->type_flgs & 0x1) >> 0; }
+    if(qos != NULL) {       *qos       = (header->type_flgs & 0x3) >> 1; }
+    if(duplicate != NULL) { *duplicate = (header->type_flgs & 0x1) >> 3; }
+    len += 1;
+    len += mqttDecodeVarBytes( &header->remain_len[0], &_remain_len );
+    if(remain_len != NULL) { *remain_len = _remain_len; }
+    return  len;
+} // end of mqttDecodeFxHeader
 
 
 
@@ -295,6 +404,28 @@ word32  mqttEncodePktConnect( byte *tx_buf, word32 tx_buf_len, mqttConn_t* conn 
 
 
 
+word32  mqttDecodePktConnack( byte *rx_buf, word32 rx_buf_len,  mqttPktHeadConnack_t *connack )
+{
+    word32   fx_head_len = 0;
+    word32   remain_len  = 0;
+    word32   props_len   = 0;
+    byte    *curr_buf_pos ;
+    fx_head_len = mqttDecodeFxHeader( rx_buf, rx_buf_len, &remain_len, 
+                                      MQTT_PACKET_TYPE_CONNACK, NULL, NULL, NULL );
+    curr_buf_pos = &rx_buf[fx_head_len];
+    connack->flags        = *curr_buf_pos++;
+    connack->reason_code  = *curr_buf_pos++;
+    // copy all properties from buffer
+    curr_buf_pos += mqttDecodeVarBytes( curr_buf_pos, &props_len );
+    if(props_len > 0) {
+        curr_buf_pos += mqttDecodeProps( curr_buf_pos, &connack->props, props_len );
+    }
+    return  (fx_head_len + remain_len);
+} // end of mqttDecodePktConnack
+
+
+
+
 int  mqttPktRead( mqttConn_t *mconn, byte *buf, word32 buf_max_len, word32 *copied_len )
 {
     if((mconn == NULL) || (buf == NULL) || (copied_len == NULL)) { 
@@ -363,6 +494,37 @@ int  mqttPktWrite( mqttConn_t *mconn, byte *buf, word32 buf_len )
 
 
 
+
+int mqttDecodePkt( mqttConn_t *mconn, byte *buf, word32 buf_len, void *p_decode )
+{
+    const   mqttPktFxHead_t  *header = (mqttPktFxHead_t *) buf;
+    mqttCtrlPktType  cmdtype = MQTT_CTRL_PKT_TYPE_GET(header->type_flgs);
+    switch (cmdtype)
+    {
+        case MQTT_PACKET_TYPE_CONNACK      : 
+            mqttDecodePktConnack( buf, buf_len, (mqttPktHeadConnack_t *)p_decode );
+            if(p_decode != NULL) {
+                //  free the properties here if we take some space on 
+                //  clientPropStack[...] while decoding the packet
+                mqttPropertyDel( ((mqttPktHeadConnack_t *)p_decode)->props );
+            }
+            break;  
+        case MQTT_PACKET_TYPE_PUBLISH      : mqttDecodePkt123; break; 
+        case MQTT_PACKET_TYPE_PUBACK       : mqttDecodePkt123; break; 
+        case MQTT_PACKET_TYPE_PUBRECV      : mqttDecodePkt123; break; 
+        case MQTT_PACKET_TYPE_PUBREL       : mqttDecodePkt123; break; 
+        case MQTT_PACKET_TYPE_PUBCOMP      : mqttDecodePkt123; break; 
+        case MQTT_PACKET_TYPE_SUBACK       : mqttDecodePkt123; break; 
+        case MQTT_PACKET_TYPE_UNSUBACK     : mqttDecodePkt123; break; 
+        case MQTT_PACKET_TYPE_PINGREQ      : mqttDecodePkt123; break; 
+        case MQTT_PACKET_TYPE_PINGRESP     : mqttDecodePkt123; break; 
+        case MQTT_PACKET_TYPE_DISCONNECT   : mqttDecodePkt123; break; 
+        case MQTT_PACKET_TYPE_AUTH         : mqttDecodePkt123; break; 
+        default:
+            break;
+    } // end of switch-case statement
+    return  MQTT_RETURN_SUCCESS;
+} // end of mqttDecodePkt
 
 
 

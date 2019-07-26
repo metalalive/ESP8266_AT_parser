@@ -17,6 +17,8 @@ extern "C" {
 
 #define  MQTT_DEFAULT_KEEPALIVE_SEC      60 
 
+// max number of properties used in this MQTT client
+#define  MQTT_MAX_NUM_PROPS              16
 
 
 // ------- topic naming rule --------
@@ -38,10 +40,8 @@ extern "C" {
 
 
 // Get/Set packet types : located in first byte of fixed header in bits 4-7 
-#define MQTT_CTRL_PKT_TYPE_GET(x)  (((x) >> 4) & 0xF)
-#define MQTT_CTRL_PKT_TYPE_SET(x)  (((x) & 0xF) << 4)
-#define MQTT_CTRL_PKT_FLGS_GET(x)  ((x) & 0xF)
-#define MQTT_CTRL_PKT_FLGS_SET(x)  (x)
+#define MQTT_CTRL_PKT_TYPE_GET(b)       (((b) >> 4) & 0xF)
+#define MQTT_CTRL_PKT_TYPE_SET(b, x)    b =  (((x) & 0xF) << 4) | ((b) & 0xF)
 
 
 

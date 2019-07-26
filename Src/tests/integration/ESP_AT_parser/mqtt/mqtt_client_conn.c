@@ -2,9 +2,15 @@
 #include "tests/integration/ESP_AT_parser/mqtt/mqtt_include.h"
 
 
+static mqttProp_t clientPropStack[MQTT_MAX_NUM_PROPS] = {0};
+
+
 // initialize the  mqttConn_t  structure
 int   mqttClientInit( mqttConn_t **mconn, int cmd_timeout_ms, word32 tx_buf_len, word32 rx_buf_len )
 {
+    // clear static data
+    ESP_MEMSET( &clientPropStack, 0x00, sizeof(mqttProp_t) * MQTT_MAX_NUM_PROPS );   
+    // create global structure mqttConn_t object
     mqttConn_t *c = NULL;
     c  =  ESP_MALLOC( sizeof(mqttConn_t) );
     if( c == NULL ){
@@ -63,11 +69,53 @@ int  mqttClientWaitPkt( mqttConn_t *mconn, mqttCtrlPktType cmdtype, void* p_deco
     if( status != MQTT_RETURN_SUCCESS ) {
         return status;
     }
-    // decode the received packet
-
+    // start decoding the received packet
+    status = mqttDecodePkt( mconn, rx_buf, pkt_total_len, p_decode ); 
     return  MQTT_RETURN_SUCCESS;
 } // end of mqttClientWaitPkt
 
+
+
+mqttProp_t*  mqttPropertyCreate( mqttProp_t **head )
+{ // TODO: mutex is required in multithreading case
+    mqttProp_t*  curr_node = *head;
+    mqttProp_t*  prev_node = NULL;
+    uint8_t      idx = 0;
+    while( curr_node != NULL ) {
+        prev_node = curr_node;
+        curr_node = curr_node->next; 
+    }
+    // pick up one available node 
+    for(idx=0; idx<MQTT_MAX_NUM_PROPS ; idx++) {
+        if(clientPropStack[idx].type == MQTT_PROP_NONE) {
+            curr_node = &clientPropStack[idx] ;
+            break;
+        }
+    }
+    if(curr_node != NULL){
+        if(prev_node == NULL){
+            *head = curr_node;
+        }
+        else{
+            prev_node->next = curr_node; 
+        }
+    }
+    return  curr_node;
+} // end of mqttPropertyCreate
+
+
+
+
+void   mqttPropertyDel( mqttProp_t *head )
+{ // TODO: mutex is required in multithreading case
+    mqttProp_t*  curr_node = head;
+    mqttProp_t*  next_node = NULL;
+    while( curr_node != NULL ) {
+        next_node = curr_node->next; 
+        ESP_MEMSET( curr_node, 0x0, sizeof(mqttProp_t) );
+        curr_node = next_node;
+    }
+} // end of mqttPropertyDel
 
 
 
