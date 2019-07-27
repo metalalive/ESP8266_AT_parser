@@ -6,7 +6,7 @@
 #define  MQTT_CMD_TIMEOUT_MS             0x1000
 
 
-static mqttConn_t     *m_client ;
+static mqttCtx_t     *m_client ;
 static espNetConnPtr   clientnetconn;
 
 
@@ -34,7 +34,7 @@ static espRes_t eESPtestMqttClientCallBack( espEvt_t*  evt )
 
 
 
-static void vESPtestMqttClientApp( espNetConnPtr netconn, espConn_t*  conn,  mqttConn_t *m_client )
+static void vESPtestMqttClientApp( espNetConnPtr netconn, espConn_t*  conn,  mqttCtx_t *m_client )
 {
     uint8_t   idx = 0;
     uint8_t   max_num_publish_msg = 5;
@@ -54,6 +54,11 @@ static void vESPtestMqttClientApp( espNetConnPtr netconn, espConn_t*  conn,  mqt
     {
         // --- subscribe topic of interests
     } // end of loop
+    // --- send DISCONNECT packet to broker ---
+    mclient->pkt.disconn.reason_code = MQTT_REASON_NORMAL_DISCONNECTION;
+    mclient->pkt.disconn.props       = NULL;
+    mqttSendDisconnect( m_client );
+
 } // end of vESPtestMqttClientApp
 
 

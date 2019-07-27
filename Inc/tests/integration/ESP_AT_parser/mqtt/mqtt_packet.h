@@ -106,12 +106,12 @@ typedef mqttPktDisconn_t mqttPktAuth_t;
 
 // ----- Application Interface for MQTT client code operations -----
 // low-level interfaces to read/write packet data from underlying system
-word32  mqttPktLowLvlRead(  mqttConn_t *mconn, byte *buf, word32 buf_len);
-word32  mqttPktLowLvlWrite( mqttConn_t *mconn, byte *buf, word32 buf_len);
+word32  mqttPktLowLvlRead(  mqttCtx_t *mconn, byte *buf, word32 buf_len);
+word32  mqttPktLowLvlWrite( mqttCtx_t *mconn, byte *buf, word32 buf_len);
 
 // interface to read/write packet data
-int  mqttPktRead(  mqttConn_t *mconn, byte *buf, word32 buf_max_len, word32 *copied_len );
-int  mqttPktWrite( mqttConn_t *mconn, byte *buf, word32 buf_len );
+int  mqttPktRead(  mqttCtx_t *mconn, byte *buf, word32 buf_max_len, word32 *copied_len );
+int  mqttPktWrite( mqttCtx_t *mconn, byte *buf, word32 buf_len );
 
 // element encoders / decoders
 // 16-bit number from/to consecutive given 2 bytes
@@ -145,7 +145,7 @@ word32  mqttDecodePktPing( byte *rx_buf, word32 rx_buf_len );
 word32  mqttDecodePktDisconn( byte *rx_buf, word32 rx_buf_len, mqttPktDisconn_t *disconn);
 word32  mqttDecodePktAuth( byte *rx_buf, word32 rx_buf_len, mqttPktAuth_t *auth );
 
-word32  mqttEncodePktConnect( byte *tx_buf, word32 tx_buf_len, mqttConn_t* conn );
+word32  mqttEncodePktConnect( byte *tx_buf, word32 tx_buf_len, mqttCtx_t* conn );
 word32  mqttEncodePktPublish( byte *tx_buf, word32 tx_buf_len, mqttMsg_t *msg );
 word32  mqttEncodePktPubResp( byte *tx_buf, word32 tx_buf_len, mqttPktPubResp_t *resp, mqttCtrlPktType cmdtype );
 word32  mqttEncodePktSubscribe( byte *tx_buf, word32 tx_buf_len, mqttPktSubs_t *subs );
@@ -157,7 +157,7 @@ word32  mqttEncodePktAuth( byte *tx_buf, word32 tx_buf_len, mqttPktAuth_t *auth 
 
 // decode the received packet, it will call other decode functions according
 // to the type of received packet.
-int mqttDecodePkt( mqttConn_t *mconn, byte *buf, word32 buf_len,
+int mqttDecodePkt( mqttCtx_t *mconn, byte *buf, word32 buf_len,
                    void *p_decode );
 
 

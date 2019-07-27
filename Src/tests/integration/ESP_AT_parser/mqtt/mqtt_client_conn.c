@@ -5,18 +5,18 @@
 static mqttProp_t clientPropStack[MQTT_MAX_NUM_PROPS] = {0};
 
 
-// initialize the  mqttConn_t  structure
-int   mqttClientInit( mqttConn_t **mconn, int cmd_timeout_ms, word32 tx_buf_len, word32 rx_buf_len )
+// initialize the  mqttCtx_t  structure
+int   mqttClientInit( mqttCtx_t **mctx, int cmd_timeout_ms, word32 tx_buf_len, word32 rx_buf_len )
 {
     // clear static data
     ESP_MEMSET( &clientPropStack, 0x00, sizeof(mqttProp_t) * MQTT_MAX_NUM_PROPS );   
-    // create global structure mqttConn_t object
-    mqttConn_t *c = NULL;
-    c  =  ESP_MALLOC( sizeof(mqttConn_t) );
+    // create global structure mqttCtx_t object
+    mqttCtx_t *c = NULL;
+    c  =  ESP_MALLOC( sizeof(mqttCtx_t) );
     if( c == NULL ){
         return MQTT_RETURN_ERROR_MEMORY;
     }
-    ESP_MEMSET( c, 0x00, sizeof(mqttConn_t) );
+    ESP_MEMSET( c, 0x00, sizeof(mqttCtx_t) );
     c->tx_buf = ESP_MALLOC( sizeof(byte) * tx_buf_len );
     c->tx_buf_len = tx_buf_len;
     if( c->tx_buf == NULL ) {
@@ -32,14 +32,14 @@ int   mqttClientInit( mqttConn_t **mconn, int cmd_timeout_ms, word32 tx_buf_len,
     c->protocol_lvl    = MQTT_CONN_PROTOCOL_LEVEL; 
     c->max_qos         = MQTT_QOS_2;
     c->retain_avail    = 1; 
-    *mconn  =  c;
+    *mctx  =  c;
     // TODO: create semaphores from packet send/receive operations in multithreading case.
     return  MQTT_RETURN_SUCCESS;
 } // end of mqttClientInit
 
 
 
-int  mqttClientDeinit( mqttConn_t *c )
+int  mqttClientDeinit( mqttCtx_t *c )
 {
     if( c == NULL ){ 
         return MQTT_RETURN_ERROR_BAD_ARG;
@@ -55,23 +55,23 @@ int  mqttClientDeinit( mqttConn_t *c )
 
 
 
-int  mqttClientWaitPkt( mqttConn_t *mconn, mqttCtrlPktType cmdtype, void* p_decode )
+int  mqttClientWaitPkt( mqttCtx_t *mctx, mqttCtrlPktType cmdtype, void* p_decode )
 {
     int         status ;
     byte       *rx_buf;
     word32      rx_buf_len;
     word32      pkt_total_len = 0;
 
-    rx_buf     = mconn->rx_buf;
-    rx_buf_len = mconn->rx_buf_len;
+    rx_buf     = mctx->rx_buf;
+    rx_buf_len = mctx->rx_buf_len;
     // wait until we receive incoming packet.
-    status = mqttPktRead( mconn, rx_buf, rx_buf_len, &pkt_total_len );
+    status = mqttPktRead( mctx, rx_buf, rx_buf_len, &pkt_total_len );
     if( status != MQTT_RETURN_SUCCESS ) {
         return status;
     }
     // start decoding the received packet
-    status = mqttDecodePkt( mconn, rx_buf, pkt_total_len, p_decode ); 
-    return  MQTT_RETURN_SUCCESS;
+    status = mqttDecodePkt( mctx, rx_buf, pkt_total_len, p_decode ); 
+    return  status;
 } // end of mqttClientWaitPkt
 
 
@@ -120,33 +120,56 @@ void   mqttPropertyDel( mqttProp_t *head )
 
 
 
-int   mqttSendConnect( mqttConn_t *mconn )
+int   mqttSendConnect( mqttCtx_t *mctx )
 {
     byte       *tx_buf;
     word32      tx_buf_len;
     word32      pkt_total_len;
     int         status ;
-    if( mconn == NULL ){ 
+    if( mctx == NULL ){ 
         return MQTT_RETURN_ERROR_BAD_ARG;
     }
-    tx_buf     = mconn->tx_buf;
-    tx_buf_len = mconn->tx_buf_len;
-    pkt_total_len  =  mqttEncodePktConnect( tx_buf, tx_buf_len, mconn );
+    tx_buf     = mctx->tx_buf;
+    tx_buf_len = mctx->tx_buf_len;
+    pkt_total_len  =  mqttEncodePktConnect( tx_buf, tx_buf_len, mctx );
     if(pkt_total_len <= 0) {
         return  MQTT_RETURN_ERROR_MALFORMED_DATA;
     }
     else if(pkt_total_len > tx_buf_len) {
         return  MQTT_RETURN_ERROR_OUT_OF_BUFFER;
     }
-    status = mqttPktWrite( mconn, tx_buf, pkt_total_len );
+    status = mqttPktWrite( mctx, tx_buf, pkt_total_len );
     // the return value must be equal to length of Tx buffer, otherwise something
     // in the underlying system must be wrong.
     if( status != MQTT_RETURN_SUCCESS ) {
         return status;
     }
-    status = mqttClientWaitPkt( mconn, MQTT_PACKET_TYPE_CONNACK, (void *)&mconn->recv_connack );
+    status = mqttClientWaitPkt( mctx, MQTT_PACKET_TYPE_CONNACK, (void *)&mctx->pkt.recv_connack );
     return  status;
 } // end of mqttSendConnect
+
+
+
+
+int   mqttSendDisconnect( mqttCtx_t *mctx )
+{
+    int         status ;
+    byte       *tx_buf;
+    word32      tx_buf_len;
+    word32      pkt_total_len;
+    if( mctx == NULL ){ 
+        return MQTT_RETURN_ERROR_BAD_ARG;
+    }
+    tx_buf     = mctx->tx_buf;
+    tx_buf_len = mctx->tx_buf_len;
+    pkt_total_len  =  mqttEncodePktDisconn( tx_buf, tx_buf_len, (void *)&mctx->pkt.disconn );
+    if(pkt_total_len <= 0) {
+        return  MQTT_RETURN_ERROR_MALFORMED_DATA;
+    }
+    status = mqttPktWrite( mctx, tx_buf, pkt_total_len );
+    return  status;
+} // end of  mqttSendDisconnect
+
 
 
 

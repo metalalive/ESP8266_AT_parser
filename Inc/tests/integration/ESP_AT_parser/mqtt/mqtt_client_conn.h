@@ -42,8 +42,11 @@ typedef struct {
     byte       *rx_buf;
     word32      rx_buf_len;
 
-    // Ack data , TODO: test
-    mqttPktHeadConnack_t recv_connack;
+    union {
+        // Ack data , TODO: test
+        mqttPktHeadConnack_t recv_connack;
+        mqttPktDisconn_t     disconn;
+    } pkt;
     // extract received message to this member, TODO: test 
     mqttMsg_t    *recv_msg;
 
@@ -55,48 +58,48 @@ typedef struct {
 
     // extended connection objects used for underlying system
     void*        ext_sysobjs[2];
-} mqttConn_t;
+} mqttCtx_t;
 
 
 
 // ----- Application Interface for MQTT client code operations -----
 
-// initialize the  mqttConn_t  structure
-int   mqttClientInit( mqttConn_t **mconn, int cmd_timeout_ms,
+// initialize the  mqttCtx_t  structure
+int   mqttClientInit( mqttCtx_t **mconn, int cmd_timeout_ms,
                       word32 tx_buf_len, word32 rx_buf_len );
 
-int   mqttClientDeinit( mqttConn_t *mconn );
+int   mqttClientDeinit( mqttCtx_t *mconn );
 
 // encodes & sends MQTT CONNECT packet, and waits for CONNACK packet
 // this is a blocking function 
-int   mqttSendConnect( mqttConn_t *mconn );
+int   mqttSendConnect( mqttCtx_t *mconn );
 
 // encodes & sends PUBLISH packet, for QoS > 0, this function waits for
 // publish response packets, 
 //     If QoS level = 1 then will wait for PUBLISH_ACK.
 //     If QoS level = 2 then will wait for PUBLISH_REC then send
 //         PUBLISH_REL and wait for PUBLISH_COMP.
-int   mqttSendPublish( mqttConn_t *mconn, mqttMsg_t *msg );
+int   mqttSendPublish( mqttCtx_t *mconn, mqttMsg_t *msg );
 
 // encodes & sends MQTT SUBSCRIBE packet, then waits for SUBACK packet
-int   mqttSendSubscribe( mqttConn_t *mconn, mqttPktSubs_t *sub );
+int   mqttSendSubscribe( mqttCtx_t *mconn, mqttPktSubs_t *sub );
 
 // encodes & sends MQTT UNSUBSCRIBE packet, waits for UNSUBACK packet
-int   mqttSendUnsubscribe( mqttConn_t *mconn, mqttPktUnsubs_t *unsub );
+int   mqttSendUnsubscribe( mqttCtx_t *mconn, mqttPktUnsubs_t *unsub );
 
 // encodes & sends MQTT PING request packet, and waits for PING response
 // packet
-int   mqttSendPingReq( mqttConn_t *mconn );
+int   mqttSendPingReq( mqttCtx_t *mconn );
 
 // encodes & sends MQTT AUTH packet if client enabled enhanced authentication
 // by adding properties "Authentication method" / "Authentication Data" to
 // CONNECT packet, then client will send this AUTH packet and waits for CONNACK
 // packet with authentication success status.
-int    mqttSendExtendAuth( mqttConn_t *mconn, mqttPktAuth_t *auth );
+int    mqttSendExtendAuth( mqttCtx_t *mconn, mqttPktAuth_t *auth );
 
 // encodes & sends MQTT DISCONNECT packet, then client must closse the TCP
 // connection (no need to wait for broker's response).
-int   mqttSendDisconnect( mqttConn_t *mconn );
+int   mqttSendDisconnect( mqttCtx_t *mconn );
 
 
 
@@ -112,7 +115,7 @@ void         mqttPropertyDel( mqttProp_t *head );
 // waits for packets (with given type) to arrive, it could be incoming
 // PUBLISH message, or acknowledgement of PUBLISH / SUBSCRIBE / UNSUBSCRIBE
 // packet client has sent.
-int  mqttClientWaitPkt( mqttConn_t *mconn, mqttCtrlPktType cmdtype, 
+int  mqttClientWaitPkt( mqttCtx_t *mconn, mqttCtrlPktType cmdtype, 
                         void* p_decode );
 
 

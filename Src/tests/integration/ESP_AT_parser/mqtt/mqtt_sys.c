@@ -17,7 +17,7 @@ static espPbuf_t   *unfinish_rd_pktbuf_head = NULL;
 
 
 
-word32  mqttPktLowLvlRead( mqttConn_t *mconn, byte *buf, word32 buf_len )
+word32  mqttPktLowLvlRead( mqttCtx_t *mconn, byte *buf, word32 buf_len )
 {
     espNetConnPtr   espconn = NULL; 
     espRes_t        response ;
@@ -70,7 +70,7 @@ word32  mqttPktLowLvlRead( mqttConn_t *mconn, byte *buf, word32 buf_len )
 
 
 
-word32  mqttPktLowLvlWrite( mqttConn_t *mconn, byte *buf, word32 buf_len )
+word32  mqttPktLowLvlWrite( mqttCtx_t *mconn, byte *buf, word32 buf_len )
 {
     if((mconn == NULL) || (buf == NULL)) { 
         return 0 ;
