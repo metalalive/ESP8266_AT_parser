@@ -28,8 +28,6 @@ int   mqttClientInit( mqttCtx_t **mctx, int cmd_timeout_ms, word32 tx_buf_len, w
         return MQTT_RETURN_ERROR_MEMORY;
     }
     c->cmd_timeout_ms  = cmd_timeout_ms;
-    c->keep_alive_sec  = MQTT_DEFAULT_KEEPALIVE_SEC;
-    c->protocol_lvl    = MQTT_CONN_PROTOCOL_LEVEL; 
     c->max_qos         = MQTT_QOS_2;
     c->retain_avail    = 1; 
     *mctx  =  c;
@@ -131,7 +129,7 @@ int   mqttSendConnect( mqttCtx_t *mctx )
     }
     tx_buf     = mctx->tx_buf;
     tx_buf_len = mctx->tx_buf_len;
-    pkt_total_len  =  mqttEncodePktConnect( tx_buf, tx_buf_len, mctx );
+    pkt_total_len  =  mqttEncodePktConnect( tx_buf, tx_buf_len, (mqttConn_t *)&mctx->pkt.conn );
     if(pkt_total_len <= 0) {
         return  MQTT_RETURN_ERROR_MALFORMED_DATA;
     }

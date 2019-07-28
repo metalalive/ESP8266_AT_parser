@@ -312,7 +312,7 @@ static word32 mqttDecodeFxHeader( byte *rx_buf, word32 rx_buf_len, word32 *remai
     word32   len = 0;
     word32   _remain_len ;
 
-    if(MQTT_CTRL_PKT_TYPE_GET(header->type_flgs) != type) {
+    if(MQTT_CTRL_PKT_TYPE_GET(header->type_flgs) != cmdtype) {
         return len;
     }
     if(retain != NULL) {    *retain    = (header->type_flgs & 0x1) >> 0; }
@@ -326,10 +326,10 @@ static word32 mqttDecodeFxHeader( byte *rx_buf, word32 rx_buf_len, word32 *remai
 
 
 
-word32  mqttEncodePktConnect( byte *tx_buf, word32 tx_buf_len, mqttCtx_t* mctx )
+word32  mqttEncodePktConnect( byte *tx_buf, word32 tx_buf_len, struct __mqttConn *conn )
 {
-    if((mctx == NULL) || (tx_buf == NULL) || (tx_buf_len == 0)) { 
-        return MQTT_RETURN_ERROR_BAD_ARG;
+    if((conn == NULL) || (tx_buf == NULL) || (tx_buf_len == 0)) { 
+        return 0; 
     }
     word32   fx_head_len = 0;
     word32   remain_len  = 0;
@@ -341,20 +341,19 @@ word32  mqttEncodePktConnect( byte *tx_buf, word32 tx_buf_len, mqttCtx_t* mctx )
     remain_len += sizeof(mqttPktHeadConnect_t); 
 
     // size of all properties in the header of this CONNECT packet
-    props_len   =  mqttEncodeProps( NULL, mctx->props );
+    props_len   =  mqttEncodeProps( NULL, conn->props );
     remain_len +=  props_len;
-
     // number of variable bytes to store "property length"
     remain_len += mqttEncodeVarBytes(NULL, props_len);
 
     // size of each element in CONNECT payload section
     // TODO: implement will property, will topic, and will payload
-    remain_len += MQTT_DSIZE_STR_LEN + mctx->client_id.len ; 
-    if(mctx->username.data != NULL) {
-        remain_len += MQTT_DSIZE_STR_LEN + mctx->username.len ; 
+    remain_len += MQTT_DSIZE_STR_LEN + conn->client_id.len ; 
+    if(conn->username.data != NULL) {
+        remain_len += MQTT_DSIZE_STR_LEN + conn->username.len ; 
     }
-    if(mctx->password.data != NULL) {
-        remain_len += MQTT_DSIZE_STR_LEN + mctx->password.len ; 
+    if(conn->password.data != NULL) {
+        remain_len += MQTT_DSIZE_STR_LEN + conn->password.len ; 
     }
     // build fixed header of CONNECT packet 
     fx_head_len = mqttEncodeFxHeader( tx_buf, tx_buf_len, remain_len, 
@@ -362,30 +361,30 @@ word32  mqttEncodePktConnect( byte *tx_buf, word32 tx_buf_len, mqttCtx_t* mctx )
 
     curr_buf_pos = &tx_buf[fx_head_len];
     // copy bytes to variable header
-    var_head.protocol_lvl = mctx->protocol_lvl; 
+    var_head.protocol_lvl = conn->protocol_lvl; 
     // TODO: implement will property, will topic, and will payload
-    if(mctx->clean_session != 0) {
+    if(conn->clean_session != 0) {
         var_head.flags |=  MQTT_CONNECT_FLG_CLEAN_START; 
     }
-    if(mctx->username.data != NULL) {
+    if(conn->username.data != NULL) {
         var_head.flags |= MQTT_CONNECT_FLG_USERNAME ; 
     }
-    if(mctx->password.data != NULL) {
+    if(conn->password.data != NULL) {
         var_head.flags |= MQTT_CONNECT_FLG_PASSWORD ; 
     }
-    mqttEncodeWord16( (byte *)&var_head.keep_alive, mctx->keep_alive_sec );
+    mqttEncodeWord16( (byte *)&var_head.keep_alive, conn->keep_alive_sec );
     ESP_MEMCPY( curr_buf_pos, (byte *)&var_head, sizeof(mqttPktHeadConnect_t) );
     curr_buf_pos += sizeof(mqttPktHeadConnect_t);
 
     // copy all properties to buffer
     curr_buf_pos += mqttEncodeVarBytes( curr_buf_pos, props_len );
-    curr_buf_pos += mqttEncodeProps( curr_buf_pos, mctx->props );
+    curr_buf_pos += mqttEncodeProps( curr_buf_pos, conn->props );
 
     // copy all elements of the payload to buffer
-    curr_buf_pos += mqttEncodeStr( curr_buf_pos, mctx->client_id.data,  mctx->client_id.len );
+    curr_buf_pos += mqttEncodeStr( curr_buf_pos, conn->client_id.data,  conn->client_id.len );
     // TODO: implement will property, will topic, and will payload
-    if(mctx->username.data != NULL) {
-        curr_buf_pos += mqttEncodeStr( curr_buf_pos, mctx->username.data,  mctx->username.len );
+    if(conn->username.data != NULL) {
+        curr_buf_pos += mqttEncodeStr( curr_buf_pos, conn->username.data,  conn->username.len );
     }
     else {
         // [Note]
@@ -394,8 +393,8 @@ word32  mqttEncodePktConnect( byte *tx_buf, word32 tx_buf_len, mqttCtx_t* mctx )
         // return CONNACK packet with the property "Assigned Client Identifier" back to client .
         curr_buf_pos += mqttEncodeWord16( curr_buf_pos, (word16)0 );
     }
-    if(mctx->password.data != NULL) {
-        curr_buf_pos += mqttEncodeStr( curr_buf_pos, mctx->password.data,  mctx->password.len );
+    if(conn->password.data != NULL) {
+        curr_buf_pos += mqttEncodeStr( curr_buf_pos, conn->password.data,  conn->password.len );
     }
 
     return  (remain_len + fx_head_len);
@@ -406,6 +405,9 @@ word32  mqttEncodePktConnect( byte *tx_buf, word32 tx_buf_len, mqttCtx_t* mctx )
 
 word32  mqttDecodePktConnack( byte *rx_buf, word32 rx_buf_len,  mqttPktHeadConnack_t *connack )
 {
+    if((connack == NULL) || (rx_buf == NULL) || (rx_buf_len == 0)) { 
+        return  0;
+    }
     word32   fx_head_len = 0;
     word32   remain_len  = 0;
     word32   props_len   = 0;
@@ -425,13 +427,47 @@ word32  mqttDecodePktConnack( byte *rx_buf, word32 rx_buf_len,  mqttPktHeadConna
 
 
 
+
 word32  mqttEncodePktDisconn( byte *tx_buf, word32 tx_buf_len, mqttPktDisconn_t *disconn )
 {
+    if((disconn == NULL) || (tx_buf == NULL) || (tx_buf_len == 0)) { 
+        return  0;
+    }
+    word32   fx_head_len = 0;
+    word32   remain_len  = 0;
+    word32   props_len   = 0;
+    byte    *curr_buf_pos ;
+    byte     reason_code = disconn->reason_code;
+    // if reason code is 0x0 (normal disconnection), then there's no need to put reason code
+    // and extra properties into DISCONNECT packet, therefore hte remaining length should be
+    // zero.
+    if((reason_code != MQTT_REASON_NORMAL_DISCONNECTION) || (disconn->props!=NULL)) {
+        // 1 byte is preserved for non-zero reason code
+        remain_len +=  1;
+        // size of all properties in the DISCONNECT packet
+        props_len   =  mqttEncodeProps( NULL, disconn->props );
+        remain_len +=  props_len;
+        // number of variable bytes to store "property length"
+        remain_len += mqttEncodeVarBytes(NULL, props_len);
+    }
+    // build fixed header of CONNECT packet 
+    fx_head_len = mqttEncodeFxHeader( tx_buf, tx_buf_len, remain_len, 
+                                      MQTT_PACKET_TYPE_DISCONNECT,  0, 0, 0 );
+    if((reason_code != MQTT_REASON_NORMAL_DISCONNECTION) || (disconn->props!=NULL)) {
+        curr_buf_pos = &tx_buf[fx_head_len];
+        // 1 byte is preserved for non-zero reason code, TODO: test
+        *curr_buf_pos++  = reason_code;
+        // copy all properties to buffer
+        curr_buf_pos +=  mqttEncodeVarBytes( curr_buf_pos, props_len );
+        curr_buf_pos +=  mqttEncodeProps( curr_buf_pos, disconn->props );
+    }
+    return (fx_head_len + remain_len);
 } // end of mqttEncodePktDisconn
 
 
 
-int  mqttPktRead( mqttCtx_t *mctx, byte *buf, word32 buf_max_len, word32 *copied_len )
+
+int  mqttPktRead( struct __mqttCtx *mctx, byte *buf, word32 buf_max_len, word32 *copied_len )
 {
     if((mctx == NULL) || (buf == NULL) || (copied_len == NULL)) { 
         return MQTT_RETURN_ERROR_BAD_ARG;
@@ -482,7 +518,7 @@ int  mqttPktRead( mqttCtx_t *mctx, byte *buf, word32 buf_max_len, word32 *copied
 
 
 
-int  mqttPktWrite( mqttCtx_t *mctx, byte *buf, word32 buf_len )
+int  mqttPktWrite( struct __mqttCtx *mctx, byte *buf, word32 buf_len )
 {
     if((mctx == NULL) || (buf == NULL)) { 
         return MQTT_RETURN_ERROR_BAD_ARG;
@@ -500,7 +536,7 @@ int  mqttPktWrite( mqttCtx_t *mctx, byte *buf, word32 buf_len )
 
 
 
-int mqttDecodePkt( mqttCtx_t *mctx, byte *buf, word32 buf_len, void *p_decode )
+int mqttDecodePkt( struct __mqttCtx *mctx, byte *buf, word32 buf_len, void *p_decode )
 {
     const   mqttPktFxHead_t  *header = (mqttPktFxHead_t *) buf;
     mqttCtrlPktType  cmdtype = MQTT_CTRL_PKT_TYPE_GET(header->type_flgs);
@@ -514,17 +550,17 @@ int mqttDecodePkt( mqttCtx_t *mctx, byte *buf, word32 buf_len, void *p_decode )
                 mqttPropertyDel( ((mqttPktHeadConnack_t *)p_decode)->props );
             }
             break;  
-        case MQTT_PACKET_TYPE_PUBLISH      : mqttDecodePkt123; break; 
-        case MQTT_PACKET_TYPE_PUBACK       : mqttDecodePkt123; break; 
-        case MQTT_PACKET_TYPE_PUBRECV      : mqttDecodePkt123; break; 
-        case MQTT_PACKET_TYPE_PUBREL       : mqttDecodePkt123; break; 
-        case MQTT_PACKET_TYPE_PUBCOMP      : mqttDecodePkt123; break; 
-        case MQTT_PACKET_TYPE_SUBACK       : mqttDecodePkt123; break; 
-        case MQTT_PACKET_TYPE_UNSUBACK     : mqttDecodePkt123; break; 
-        case MQTT_PACKET_TYPE_PINGREQ      : mqttDecodePkt123; break; 
-        case MQTT_PACKET_TYPE_PINGRESP     : mqttDecodePkt123; break; 
-        case MQTT_PACKET_TYPE_DISCONNECT   : mqttDecodePkt123; break; 
-        case MQTT_PACKET_TYPE_AUTH         : mqttDecodePkt123; break; 
+        case MQTT_PACKET_TYPE_PUBLISH      :  break; 
+        case MQTT_PACKET_TYPE_PUBACK       :  break; 
+        case MQTT_PACKET_TYPE_PUBRECV      :  break; 
+        case MQTT_PACKET_TYPE_PUBREL       :  break; 
+        case MQTT_PACKET_TYPE_PUBCOMP      :  break; 
+        case MQTT_PACKET_TYPE_SUBACK       :  break; 
+        case MQTT_PACKET_TYPE_UNSUBACK     :  break; 
+        case MQTT_PACKET_TYPE_PINGREQ      :  break; 
+        case MQTT_PACKET_TYPE_PINGRESP     :  break; 
+        case MQTT_PACKET_TYPE_DISCONNECT   :  break; 
+        case MQTT_PACKET_TYPE_AUTH         :  break; 
         default:
             break;
     } // end of switch-case statement

@@ -17,7 +17,7 @@ static espPbuf_t   *unfinish_rd_pktbuf_head = NULL;
 
 
 
-word32  mqttPktLowLvlRead( mqttCtx_t *mconn, byte *buf, word32 buf_len )
+word32  mqttPktLowLvlRead( struct __mqttCtx *mctx, byte *buf, word32 buf_len )
 {
     espNetConnPtr   espconn = NULL; 
     espRes_t        response ;
@@ -27,15 +27,15 @@ word32  mqttPktLowLvlRead( mqttCtx_t *mconn, byte *buf, word32 buf_len )
     size_t          copied_len = 0;
     size_t          remain_payld_len = 0;
  
-    if((mconn == NULL) || (buf == NULL)) { return 0; }
-    espconn = (espNetConnPtr) mconn->ext_sysobjs[0];
+    if((mctx == NULL) || (buf == NULL)) { return 0; }
+    espconn = (espNetConnPtr) mctx->ext_sysobjs[0];
     if(espconn == NULL) { return 0; }
 
     while(buf_len > 0) 
     {
         if(unfinish_rd_pktbuf == NULL) {
             // implement non-blocking packet read function.
-            response = eESPnetconnGrabNextPkt( espconn, &unfinish_rd_pktbuf,  mconn->cmd_timeout_ms );
+            response = eESPnetconnGrabNextPkt( espconn, &unfinish_rd_pktbuf,  mctx->cmd_timeout_ms );
             if( response != espOK ){
                 unfinish_rd_pktbuf = NULL;
                 return copied_len; 
@@ -70,12 +70,12 @@ word32  mqttPktLowLvlRead( mqttCtx_t *mconn, byte *buf, word32 buf_len )
 
 
 
-word32  mqttPktLowLvlWrite( mqttCtx_t *mconn, byte *buf, word32 buf_len )
+word32  mqttPktLowLvlWrite( struct __mqttCtx *mctx, byte *buf, word32 buf_len )
 {
-    if((mconn == NULL) || (buf == NULL)) { 
+    if((mctx == NULL) || (buf == NULL)) {
         return 0 ;
     }
-    espConn_t  *espconn = (espConn_t *) mconn->ext_sysobjs[1] ;
+    espConn_t  *espconn = (espConn_t *) mctx->ext_sysobjs[1] ;
     espRes_t    response ; 
     if(espconn == NULL) { 
         return 0;

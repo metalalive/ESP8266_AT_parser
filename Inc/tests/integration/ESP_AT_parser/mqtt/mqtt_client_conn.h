@@ -6,7 +6,7 @@ extern "C" {
 #endif
 
 
-typedef struct {
+typedef struct __mqttMsg { 
     const char *topic_name;
     word16      topic_name_len;
     word16      packet_id;
@@ -26,23 +26,28 @@ typedef struct {
 
 
 // denote every single MQTT connection 
-typedef struct {
-    int          cmd_timeout_ms;
+typedef struct __mqttConn { 
     byte         protocol_lvl; // it will be 5 for MQTT v5.0
     byte         clean_session;
     word16       keep_alive_sec;
+    // optional properties for this MQTT connection
+    mqttProp_t  *props;
     mqttStr_t    client_id;
-
     //  Optional login 
     mqttStr_t    username;
     mqttStr_t    password;
+} mqttConn_t;
 
+
+// context for MQTT operations
+typedef struct __mqttCtx{
     byte       *tx_buf;
     word32      tx_buf_len;
     byte       *rx_buf;
     word32      rx_buf_len;
 
     union {
+        mqttConn_t           conn;
         // Ack data , TODO: test
         mqttPktHeadConnack_t recv_connack;
         mqttPktDisconn_t     disconn;
@@ -50,11 +55,10 @@ typedef struct {
     // extract received message to this member, TODO: test 
     mqttMsg_t    *recv_msg;
 
+    int          cmd_timeout_ms;
     word32       packet_sz_max;  
     mqttQoS      max_qos;        
     byte         retain_avail;
-    // optional properties for this MQTT connection
-    mqttProp_t  *props;
 
     // extended connection objects used for underlying system
     void*        ext_sysobjs[2];

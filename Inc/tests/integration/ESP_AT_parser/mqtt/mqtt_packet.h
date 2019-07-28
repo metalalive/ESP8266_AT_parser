@@ -92,13 +92,16 @@ typedef mqttPktSubs_t  mqttPktUnsubs_t;
 // UNSUBACK packet format
 typedef mqttPktSuback_t mqttPktUnsuback_t ; 
 
-
 // DISCONNECT packet format
 typedef struct {
     byte          reason_code;
     mqttProp_t   *props;
 } mqttPktDisconn_t ;
 
+// early declaration
+struct __mqttCtx ;
+struct __mqttConn;
+struct __mqttMsg ;
 
 // AUTH packet format
 typedef mqttPktDisconn_t mqttPktAuth_t; 
@@ -106,12 +109,12 @@ typedef mqttPktDisconn_t mqttPktAuth_t;
 
 // ----- Application Interface for MQTT client code operations -----
 // low-level interfaces to read/write packet data from underlying system
-word32  mqttPktLowLvlRead(  mqttCtx_t *mconn, byte *buf, word32 buf_len);
-word32  mqttPktLowLvlWrite( mqttCtx_t *mconn, byte *buf, word32 buf_len);
+word32  mqttPktLowLvlRead(  struct __mqttCtx *mconn, byte *buf, word32 buf_len);
+word32  mqttPktLowLvlWrite( struct __mqttCtx *mconn, byte *buf, word32 buf_len);
 
 // interface to read/write packet data
-int  mqttPktRead(  mqttCtx_t *mconn, byte *buf, word32 buf_max_len, word32 *copied_len );
-int  mqttPktWrite( mqttCtx_t *mconn, byte *buf, word32 buf_len );
+int  mqttPktRead(  struct __mqttCtx *mconn, byte *buf, word32 buf_max_len, word32 *copied_len );
+int  mqttPktWrite( struct __mqttCtx *mconn, byte *buf, word32 buf_len );
 
 // element encoders / decoders
 // 16-bit number from/to consecutive given 2 bytes
@@ -137,7 +140,7 @@ word32 mqttEncodeProps( byte *buf, mqttProp_t  *props );
 
 // encode/decode  different types of MQTT packet 
 word32  mqttDecodePktConnack( byte *rx_buf, word32 rx_buf_len,  mqttPktHeadConnack_t *connack );
-word32  mqttDecodePktPublish( byte *rx_buf, word32 rx_buf_len, mqttMsg_t *msg );
+word32  mqttDecodePktPublish( byte *rx_buf, word32 rx_buf_len, struct __mqttMsg *msg );
 word32  mqttDecodePktPubResp( byte *rx_buf, word32 rx_buf_len, mqttPktPubResp_t *resp, mqttCtrlPktType cmdtype );
 word32  mqttDecodePktSuback( byte *rx_buf, word32 rx_buf_len, mqttPktSuback_t *suback );
 word32  mqttDecodePktUnsuback( byte *rx_buf, word32 rx_buf_len, mqttPktUnsuback_t *unsuback );
@@ -145,8 +148,8 @@ word32  mqttDecodePktPing( byte *rx_buf, word32 rx_buf_len );
 word32  mqttDecodePktDisconn( byte *rx_buf, word32 rx_buf_len, mqttPktDisconn_t *disconn);
 word32  mqttDecodePktAuth( byte *rx_buf, word32 rx_buf_len, mqttPktAuth_t *auth );
 
-word32  mqttEncodePktConnect( byte *tx_buf, word32 tx_buf_len, mqttCtx_t* conn );
-word32  mqttEncodePktPublish( byte *tx_buf, word32 tx_buf_len, mqttMsg_t *msg );
+word32  mqttEncodePktConnect( byte *tx_buf, word32 tx_buf_len, struct __mqttConn  *conn );
+word32  mqttEncodePktPublish( byte *tx_buf, word32 tx_buf_len, struct __mqttMsg  *msg );
 word32  mqttEncodePktPubResp( byte *tx_buf, word32 tx_buf_len, mqttPktPubResp_t *resp, mqttCtrlPktType cmdtype );
 word32  mqttEncodePktSubscribe( byte *tx_buf, word32 tx_buf_len, mqttPktSubs_t *subs );
 word32  mqttEncodePktUnsubscribe( byte *tx_buf, word32 tx_buf_len, mqttPktUnsubs_t *unsubs );
@@ -157,8 +160,7 @@ word32  mqttEncodePktAuth( byte *tx_buf, word32 tx_buf_len, mqttPktAuth_t *auth 
 
 // decode the received packet, it will call other decode functions according
 // to the type of received packet.
-int mqttDecodePkt( mqttCtx_t *mconn, byte *buf, word32 buf_len,
-                   void *p_decode );
+int mqttDecodePkt( struct __mqttCtx *mconn, byte *buf, word32 buf_len, void *p_decode );
 
 
 #ifdef __cplusplus

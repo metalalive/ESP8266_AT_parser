@@ -12,6 +12,25 @@ static espNetConnPtr   clientnetconn;
 
 
 
+static espRes_t eESPtestEvtCallBack( espEvt_t*  evt )
+{
+    espRes_t  response = espOK;
+    switch( evt->type )
+    {
+        case ESP_EVT_INIT_FINISH :
+            break;
+        case ESP_EVT_WIFI_CONNECTED:
+            break;
+        case ESP_EVT_WIFI_DISCONNECTED:
+            break;
+        default:
+            break;
+    } // end of switch statement
+    return  response;
+} // end of eESPtestEvtCallBack
+
+
+
 static espRes_t eESPtestMqttClientCallBack( espEvt_t*  evt )
 {
     espRes_t  response = espOK;
@@ -39,26 +58,35 @@ static void vESPtestMqttClientApp( espNetConnPtr netconn, espConn_t*  conn,  mqt
     uint8_t   idx = 0;
     uint8_t   max_num_publish_msg = 5;
     // --- send CONNECT packet, with username/password for basic authentication ---
-    m_client->clean_session = 0;
     m_client->ext_sysobjs[0] = (void *) netconn;
     m_client->ext_sysobjs[1] = (void *) conn;
-    m_client->client_id.data = "esp_freertos_stm32";
-    m_client->username.data  = "testuser";
-    m_client->password.data  = "guesspasswd";
-    m_client->client_id.len  = ESP_STRLEN( m_client->client_id.data );
-    m_client->username.len   = ESP_STRLEN( m_client->username.data  );
-    m_client->password.len   = ESP_STRLEN( m_client->password.data  );
+    m_client->pkt.conn.clean_session = 0;
+    m_client->pkt.conn.keep_alive_sec = MQTT_DEFAULT_KEEPALIVE_SEC;
+    m_client->pkt.conn.protocol_lvl   = MQTT_CONN_PROTOCOL_LEVEL; 
+    m_client->pkt.conn.client_id.data = "esp_freertos_stm32";
+    m_client->pkt.conn.username.data  = "testuser";
+    m_client->pkt.conn.password.data  = "guesspasswd";
+    m_client->pkt.conn.client_id.len  = ESP_STRLEN( m_client->pkt.conn.client_id.data );
+    m_client->pkt.conn.username.len   = ESP_STRLEN( m_client->pkt.conn.username.data  );
+    m_client->pkt.conn.password.len   = ESP_STRLEN( m_client->pkt.conn.password.data  );
     mqttSendConnect( m_client );
     
+    // --- subscribe topic of interests
+
+    // --- publish messages with specific topic, in this test, we expect
+    //     another client which  can act as both of subsriber or publisher, the
+    //     client expects to wait for message sent by this device, or vice versa.
     for(idx=0 ; idx<max_num_publish_msg; idx++)
     {
-        // --- subscribe topic of interests
+    } // end of loop
+    // --- wait for the message this device subscribed earlier in this test
+    for(idx=0 ; idx<max_num_publish_msg; idx++)
+    {
     } // end of loop
     // --- send DISCONNECT packet to broker ---
-    mclient->pkt.disconn.reason_code = MQTT_REASON_NORMAL_DISCONNECTION;
-    mclient->pkt.disconn.props       = NULL;
+    m_client->pkt.disconn.reason_code = MQTT_REASON_NORMAL_DISCONNECTION;
+    m_client->pkt.disconn.props       = NULL;
     mqttSendDisconnect( m_client );
-
 } // end of vESPtestMqttClientApp
 
 
