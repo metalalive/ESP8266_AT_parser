@@ -47,9 +47,9 @@ typedef enum {
 
 
 typedef enum {
-    MQTT_QOS_0 ,
-    MQTT_QOS_1 ,
-    MQTT_QOS_2 ,
+    MQTT_QOS_0 = 0 ,
+    MQTT_QOS_1 = 1 ,
+    MQTT_QOS_2 = 2 ,
 } mqttQoS;
 
 

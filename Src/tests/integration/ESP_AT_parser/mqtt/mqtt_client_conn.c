@@ -151,22 +151,65 @@ int   mqttSendConnect( mqttCtx_t *mctx )
 
 int   mqttSendDisconnect( mqttCtx_t *mctx )
 {
-    int         status ;
-    byte       *tx_buf;
-    word32      tx_buf_len;
-    word32      pkt_total_len;
+    int      status ;
+    byte    *tx_buf;
+    word32   tx_buf_len;
+    word32   pkt_total_len;
     if( mctx == NULL ){ 
         return MQTT_RETURN_ERROR_BAD_ARG;
     }
     tx_buf     = mctx->tx_buf;
     tx_buf_len = mctx->tx_buf_len;
-    pkt_total_len  =  mqttEncodePktDisconn( tx_buf, tx_buf_len, (void *)&mctx->pkt.disconn );
+    pkt_total_len  =  mqttEncodePktDisconn( tx_buf, tx_buf_len, (mqttPktDisconn_t *)&mctx->pkt.disconn );
     if(pkt_total_len <= 0) {
         return  MQTT_RETURN_ERROR_MALFORMED_DATA;
     }
-    status = mqttPktWrite( mctx, tx_buf, pkt_total_len );
-    return  status;
+    return  mqttPktWrite( mctx, tx_buf, pkt_total_len );
 } // end of  mqttSendDisconnect
+
+
+
+
+int   mqttSendPublish( mqttCtx_t *mctx )
+{
+    int      status;
+    byte    *tx_buf;
+    word32   tx_buf_len;
+    word32   pkt_total_len;
+    mqttQoS  qos;
+    mqttCtrlPktType   cmdtype;
+    if( mctx == NULL ){ 
+        return MQTT_RETURN_ERROR_BAD_ARG;
+    }
+    qos = mctx->pkt.pub_msg.qos;
+    if(qos > mctx->max_qos) {
+        return MQTT_RETURN_ERROR_SERVER_PROP;
+    }
+    else if( mctx->pkt.pub_msg.retain==1 && mctx->retain_avail==0 ) {
+        return MQTT_RETURN_ERROR_SERVER_PROP;
+    }
+    tx_buf         = mctx->tx_buf;
+    tx_buf_len     = mctx->tx_buf_len;
+    pkt_total_len  = mqttEncodePktPublish( tx_buf, tx_buf_len, (mqttMsg_t *)&mctx->pkt.pub_msg );
+    if(pkt_total_len <= 0) {
+        return  MQTT_RETURN_ERROR_MALFORMED_DATA;
+    }
+
+    // TODO: we might require a loop at here ?
+    status = mqttPktWrite( mctx, tx_buf, pkt_total_len );
+    if( qos > MQTT_QOS_0 ) {
+        cmdtype = (qos==MQTT_QOS_1) ? MQTT_PACKET_TYPE_PUBACK: MQTT_PACKET_TYPE_PUBRECV;
+        // implement qos=1 or 2 wait for response packet
+        status = mqttClientWaitPkt( mctx, cmdtype, (void *)&mctx->pub_resp );
+    }
+
+    return status;
+} // end of mqttSendPublish
+
+
+
+
+
 
 
 

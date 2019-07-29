@@ -467,6 +467,21 @@ word32  mqttEncodePktDisconn( byte *tx_buf, word32 tx_buf_len, mqttPktDisconn_t 
 
 
 
+word32  mqttEncodePktPublish( byte *tx_buf, word32 tx_buf_len, struct __mqttMsg  *msg )
+{
+    if((msg == NULL) || (tx_buf == NULL) || (tx_buf_len == 0)) { 
+        return  0;
+    }
+    word32   fx_head_len = 0;
+    word32   remain_len  = 0;
+    word32   props_len   = 0;
+    byte    *curr_buf_pos ;
+    return (fx_head_len + remain_len);
+} // end of mqttEncodePktPublish
+
+
+
+
 int  mqttPktRead( struct __mqttCtx *mctx, byte *buf, word32 buf_max_len, word32 *copied_len )
 {
     if((mctx == NULL) || (buf == NULL) || (copied_len == NULL)) { 
