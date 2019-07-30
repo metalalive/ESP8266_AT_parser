@@ -9,6 +9,7 @@ extern "C" {
 typedef struct __mqttMsg { 
     mqttStr_t   topic;
     word16      packet_id;
+    mqttProp_t *props;
     // byte        type; // TODO: check whether we really need this field
     byte        retain;
     byte        duplicate;
@@ -17,9 +18,10 @@ typedef struct __mqttMsg {
     word32      app_data_len; 
     word32      buff_len;
     // current read position of the buffer in this struct
-    word32      buff_pos; // TODO: check if we really need this
+    word32      inbuf_len; // used to record current write position if the
+                          // application data is too huge to fit into 
+                          // network packet
     byte       *buff; // to store application specific data
-    mqttProp_t *props;
 } mqttMsg_t;
 
 

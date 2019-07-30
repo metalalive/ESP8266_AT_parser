@@ -328,15 +328,15 @@ static word32 mqttDecodeFxHeader( byte *rx_buf, word32 rx_buf_len, word32 *remai
 
 word32  mqttEncodePktConnect( byte *tx_buf, word32 tx_buf_len, struct __mqttConn *conn )
 {
-    if((conn == NULL) || (tx_buf == NULL) || (tx_buf_len == 0)) { 
-        return 0; 
-    }
     word32   fx_head_len = 0;
     word32   remain_len  = 0;
     word32   props_len   = 0;
     mqttPktHeadConnect_t  var_head = {{0, MQTT_CONN_PROTOCOL_NAME_LEN}, {'M','Q','T','T'}, 0, 0, 0, 0}; 
     byte    *curr_buf_pos ;
 
+    if((conn == NULL) || (tx_buf == NULL) || (tx_buf_len == 0)) { 
+        return 0; 
+    }
     // size of variable header in CONNECT packet, should be 10 bytes in MQTT v5.0
     remain_len += sizeof(mqttPktHeadConnect_t); 
 
@@ -469,14 +469,64 @@ word32  mqttEncodePktDisconn( byte *tx_buf, word32 tx_buf_len, mqttPktDisconn_t 
 
 word32  mqttEncodePktPublish( byte *tx_buf, word32 tx_buf_len, struct __mqttMsg  *msg )
 {
+    word32   fx_head_len  = 0;
+    word32   var_head_len = 0;
+    word32   payload_len  = 0;
+    word32   props_len    = 0;
+    byte    *curr_buf_pos ;
+
     if((msg == NULL) || (tx_buf == NULL) || (tx_buf_len == 0)) { 
         return  0;
     }
-    word32   fx_head_len = 0;
-    word32   remain_len  = 0;
-    word32   props_len   = 0;
-    byte    *curr_buf_pos ;
-    return (fx_head_len + remain_len);
+    if((msg->topic.data==NULL) || (msg->topic.len < 1)) {
+        return  0; // topic is a must when publishing message
+    }
+    // number of bytes taken to encode topic string
+    if(msg->qos > MQTT_QOS_0) {
+        if(msg->packet_id == 0) {
+            return  0; // when QoS > 0, packet ID must be non-zero 16-bit number
+        }
+        var_head_len += 2; // 2 bytes for packet ID
+    }
+    var_head_len += MQTT_DSIZE_STR_LEN + msg->topic.len ;
+    // size of all properties in the PUBLISH packet
+    props_len   =  mqttEncodeProps( NULL, msg->props );
+    var_head_len +=  props_len;
+    // number of variable bytes to store "property length"
+    var_head_len += mqttEncodeVarBytes(NULL, props_len);
+    // length of application specific data 
+    payload_len = msg->app_data_len;
+
+    // build fixed header of PUBLISH packet 
+    fx_head_len = mqttEncodeFxHeader( tx_buf, tx_buf_len, (var_head_len + payload_len), 
+                                      MQTT_PACKET_TYPE_PUBLISH, msg->retain,
+                                      msg->qos,  msg->duplicate );
+
+    curr_buf_pos  = &tx_buf[fx_head_len]; 
+    // variable header : topic filter
+    curr_buf_pos += mqttEncodeStr( curr_buf_pos, msg->topic.data, msg->topic.len );
+    // variable header : packet ID (if QoS > 0)
+    if(msg->qos > MQTT_QOS_0) {
+        curr_buf_pos += mqttEncodeWord16( curr_buf_pos, msg->packet_id );
+    }
+    // variable header : properties
+    curr_buf_pos += mqttEncodeVarBytes(curr_buf_pos , props_len);
+    curr_buf_pos += mqttEncodeProps(curr_buf_pos , msg->props );
+
+    // [NOTE]
+    //  *  Copy the beginning part of application specific data to the Tx buffer at here
+    //     , the rest of the application data will be copied at the level of mqttSendPublish() .
+    //  *  It's acceptable that the size of application data is greater than transfer
+    //     buffer (the Tx buffer here), in such case the MQTT client must break the huge
+    //     buffer of application data into several pieces, in order to fit each piece 
+    //     into network packet.
+    //  *  it's also ok if payload length is zero in PUBLISH packet.
+    if(payload_len > 0) {
+        payload_len = ESP_MIN( payload_len, tx_buf_len - fx_head_len - var_head_len );
+        ESP_MEMCPY( curr_buf_pos, msg->buff, payload_len );
+        msg->inbuf_len = payload_len;
+    }
+    return (fx_head_len + var_head_len + payload_len);
 } // end of mqttEncodePktPublish
 
 

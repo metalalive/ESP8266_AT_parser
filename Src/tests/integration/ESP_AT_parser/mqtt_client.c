@@ -185,7 +185,7 @@ static void vESPtestMqttClientApp( espNetConnPtr netconn, espConn_t*  espconn,  
     // if QoS = 1 and we need to send duplicate PUBLISH packet, the duplicate
     // field will be set in mqttSendPublish()
     pub_msg->duplicate  = 0; 
-    pub_msg->buff_pos   = 0; 
+    pub_msg->inbuf_len  = 0; 
     pub_msg->buff_len   = MQTT_APP_MSG_MAX_LEN; 
     pub_msg->buff       = ESP_MALLOC( sizeof(byte) * MQTT_APP_MSG_MAX_LEN ); 
     pub_msg->props      = NULL; 
