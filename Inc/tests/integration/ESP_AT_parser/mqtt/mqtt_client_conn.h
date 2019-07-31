@@ -48,15 +48,17 @@ typedef struct __mqttCtx{
 
     union {
         mqttConn_t           conn;
-        // Ack data , TODO: test
-        mqttPktHeadConnack_t recv_connack;
         mqttPktDisconn_t     disconn;
         // published message, it should be separated from received message
         mqttMsg_t            pub_msg;
-    } pkt;
+        mqttPktPubResp_t     pub_resp;
+    } send_pkt;
     // extract received message to this member, TODO: test 
-    mqttMsg_t         *recv_msg;
-    mqttPktPubResp_t   pub_resp;
+    union {
+        mqttPktHeadConnack_t connack;
+        mqttMsg_t            pub_msg;
+        mqttPktPubResp_t     pub_resp;
+    } recv_pkt;
 
     int          cmd_timeout_ms;
     word32       packet_sz_max;  
@@ -119,11 +121,11 @@ void         mqttPropertyDel( mqttProp_t *head );
 
 
 
-// waits for packets (with given type) to arrive, it could be incoming
+// waits for receiving packets with given type, it could be incoming
 // PUBLISH message, or acknowledgement of PUBLISH / SUBSCRIBE / UNSUBSCRIBE
-// packet client has sent.
-int  mqttClientWaitPkt( mqttCtx_t *mctx, mqttCtrlPktType cmdtype, 
-                        void* p_decode );
+// packet the client has sent.
+int  mqttClientWaitPkt( mqttCtx_t *mctx, mqttCtrlPktType wait_cmdtype, 
+                        word16 wait_packet_id, void* p_decode );
 
 
 

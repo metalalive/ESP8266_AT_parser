@@ -532,6 +532,39 @@ word32  mqttEncodePktPublish( byte *tx_buf, word32 tx_buf_len, struct __mqttMsg 
 
 
 
+word32  mqttDecodePktPubResp( byte *rx_buf, word32 rx_buf_len, mqttPktPubResp_t *resp, mqttCtrlPktType cmdtype )
+{
+    if((resp == NULL) || (rx_buf == NULL) || (rx_buf_len == 0)) { 
+        return  0;
+    }
+    word32   fx_head_len = 0;
+    word32   remain_len  = 0;
+    word32   props_len   = 0;
+    byte    *curr_buf_pos ;
+    fx_head_len = mqttDecodeFxHeader( rx_buf, rx_buf_len, &remain_len, 
+                                      cmdtype, NULL, NULL, NULL );
+    curr_buf_pos  = &rx_buf[fx_head_len];
+    // check packet ID 
+    curr_buf_pos += mqttDecodeWord16( curr_buf_pos, &resp->packet_id );
+    if(remain_len > 2) {
+        resp->reason_code = *curr_buf_pos++; 
+        // copy all properties from buffer
+        curr_buf_pos += mqttDecodeVarBytes( curr_buf_pos, &props_len );
+        if(props_len > 0) {
+            curr_buf_pos += mqttDecodeProps( curr_buf_pos, &resp->props, props_len );
+        }
+    }
+    else {
+        // Reason code might not be present in the variable header, 
+        // that means success code (0x00) is used as reason code.
+        resp->reason_code = MQTT_REASON_SUCCESS; 
+    }
+    return  (fx_head_len + remain_len);
+} // end of mqttDecodePktPubResp
+
+
+
+
 int  mqttPktRead( struct __mqttCtx *mctx, byte *buf, word32 buf_max_len, word32 *copied_len )
 {
     if((mctx == NULL) || (buf == NULL) || (copied_len == NULL)) { 
@@ -601,7 +634,7 @@ int  mqttPktWrite( struct __mqttCtx *mctx, byte *buf, word32 buf_len )
 
 
 
-int mqttDecodePkt( struct __mqttCtx *mctx, byte *buf, word32 buf_len, void *p_decode )
+int mqttDecodePkt( struct __mqttCtx *mctx, byte *buf, word32 buf_len, void *p_decode, word16 *recv_pkt_id  )
 {
     const   mqttPktFxHead_t  *header = (mqttPktFxHead_t *) buf;
     mqttCtrlPktType  cmdtype = MQTT_CTRL_PKT_TYPE_GET(header->type_flgs);
@@ -615,11 +648,15 @@ int mqttDecodePkt( struct __mqttCtx *mctx, byte *buf, word32 buf_len, void *p_de
                 mqttPropertyDel( ((mqttPktHeadConnack_t *)p_decode)->props );
             }
             break;  
-        case MQTT_PACKET_TYPE_PUBLISH      :  break; 
-        case MQTT_PACKET_TYPE_PUBACK       :  break; 
-        case MQTT_PACKET_TYPE_PUBRECV      :  break; 
-        case MQTT_PACKET_TYPE_PUBREL       :  break; 
-        case MQTT_PACKET_TYPE_PUBCOMP      :  break; 
+        case MQTT_PACKET_TYPE_PUBLISH      :
+            break; 
+        case MQTT_PACKET_TYPE_PUBACK       :   
+        case MQTT_PACKET_TYPE_PUBRECV      :   
+        case MQTT_PACKET_TYPE_PUBREL       :   
+        case MQTT_PACKET_TYPE_PUBCOMP      :
+            mqttDecodePktPubResp( buf, buf_len, (mqttPktPubResp_t *)p_decode, cmdtype );
+            *recv_pkt_id = ((mqttPktPubResp_t *)p_decode)->packet_id ;
+            break; 
         case MQTT_PACKET_TYPE_SUBACK       :  break; 
         case MQTT_PACKET_TYPE_UNSUBACK     :  break; 
         case MQTT_PACKET_TYPE_PINGREQ      :  break; 

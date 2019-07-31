@@ -160,7 +160,7 @@ word32  mqttEncodePktAuth( byte *tx_buf, word32 tx_buf_len, mqttPktAuth_t *auth 
 
 // decode the received packet, it will call other decode functions according
 // to the type of received packet.
-int mqttDecodePkt( struct __mqttCtx *mconn, byte *buf, word32 buf_len, void *p_decode );
+int mqttDecodePkt( struct __mqttCtx *mconn, byte *buf, word32 buf_len, void *p_decode, word16 *recv_pkt_id );
 
 
 #ifdef __cplusplus

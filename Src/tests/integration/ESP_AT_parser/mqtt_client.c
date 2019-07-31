@@ -159,7 +159,7 @@ static void vESPtestMqttClientApp( espNetConnPtr netconn, espConn_t*  espconn,  
     uint8_t   idx = 0;
     uint8_t   max_num_publish_msg = 5;
     // --- send CONNECT packet, with username/password for basic authentication ---
-    mqttConn_t  *mconn = &m_client->pkt.conn ;
+    mqttConn_t  *mconn = &m_client->send_pkt.conn ;
     m_client->ext_sysobjs[0] = (void *) netconn;
     m_client->ext_sysobjs[1] = (void *) espconn;
     mconn->clean_session  = 0;
@@ -168,9 +168,9 @@ static void vESPtestMqttClientApp( espNetConnPtr netconn, espConn_t*  espconn,  
     mconn->client_id.data = "esp_freertos_stm32";
     mconn->username.data  = "testuser";
     mconn->password.data  = "guesspasswd";
-    mconn->client_id.len  = ESP_STRLEN( m_client->pkt.conn.client_id.data );
-    mconn->username.len   = ESP_STRLEN( m_client->pkt.conn.username.data  );
-    mconn->password.len   = ESP_STRLEN( m_client->pkt.conn.password.data  );
+    mconn->client_id.len  = ESP_STRLEN( mconn->client_id.data );
+    mconn->username.len   = ESP_STRLEN( mconn->username.data  );
+    mconn->password.len   = ESP_STRLEN( mconn->password.data  );
     mqttSendConnect( m_client );
     
     // --- subscribe topic of interests
@@ -178,7 +178,7 @@ static void vESPtestMqttClientApp( espNetConnPtr netconn, espConn_t*  espconn,  
     // --- publish messages with specific topic, in this test, we expect
     //     another client which  can act as both of subsriber or publisher, the
     //     client expects to wait for message sent by this device, or vice versa.
-    mqttMsg_t  *pub_msg  =  &m_client->pkt.pub_msg;
+    mqttMsg_t  *pub_msg  =  &m_client->send_pkt.pub_msg;
     pub_msg->topic.data = "get/soilQuality/today"; 
     pub_msg->topic.len  = ESP_STRLEN( pub_msg->topic.data ); 
     pub_msg->retain     = 0; // we don't consider retain message in this test.
@@ -202,8 +202,8 @@ static void vESPtestMqttClientApp( espNetConnPtr netconn, espConn_t*  espconn,  
     {
     } // end of loop
     // --- send DISCONNECT packet to broker ---
-    m_client->pkt.disconn.reason_code = MQTT_REASON_NORMAL_DISCONNECTION;
-    m_client->pkt.disconn.props       = NULL;
+    m_client->send_pkt.disconn.reason_code = MQTT_REASON_NORMAL_DISCONNECTION;
+    m_client->send_pkt.disconn.props       = NULL;
     mqttSendDisconnect( m_client );
     #undef   MQTT_APP_MSG_MAX_LEN 
 } // end of vESPtestMqttClientApp

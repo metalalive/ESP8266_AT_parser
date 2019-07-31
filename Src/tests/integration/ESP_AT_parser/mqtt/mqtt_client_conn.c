@@ -53,7 +53,7 @@ int  mqttClientDeinit( mqttCtx_t *c )
 
 
 
-int  mqttClientWaitPkt( mqttCtx_t *mctx, mqttCtrlPktType cmdtype, void* p_decode )
+int  mqttClientWaitPkt( mqttCtx_t *mctx, mqttCtrlPktType wait_cmdtype, word16 wait_packet_id, void* p_decode )
 {
     int         status ;
     byte       *rx_buf;
@@ -62,21 +62,27 @@ int  mqttClientWaitPkt( mqttCtx_t *mctx, mqttCtrlPktType cmdtype, void* p_decode
 
     mqttPktFxHead_t  *recv_header ;
     mqttCtrlPktType   recv_cmdtype ;
+    word16            recv_pkt_id = 0;
 
     rx_buf     = mctx->rx_buf;
     rx_buf_len = mctx->rx_buf_len;
-    do {
+    while(1) {
         // wait until we receive incoming packet.
         status = mqttPktRead( mctx, rx_buf, rx_buf_len, &pkt_total_len );
         if( status != MQTT_RETURN_SUCCESS ) {
             return status;
         }
         // start decoding the received packet
-        status = mqttDecodePkt( mctx, rx_buf, pkt_total_len, p_decode );
+        recv_pkt_id = 0;
+        status = mqttDecodePkt( mctx, rx_buf, pkt_total_len, p_decode, &recv_pkt_id );
         // check whether the received packet is what we're waiting for. 
         recv_header  = (mqttPktFxHead_t *)rx_buf;
         recv_cmdtype = MQTT_CTRL_PKT_TYPE_GET(recv_header->type_flgs);
-    } while(cmdtype != recv_cmdtype);
+        if(wait_cmdtype == recv_cmdtype) {
+            if(wait_packet_id==0) { break; }
+            if(wait_packet_id==recv_pkt_id){ break; }
+        } 
+    } // end of loop
     return  status;
 } // end of mqttClientWaitPkt
 
@@ -139,7 +145,7 @@ int   mqttSendConnect( mqttCtx_t *mctx )
     }
     tx_buf     = mctx->tx_buf;
     tx_buf_len = mctx->tx_buf_len;
-    pkt_total_len  =  mqttEncodePktConnect( tx_buf, tx_buf_len, (mqttConn_t *)&mctx->pkt.conn );
+    pkt_total_len  =  mqttEncodePktConnect( tx_buf, tx_buf_len, (mqttConn_t *)&mctx->send_pkt.conn );
     if(pkt_total_len <= 0) {
         return  MQTT_RETURN_ERROR_MALFORMED_DATA;
     }
@@ -152,7 +158,8 @@ int   mqttSendConnect( mqttCtx_t *mctx )
     if( status != MQTT_RETURN_SUCCESS ) {
         return status;
     }
-    status = mqttClientWaitPkt( mctx, MQTT_PACKET_TYPE_CONNACK, (void *)&mctx->pkt.recv_connack );
+    status = mqttClientWaitPkt( mctx, MQTT_PACKET_TYPE_CONNACK, 0, 
+                                (void *)&mctx->recv_pkt.connack );
     return  status;
 } // end of mqttSendConnect
 
@@ -170,7 +177,7 @@ int   mqttSendDisconnect( mqttCtx_t *mctx )
     }
     tx_buf     = mctx->tx_buf;
     tx_buf_len = mctx->tx_buf_len;
-    pkt_total_len  =  mqttEncodePktDisconn( tx_buf, tx_buf_len, (mqttPktDisconn_t *)&mctx->pkt.disconn );
+    pkt_total_len  =  mqttEncodePktDisconn( tx_buf, tx_buf_len, (mqttPktDisconn_t *)&mctx->send_pkt.disconn );
     if(pkt_total_len <= 0) {
         return  MQTT_RETURN_ERROR_MALFORMED_DATA;
     }
@@ -188,19 +195,19 @@ int   mqttSendPublish( mqttCtx_t *mctx )
     word32       pkt_total_len;
     mqttMsg_t   *msg = NULL;
     mqttQoS      qos;
-    mqttCtrlPktType   cmdtype;
+    mqttCtrlPktType   wait_cmdtype;
 
     if( mctx == NULL ){ 
         return MQTT_RETURN_ERROR_BAD_ARG;
     }
-    qos = mctx->pkt.pub_msg.qos;
+    qos = mctx->send_pkt.pub_msg.qos;
     if(qos > mctx->max_qos) {
         return MQTT_RETURN_ERROR_SERVER_PROP;
     }
-    else if( mctx->pkt.pub_msg.retain==1 && mctx->retain_avail==0 ) {
+    else if( mctx->send_pkt.pub_msg.retain==1 && mctx->retain_avail==0 ) {
         return MQTT_RETURN_ERROR_SERVER_PROP;
     }
-    msg            = &mctx->pkt.pub_msg;
+    msg            = &mctx->send_pkt.pub_msg;
     tx_buf         =  mctx->tx_buf;
     tx_buf_len     =  mctx->tx_buf_len;
     pkt_total_len  =  mqttEncodePktPublish( tx_buf, tx_buf_len, msg );
@@ -221,9 +228,9 @@ int   mqttSendPublish( mqttCtx_t *mctx )
     } // end of while-loop
 
     if( qos > MQTT_QOS_0 ) {
-        cmdtype = (qos==MQTT_QOS_1) ? MQTT_PACKET_TYPE_PUBACK: MQTT_PACKET_TYPE_PUBRECV;
+        wait_cmdtype = (qos==MQTT_QOS_1) ? MQTT_PACKET_TYPE_PUBACK: MQTT_PACKET_TYPE_PUBCOMP;
         // implement qos=1 or 2 wait for response packet
-        status = mqttClientWaitPkt( mctx, cmdtype, (void *)&mctx->pub_resp );
+        status = mqttClientWaitPkt( mctx, wait_cmdtype, msg->packet_id, (void *)&mctx->recv_pkt.pub_resp );
     } 
     return status;
 } // end of mqttSendPublish
