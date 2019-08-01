@@ -201,7 +201,7 @@ espRes_t    eESPinitATcmd( espMsg_t* msg )
             break;
         case ESP_CMD_TCPIP_CIPSTART                :
             AT_APPEND_STR( &cmd_str_p, "+CIPSTART=", 10 ); 
-	    AT_APPEND_CHR( &cmd_str_p, ESP_NUMTOCHAR(ucESPconnGetID(msg->body.conn_start.conn)) ); 
+	    AT_APPEND_CHR( &cmd_str_p, ESP_NUMTOCHAR(ucESPconnGetID( *(msg->body.conn_start.conn) )) ); 
 	    AT_APPEND_CHR( &cmd_str_p, ESP_ASCII_COMMA ); 
 	    AT_APPEND_CHR( &cmd_str_p, ESP_ASCII_DOUBLE_QUOTE );
             // note that built-in SSL function will no longer be used since it was proved insecure.
