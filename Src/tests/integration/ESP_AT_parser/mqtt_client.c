@@ -3,7 +3,7 @@
 #define  TASK_MIN_STACK_SIZE             (( unsigned portSHORT ) 0x9e)
 #define  MQTT_CONN_TX_BUF_SIZE           0x140
 #define  MQTT_CONN_RX_BUF_SIZE           0x140
-#define  MQTT_CMD_TIMEOUT_MS             1000
+#define  MQTT_CMD_TIMEOUT_MS             60000
 
 
 static mqttCtx_t      *m_client ;
@@ -218,7 +218,7 @@ static void vESPtestMqttClientTask(void *params)
     espRes_t        response ;
     uint8_t         devPresent ;
     espConn_t*      conn      =  NULL;
-    const char      hostname[]= "124.9.12.185";
+    const char      hostname[]= "124.9.129.58";
     uint16_t        host_len  = strlen(hostname);
     espPort_t       port      = 1883;
 

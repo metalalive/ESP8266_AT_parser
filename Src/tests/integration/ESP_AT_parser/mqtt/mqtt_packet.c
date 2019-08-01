@@ -60,13 +60,13 @@ word32 mqttEncodeVarBytes( byte *buf, word32  value )
     while( value > 0 ) {
         enc_val   = value & 0x7f;
         value   >>= 7;
-        len++;
         if( value > 0 ){
             enc_val |= continuation_bit;
         }
         if(buf != NULL) {
             buf[len] = enc_val;
         }
+        len++;
     } // end of while-loop
     return  len;
 } // end of mqttEncodeVarBytes
@@ -294,6 +294,7 @@ static word32 mqttEncodeFxHeader( byte *tx_buf, word32 tx_buf_len, word32 remain
 {
     word32  len = 0;
     mqttPktFxHead_t  *header = (mqttPktFxHead_t *) tx_buf;
+    header->type_flgs  = 0;
     MQTT_CTRL_PKT_TYPE_SET( header->type_flgs, cmdtype );
     header->type_flgs |= (duplicate & 0x1) << 3 ;
     header->type_flgs |= (qos       & 0x3) << 1 ;
