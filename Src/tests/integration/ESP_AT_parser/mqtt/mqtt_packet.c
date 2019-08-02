@@ -57,7 +57,7 @@ word32 mqttEncodeVarBytes( byte *buf, word32  value )
     word32  len = 0;
     byte    enc_val = 0; // encoded part of value
     const   byte    continuation_bit = 0x80;
-    while( value > 0 ) {
+    do {
         enc_val   = value & 0x7f;
         value   >>= 7;
         if( value > 0 ){
@@ -67,7 +67,7 @@ word32 mqttEncodeVarBytes( byte *buf, word32  value )
             buf[len] = enc_val;
         }
         len++;
-    } // end of while-loop
+    } while( value > 0 ) ; // end of while-loop
     return  len;
 } // end of mqttEncodeVarBytes
 
@@ -300,7 +300,7 @@ static word32 mqttEncodeFxHeader( byte *tx_buf, word32 tx_buf_len, word32 remain
     header->type_flgs |= (qos       & 0x3) << 1 ;
     header->type_flgs |= (retain    & 0x1) << 0 ;
     len += mqttEncodeVarBytes( &header->remain_len[0], remain_len );
-    len  = (len == 0 ? 2 : len+1); // TODO: test this part
+    len  = len + 1; // TODO: test this part
     return  len;
 } // end of  mqttEncodeFxHeader
 
@@ -578,7 +578,7 @@ int  mqttPktRead( struct __mqttCtx *mctx, byte *buf, word32 buf_max_len, word32 
     const   byte  continuation_bit = 0x80;
     const   mqttPktFxHead_t  *header = (mqttPktFxHead_t *) buf;
  
-    // read the first byte.
+    // read the first byte. TODO: handle timeout error
     mqttPktLowLvlRead( mctx, buf, 0x1 );
     buf += 1;
     header_len = 1;
