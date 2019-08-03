@@ -70,7 +70,7 @@ int  mqttClientWaitPkt( mqttCtx_t *mctx, mqttCtrlPktType wait_cmdtype, word16 wa
         // wait until we receive incoming packet.
         status = mqttPktRead( mctx, rx_buf, rx_buf_len, &pkt_total_len );
         if( status != MQTT_RETURN_SUCCESS ) {
-            return status;
+            break; 
         }
         // start decoding the received packet
         recv_pkt_id = 0;
@@ -218,20 +218,24 @@ int   mqttSendPublish( mqttCtx_t *mctx )
     // transfer entire packet 
     word32  appdata_len = msg->app_data_len;
     word32  inbuf_pos = 0;
-    while(1) {
-        appdata_len    -= (inbuf_pos == 0) ? msg->inbuf_len : pkt_total_len;
-        status          = mqttPktWrite( mctx, tx_buf, pkt_total_len );
-        if(appdata_len <= 0) { break; }
-        inbuf_pos      += pkt_total_len;
-        pkt_total_len   = ESP_MIN( appdata_len, tx_buf_len );
-        ESP_MEMCPY( tx_buf, &msg->buff[inbuf_pos], pkt_total_len );
-    } // end of while-loop
+    do {
+        while(1) {
+            appdata_len    -= (inbuf_pos == 0) ? msg->inbuf_len : pkt_total_len;
+            status          = mqttPktWrite( mctx, tx_buf, pkt_total_len );
+            if(appdata_len <= 0) { break; }
+            inbuf_pos      += pkt_total_len;
+            pkt_total_len   = ESP_MIN( appdata_len, tx_buf_len );
+            ESP_MEMCPY( tx_buf, &msg->buff[inbuf_pos], pkt_total_len );
+        } // end of while-loop
 
-    if( qos > MQTT_QOS_0 ) {
-        wait_cmdtype = (qos==MQTT_QOS_1) ? MQTT_PACKET_TYPE_PUBACK: MQTT_PACKET_TYPE_PUBCOMP;
-        // implement qos=1 or 2 wait for response packet
-        status = mqttClientWaitPkt( mctx, wait_cmdtype, msg->packet_id, (void *)&mctx->recv_pkt.pub_resp );
-    } 
+        if( qos > MQTT_QOS_0 ) {
+            wait_cmdtype = (qos==MQTT_QOS_1) ? MQTT_PACKET_TYPE_PUBACK: MQTT_PACKET_TYPE_PUBCOMP;
+            // implement qos=1 or 2 wait for response packet
+            status = mqttClientWaitPkt( mctx, wait_cmdtype, msg->packet_id, (void *)&mctx->recv_pkt.pub_resp );
+        } 
+        // we only loop back & resend PUBLISH packet again if QoS = 1, 
+        // and we didn't get PUBACK from the network after a period of time.
+    } while((qos==MQTT_QOS_1) && (status!=MQTT_RETURN_SUCCESS));
     return status;
 } // end of mqttSendPublish
 

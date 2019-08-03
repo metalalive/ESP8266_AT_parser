@@ -579,12 +579,14 @@ int  mqttPktRead( struct __mqttCtx *mctx, byte *buf, word32 buf_max_len, word32 
     const   mqttPktFxHead_t  *header = (mqttPktFxHead_t *) buf;
  
     // read the first byte. TODO: handle timeout error
-    mqttPktLowLvlRead( mctx, buf, 0x1 );
-    buf += 1;
-    header_len = 1;
+    tmp = mqttPktLowLvlRead( mctx, buf, 0x1 );
+    if(tmp == 0x0) { return MQTT_RETURN_ERROR_TIMEOUT; }
+    buf += tmp;
+    header_len = tmp;
     // read from the 2nd byte, determined remain length encoded in variable bytes.
     for(idx=0; idx<MQTT_PKT_MAX_BYTES_REMAIN_LEN ; idx++) {
-        mqttPktLowLvlRead( mctx, &buf[idx], 0x1 );
+        tmp = mqttPktLowLvlRead( mctx, &buf[idx], 0x1 );
+        if(tmp == 0x0) { return MQTT_RETURN_ERROR_TIMEOUT; }
         if((header->remain_len[idx] & continuation_bit) == 0x0) {
             break;
         }
@@ -603,6 +605,7 @@ int  mqttPktRead( struct __mqttCtx *mctx, byte *buf, word32 buf_max_len, word32 
     }
     do {  // read remaining part
         tmp = mqttPktLowLvlRead( mctx, buf, remain_len );
+        if(tmp == 0x0) { return MQTT_RETURN_ERROR_TIMEOUT; }
         *copied_len += tmp;
         remain_len  -= tmp;
         buf         += tmp;
@@ -657,6 +660,11 @@ int mqttDecodePkt( struct __mqttCtx *mctx, byte *buf, word32 buf_len, void *p_de
         case MQTT_PACKET_TYPE_PUBCOMP      :
             mqttDecodePktPubResp( buf, buf_len, (mqttPktPubResp_t *)p_decode, cmdtype );
             *recv_pkt_id = ((mqttPktPubResp_t *)p_decode)->packet_id ;
+            if(p_decode != NULL) {
+                //  free the properties here if we take some space on 
+                //  clientPropStack[...] while decoding the packet
+                mqttPropertyDel( ((mqttPktPubResp_t  *)p_decode)->props );
+            }
             break; 
         case MQTT_PACKET_TYPE_SUBACK       :  break; 
         case MQTT_PACKET_TYPE_UNSUBACK     :  break; 

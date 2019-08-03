@@ -7,8 +7,6 @@ extern espGlbl_t espGlobal;
 typedef struct espNetConn
 {
     uint32_t            num_recv_pkt; // number of received packets
-    // TODO: check whether we really need the structure mbox_accept
-    espSysMbox_t        mbox_accept; // list of active connections waiting to be processed
     // list of received raw string from ESP device.  (should be IPD, incoming-packet-data)
     espSysMbox_t        mbox_recv; 
     uint32_t            conn_timeout_s; // connection timeout in seconds (only for server mode)
@@ -121,11 +119,6 @@ espNetConnPtr  pxESPnetconnCreate( espNetConnType_t type )
         conn->type = type; 
         conn->num_recv_pkt = 0; 
         conn->conn = NULL; 
-        conn->mbox_accept = xESPsysMboxCreate( ESP_CFG_NETCONN_ACCEPT_Q_LEN ) ; 
-        if( conn->mbox_accept == NULL) {
-             ESP_MEMFREE( conn );
-             return NULL;
-        }
         conn->mbox_recv   = xESPsysMboxCreate( ESP_CFG_NETCONN_RECV_Q_LEN ); 
         if( conn->mbox_recv == NULL) {
              ESP_MEMFREE( conn );
@@ -146,9 +139,7 @@ espRes_t    eESPnetconnDelete( espNetConnPtr nc )
         response = espERRARGS;
         return response;
     }
-    response = eESPflushMsgBox( nc->mbox_accept );
     response = eESPflushMsgBox( nc->mbox_recv );
-    vESPsysMboxDelete( &(nc->mbox_accept) ); 
     vESPsysMboxDelete( &(nc->mbox_recv  ) ); 
     ESP_MEMFREE( nc );
     return   response;
@@ -236,7 +227,6 @@ espConn_t*    pxESPgetNxtAvailConn( void )
 
 
 
-// TODO: test this API
 espRes_t   eESPconnClientStart( espConn_t *conn_in, espConnType_t type, const char* const host, uint16_t host_len,
                                 espPort_t port, espEvtCbFn evt_cb,  espEvtCbFn api_cb,  void* const api_cb_arg,  const uint32_t blocking )
 {

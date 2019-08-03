@@ -1,10 +1,11 @@
 #include "tests/integration/ESP_AT_parser/mqtt_client.h"
 
 #define  TASK_MIN_STACK_SIZE             (( unsigned portSHORT ) 0x9e)
-#define  MQTT_CONN_TX_BUF_SIZE           0x140
-#define  MQTT_CONN_RX_BUF_SIZE           0x140
-#define  MQTT_CMD_TIMEOUT_MS             60000
+#define  MQTT_CONN_TX_BUF_SIZE           0x100
+#define  MQTT_CONN_RX_BUF_SIZE           0x100
+#define  MQTT_CMD_TIMEOUT_MS             25000
 
+#define  TEST_NUM_MOCK_DATA              4
 
 static mqttCtx_t      *m_client ;
 static espNetConnPtr   clientnetconn;
@@ -17,7 +18,7 @@ static const uint8_t  app_json_footer_len = 3 ;
 
 static const byte     json_obj_header = '{';
 static const byte     json_obj_footer = '}';
-static const byte     json_token_between_items = ',';
+static const byte     json_separator_comma = ',';
 static const byte     json_moisture[]     = " 'mois': ";
 static const byte     json_pH[]           = " 'pH': ";
 static const byte     json_fertility[]    = " 'fert': ";
@@ -25,10 +26,10 @@ static const uint8_t  json_moisture_len   = 9;
 static const uint8_t  json_pH_len         = 7;
 static const uint8_t  json_fertility_len  = 9;
 
-static uint8_t  json_moisture_history[4]  = { 31, 9, 47, 58 };
-static uint8_t  json_pH_history[4]        = { 6, 7, 6, 5 };
-static uint8_t  json_fertility_history[4] = { 32, 30, 29, 28 };
-
+static uint8_t  json_moisture_history[TEST_NUM_MOCK_DATA]  = { 31, 9, 47, 58 };
+static uint8_t  json_pH_history[TEST_NUM_MOCK_DATA]        = { 6, 7, 6, 5 };
+static uint8_t  json_fertility_history[TEST_NUM_MOCK_DATA] = { 32, 30, 29, 28 };
+static uint8_t  mock_db_select_data_idx   = 0;
 
 
 
@@ -87,66 +88,79 @@ static espRes_t eESPtestMqttClientCallBack( espEvt_t*  evt )
 //     ]
 // }
 //
-static  void  vESPtestGenJSONmsg( byte *buf, word32 buff_len,  word32 *app_data_len, uint8_t select_data_idx )
+static  void  vESPtestGenJSONmsg( byte *buf, word32 buff_len,  word32 *app_data_len )
 {
     word32  copied_len = 0;
-    uint8_t chosen_moisture   = json_moisture_history[select_data_idx] ;
-    uint8_t chosen_pH         = json_pH_history[select_data_idx] ;
-    uint8_t chosen_fertility  = json_fertility_history[select_data_idx] ;
+    uint8_t chosen_moisture   = 0 ;
+    uint8_t chosen_pH         = 0 ;
+    uint8_t chosen_fertility  = 0 ;
     uint8_t num2str_buf[8]    = {0};
     uint8_t num_chr_append    =  0;
+    uint8_t idx = 0;
+    uint8_t jdx = 0;
 
     ESP_MEMCPY( buf, &app_json_header, app_json_header_len );
     buf += app_json_header_len;
     copied_len += app_json_header_len;
    
-    *buf++ = json_obj_header ;
-    copied_len += 1;
+    for(idx=0 ; idx<2 ; idx++ ) {
+        jdx = (mock_db_select_data_idx + idx) % TEST_NUM_MOCK_DATA;
+        chosen_moisture   = json_moisture_history[jdx] ;
+        chosen_pH         = json_pH_history[jdx] ;
+        chosen_fertility  = json_fertility_history[jdx] ;
 
-    ESP_MEMCPY( buf, &json_moisture, json_moisture_len );
-    buf += json_moisture_len;
-    copied_len += json_moisture_len;
+        *buf++ = json_obj_header ;
+        copied_len += 1;
 
-    num_chr_append = uiESPcvtNumToStr( &num2str_buf, (int)chosen_moisture, ESP_DIGIT_BASE_DECIMAL );
-    ESP_MEMCPY( buf, &num2str_buf, num_chr_append );
-    buf += num_chr_append;
-    copied_len += num_chr_append;
+        ESP_MEMCPY( buf, &json_moisture, json_moisture_len );
+        buf += json_moisture_len;
+        copied_len += json_moisture_len;
 
-    *buf++ = json_token_between_items ;
-    copied_len += 1;
+        num_chr_append = uiESPcvtNumToStr( &num2str_buf, (int)chosen_moisture, ESP_DIGIT_BASE_DECIMAL );
+        ESP_MEMCPY( buf, &num2str_buf, num_chr_append );
+        buf += num_chr_append;
+        copied_len += num_chr_append;
 
-    ESP_MEMCPY( buf, &json_pH, json_pH_len );
-    buf += json_pH_len;
-    copied_len += json_pH_len;
+        *buf++ = json_separator_comma ;
+        copied_len += 1;
 
-    num_chr_append = uiESPcvtNumToStr( &num2str_buf, (int)chosen_pH, ESP_DIGIT_BASE_DECIMAL );
-    ESP_MEMCPY( buf, &num2str_buf, num_chr_append );
-    buf += num_chr_append;
-    copied_len += num_chr_append;
+        ESP_MEMCPY( buf, &json_pH, json_pH_len );
+        buf += json_pH_len;
+        copied_len += json_pH_len;
 
-    *buf++ = json_token_between_items ;
-    copied_len += 1;
+        num_chr_append = uiESPcvtNumToStr( &num2str_buf, (int)chosen_pH, ESP_DIGIT_BASE_DECIMAL );
+        ESP_MEMCPY( buf, &num2str_buf, num_chr_append );
+        buf += num_chr_append;
+        copied_len += num_chr_append;
 
-    ESP_MEMCPY( buf, &json_fertility, json_fertility_len );
-    buf += json_fertility_len;
-    copied_len += json_fertility_len;
+        *buf++ = json_separator_comma ;
+        copied_len += 1;
 
-    num_chr_append = uiESPcvtNumToStr( &num2str_buf, (int)chosen_fertility, ESP_DIGIT_BASE_DECIMAL );
-    ESP_MEMCPY( buf, &num2str_buf, num_chr_append );
-    buf += num_chr_append;
-    copied_len += num_chr_append;
+        ESP_MEMCPY( buf, &json_fertility, json_fertility_len );
+        buf += json_fertility_len;
+        copied_len += json_fertility_len;
 
-    *buf++ = json_token_between_items ;
-    copied_len += 1;
+        num_chr_append = uiESPcvtNumToStr( &num2str_buf, (int)chosen_fertility, ESP_DIGIT_BASE_DECIMAL );
+        ESP_MEMCPY( buf, &num2str_buf, num_chr_append );
+        buf += num_chr_append;
+        copied_len += num_chr_append;
 
-    *buf++ = json_obj_footer ;
-    copied_len += 1;
+        *buf++ = json_separator_comma ;
+        copied_len += 1;
+
+        *buf++ = json_obj_footer ;
+        copied_len += 1;
+
+        *buf++ = json_separator_comma ;
+        copied_len += 1;
+    }
  
     ESP_MEMCPY( buf, &app_json_footer, app_json_footer_len );
     buf += app_json_footer_len;
     copied_len += app_json_footer_len;
 
     *app_data_len = copied_len;
+    mock_db_select_data_idx   = (mock_db_select_data_idx + 1) % TEST_NUM_MOCK_DATA;
 } // end of vESPtestGenJSONmsg 
 
 
@@ -167,7 +181,7 @@ static void vESPtestMqttClientApp( espNetConnPtr netconn, espConn_t*  espconn,  
     mconn->protocol_lvl   = MQTT_CONN_PROTOCOL_LEVEL; 
     mconn->client_id.data = "esp_freertos_stm32";
     mconn->username.data  = "testuser";
-    mconn->password.data  = "guesspasswd";
+    mconn->password.data  = "guesspswd";
     mconn->client_id.len  = ESP_STRLEN( mconn->client_id.data );
     mconn->username.len   = ESP_STRLEN( mconn->username.data  );
     mconn->password.len   = ESP_STRLEN( mconn->password.data  );
@@ -194,8 +208,9 @@ static void vESPtestMqttClientApp( espNetConnPtr netconn, espConn_t*  espconn,  
         pub_msg->packet_id  = idx + 1; 
         // in this test, we only consider to publish message with QoS = 0 or 1.
         pub_msg->qos        = 0x1 & idx; 
-        vESPtestGenJSONmsg( pub_msg->buff, pub_msg->buff_len, &pub_msg->app_data_len, idx ); 
+        vESPtestGenJSONmsg( pub_msg->buff, pub_msg->buff_len, &pub_msg->app_data_len ); 
         mqttSendPublish( m_client );
+        vESPsysDelay( 1000 );
     } // end of loop
     // --- wait for the message this device subscribed earlier in this test
     for(idx=0 ; idx<max_num_publish_msg; idx++)
@@ -214,11 +229,10 @@ static void vESPtestMqttClientApp( espNetConnPtr netconn, espConn_t*  espconn,  
 
 static void vESPtestMqttClientTask(void *params) 
 {
-    const uint16_t  max_req_cnt = 6;
     espRes_t        response ;
     uint8_t         devPresent ;
     espConn_t*      conn      =  NULL;
-    const char      hostname[]= "124.9.129.58";
+    const char      hostname[]= "124.9.129.137";
     uint16_t        host_len  = strlen(hostname);
     espPort_t       port      = 1883;
 
