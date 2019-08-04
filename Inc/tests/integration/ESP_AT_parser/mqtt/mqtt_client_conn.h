@@ -49,15 +49,22 @@ typedef struct __mqttCtx{
     union {
         mqttConn_t           conn;
         mqttPktDisconn_t     disconn;
-        // published message, it should be separated from received message
+        // published message, in some cases, it's possible that this client device publishes a message
+        // meanwhile receiving other messages with certain types of topics it subscribed previously.
         mqttMsg_t            pub_msg;
         mqttPktPubResp_t     pub_resp;
+        // subscribe / unsubscribe to a topic(s)
+        mqttPktSubs_t        subs;
+        mqttPktUnsubs_t      unsubs;
     } send_pkt;
     // extract received message to this member, TODO: test 
     union {
         mqttPktHeadConnack_t connack;
         mqttMsg_t            pub_msg;
         mqttPktPubResp_t     pub_resp;
+        // acknowledgement of subscribe / unsubscribe 
+        mqttPktSuback_t      suback;
+        mqttPktUnsuback_t    unsuback;
     } recv_pkt;
 
     int          cmd_timeout_ms;
@@ -91,10 +98,10 @@ int   mqttSendConnect( mqttCtx_t *mctx );
 int   mqttSendPublish( mqttCtx_t *mctx );
 
 // encodes & sends MQTT SUBSCRIBE packet, then waits for SUBACK packet
-int   mqttSendSubscribe( mqttCtx_t *mctx, mqttPktSubs_t *sub );
+int   mqttSendSubscribe( mqttCtx_t *mctx );
 
 // encodes & sends MQTT UNSUBSCRIBE packet, waits for UNSUBACK packet
-int   mqttSendUnsubscribe( mqttCtx_t *mctx, mqttPktUnsubs_t *unsub );
+int   mqttSendUnsubscribe( mqttCtx_t *mctx );
 
 // encodes & sends MQTT PING request packet, and waits for PING response
 // packet

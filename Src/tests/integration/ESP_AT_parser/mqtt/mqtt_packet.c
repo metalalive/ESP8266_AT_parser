@@ -533,6 +533,101 @@ word32  mqttEncodePktPublish( byte *tx_buf, word32 tx_buf_len, struct __mqttMsg 
 
 
 
+word32  mqttEncodePktSubscribe( byte *tx_buf, word32 tx_buf_len, mqttPktSubs_t *subs )
+{
+    if((subs == NULL) || (tx_buf == NULL) || (tx_buf_len == 0)) { 
+        return  0;
+    }
+    word32        fx_head_len = 0;
+    word32        remain_len  = 0;
+    word32        props_len   = 0;
+    word16        idx = 0;
+    byte         *curr_buf_pos = NULL;
+    mqttTopic_t  *curr_topic = NULL;
+
+    // 2 bytes for packet ID
+    remain_len = 2; 
+    // size of all properties in the packet
+    props_len   =  mqttEncodeProps( NULL, subs->props );
+    remain_len +=  props_len;
+    remain_len +=  mqttEncodeVarBytes( NULL, props_len );
+    // loop through the topic lists , to determine payload length
+    for( idx=0; idx<subs->topic_cnt; idx++ ){
+        curr_topic  = &subs->topics[idx];
+        if(curr_topic != NULL) {
+            // preserve space for each topic, encoded as UTF-8 string
+            remain_len += curr_topic->filter.len + 2; 
+            remain_len += 1; // 1 byte for QoS field of each topic
+        }
+        else{ return 0; }
+    }
+    // build fixed header of SUBSCRIBE packet 
+    fx_head_len = mqttEncodeFxHeader( tx_buf, tx_buf_len, remain_len, 
+                                      MQTT_PACKET_TYPE_SUBSCRIBE, 0, 0, 0 );
+    curr_buf_pos  = &tx_buf[fx_head_len]; 
+    // variable header, packet ID, and optional properties
+    curr_buf_pos += mqttEncodeWord16( curr_buf_pos, subs->packet_id );
+    curr_buf_pos += mqttEncodeVarBytes( curr_buf_pos , props_len );
+    curr_buf_pos += mqttEncodeProps( curr_buf_pos , subs->props );
+    // payload
+    for( idx=0; idx<subs->topic_cnt; idx++ ) {
+        curr_topic  = &subs->topics[idx];
+        curr_buf_pos += mqttEncodeStr( curr_buf_pos, curr_topic->filter.data, curr_topic->filter.len );
+        *curr_buf_pos = (byte) curr_topic->qos; // TODO: implement all fields of the subscription options byte
+        curr_buf_pos++;
+    }
+    return (fx_head_len + remain_len);
+} // end of mqttEncodePktSubscribe
+
+
+
+
+word32  mqttEncodePktUnsubscribe( byte *tx_buf, word32 tx_buf_len, mqttPktUnsubs_t *unsubs )
+{
+    if((unsubs == NULL) || (tx_buf == NULL) || (tx_buf_len == 0)) { 
+        return  0;
+    }
+    word32   fx_head_len = 0;
+    word32   remain_len  = 0;
+    word32   props_len   = 0;
+    word16   idx = 0;
+    byte    *curr_buf_pos ;
+    mqttTopic_t  *curr_topic = NULL;
+
+    // 2 bytes for packet ID
+    remain_len = 2; 
+    // size of all properties in the packet
+    props_len   =  mqttEncodeProps( NULL, unsubs->props );
+    remain_len +=  props_len;
+    remain_len +=  mqttEncodeVarBytes( NULL, props_len );
+    for( idx=0; idx<unsubs->topic_cnt; idx++ ){
+        curr_topic  = &unsubs->topics[idx];
+        if(curr_topic != NULL) {
+            // preserve space for each topic, encoded as UTF-8 string
+            remain_len += curr_topic->filter.len + 2; 
+        }
+        else{ return 0; }
+    }
+    // build fixed header of UNSUBSCRIBE packet 
+    fx_head_len = mqttEncodeFxHeader( tx_buf, tx_buf_len, remain_len, 
+                                      MQTT_PACKET_TYPE_UNSUBSCRIBE, 0, 0, 0 );
+    curr_buf_pos  = &tx_buf[fx_head_len]; 
+    // variable header, packet ID, and optional properties
+    curr_buf_pos += mqttEncodeWord16( curr_buf_pos, unsubs->packet_id );
+    curr_buf_pos += mqttEncodeVarBytes( curr_buf_pos, props_len );
+    curr_buf_pos += mqttEncodeProps( curr_buf_pos , unsubs->props );
+    // payload
+    for( idx=0; idx<unsubs->topic_cnt; idx++ ){
+        curr_topic    = &unsubs->topics[idx];
+        curr_buf_pos += mqttEncodeStr( curr_buf_pos, curr_topic->filter.data, curr_topic->filter.len );
+    }
+    return (fx_head_len + remain_len);
+} // end of mqttEncodePktUnsubscribe
+
+
+
+
+
 word32  mqttDecodePktPubResp( byte *rx_buf, word32 rx_buf_len, mqttPktPubResp_t *resp, mqttCtrlPktType cmdtype )
 {
     if((resp == NULL) || (rx_buf == NULL) || (rx_buf_len == 0)) { 
@@ -562,6 +657,56 @@ word32  mqttDecodePktPubResp( byte *rx_buf, word32 rx_buf_len, mqttPktPubResp_t 
     }
     return  (fx_head_len + remain_len);
 } // end of mqttDecodePktPubResp
+
+
+
+
+word32  mqttDecodePktSuback( byte *rx_buf, word32 rx_buf_len, mqttPktSuback_t *suback )
+{
+    if((suback == NULL) || (rx_buf == NULL) || (rx_buf_len == 0)) { 
+        return  0;
+    }
+    word32   fx_head_len = 0;
+    word32   remain_len  = 0;
+    word32   props_len   = 0;
+    byte    *curr_buf_pos ;
+    fx_head_len = mqttDecodeFxHeader( rx_buf, rx_buf_len, &remain_len, 
+                                      MQTT_PACKET_TYPE_SUBACK, NULL, NULL, NULL );
+    curr_buf_pos  = &rx_buf[fx_head_len];
+    curr_buf_pos += mqttDecodeWord16( curr_buf_pos, &suback->packet_id );
+    curr_buf_pos += mqttDecodeVarBytes( curr_buf_pos, &props_len );
+    if(props_len > 0) {
+        curr_buf_pos += mqttDecodeProps( curr_buf_pos, &suback->props, props_len );
+    }
+    // the SUBACK payload contains a list of return codes
+    suback->return_codes = curr_buf_pos; 
+    return  (fx_head_len + remain_len);
+} // end of mqttDecodePktSuback
+
+
+
+
+word32  mqttDecodePktUnsuback( byte *rx_buf, word32 rx_buf_len, mqttPktUnsuback_t *unsuback )
+{
+    if((unsuback == NULL) || (rx_buf == NULL) || (rx_buf_len == 0)) { 
+        return  0;
+    }
+    word32   fx_head_len = 0;
+    word32   remain_len  = 0;
+    word32   props_len   = 0;
+    byte    *curr_buf_pos ;
+    fx_head_len = mqttDecodeFxHeader( rx_buf, rx_buf_len, &remain_len, 
+                                      MQTT_PACKET_TYPE_UNSUBACK, NULL, NULL, NULL );
+    curr_buf_pos  = &rx_buf[fx_head_len];
+    curr_buf_pos += mqttDecodeWord16( curr_buf_pos, &unsuback->packet_id );
+    curr_buf_pos += mqttDecodeVarBytes( curr_buf_pos, &props_len );
+    if(props_len > 0) {
+        curr_buf_pos += mqttDecodeProps( curr_buf_pos, &unsuback->props, props_len );
+    }
+    // the SUBACK payload contains a list of return codes
+    unsuback->return_codes = curr_buf_pos; 
+    return  (fx_head_len + remain_len);
+} // end of mqttDecodePktUnsuback
 
 
 
@@ -666,8 +811,20 @@ int mqttDecodePkt( struct __mqttCtx *mctx, byte *buf, word32 buf_len, void *p_de
                 mqttPropertyDel( ((mqttPktPubResp_t  *)p_decode)->props );
             }
             break; 
-        case MQTT_PACKET_TYPE_SUBACK       :  break; 
-        case MQTT_PACKET_TYPE_UNSUBACK     :  break; 
+        case MQTT_PACKET_TYPE_SUBACK       :  
+            mqttDecodePktSuback( buf, buf_len, (mqttPktSuback_t *)p_decode );
+            *recv_pkt_id = ((mqttPktSuback_t *)p_decode)->packet_id ;
+            if(p_decode != NULL) {
+                mqttPropertyDel( ((mqttPktSuback_t *)p_decode)->props );
+            }
+            break; 
+        case MQTT_PACKET_TYPE_UNSUBACK     :  
+            mqttDecodePktUnsuback( buf, buf_len, (mqttPktUnsuback_t *)p_decode );
+            *recv_pkt_id = ((mqttPktUnsuback_t *)p_decode)->packet_id ;
+            if(p_decode != NULL) {
+                mqttPropertyDel( ((mqttPktUnsuback_t *)p_decode)->props );
+            }
+            break; 
         case MQTT_PACKET_TYPE_PINGREQ      :  break; 
         case MQTT_PACKET_TYPE_PINGRESP     :  break; 
         case MQTT_PACKET_TYPE_DISCONNECT   :  break; 

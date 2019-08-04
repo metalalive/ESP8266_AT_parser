@@ -208,11 +208,12 @@ typedef struct __mqttProp {
 
 
 typedef struct {
-    const char* filter; // ?
-    mqttQoS  qos;
-    byte     reason_code;
-    byte     sub_id; // subscription ID
-    word16   alias;
+    // topic string that will be subscribe / unsubscribed
+    mqttStr_t    filter;
+    mqttQoS      qos;
+    byte         reason_code;
+    byte         sub_id; // subscription ID
+    word16       alias;
 } mqttTopic_t;
 
 

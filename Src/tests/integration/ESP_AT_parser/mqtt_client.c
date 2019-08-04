@@ -10,6 +10,9 @@
 static mqttCtx_t      *m_client ;
 static espNetConnPtr   clientnetconn;
 
+// topics that will be subsribed in this test.
+static mqttTopic_t  subs_topics[2];
+
 // application speciific data in this test
 static const byte  app_json_header[] = "{ 'soil': [";
 static const byte  app_json_footer[] = "] }";
@@ -108,6 +111,9 @@ static  void  vESPtestGenJSONmsg( byte *buf, word32 buff_len,  word32 *app_data_
         chosen_moisture   = json_moisture_history[jdx] ;
         chosen_pH         = json_pH_history[jdx] ;
         chosen_fertility  = json_fertility_history[jdx] ;
+        json_moisture_history[jdx]  = 1 + chosen_moisture  ;
+        json_pH_history[jdx]        = 1 + chosen_pH        ;
+        json_fertility_history[jdx] = 1 + chosen_fertility ;
 
         *buf++ = json_obj_header ;
         copied_len += 1;
@@ -165,6 +171,23 @@ static  void  vESPtestGenJSONmsg( byte *buf, word32 buff_len,  word32 *app_data_
 
 
 
+static void vESPtestMqttInitSubsTopics( void )
+{
+    subs_topics[0].filter.data = "control/sprayer/workseconds"; 
+    subs_topics[0].filter.len  = ESP_STRLEN( subs_topics[0].filter.data );
+    subs_topics[0].qos         = MQTT_QOS_1;
+    subs_topics[0].reason_code = 0;
+    subs_topics[0].sub_id      = 0; 
+
+    subs_topics[1].filter.data = "sensor/moisture/threshold"; 
+    subs_topics[1].filter.len  = ESP_STRLEN( subs_topics[1].filter.data );
+    subs_topics[1].qos         = MQTT_QOS_0;
+    subs_topics[1].reason_code = 0;
+    subs_topics[1].sub_id      = 0; 
+} // end of vESPtestMqttInitSubsTopics
+
+
+
 
 
 static void vESPtestMqttClientApp( espNetConnPtr netconn, espConn_t*  espconn,  mqttCtx_t *m_client )
@@ -187,8 +210,6 @@ static void vESPtestMqttClientApp( espNetConnPtr netconn, espConn_t*  espconn,  
     mconn->password.len   = ESP_STRLEN( mconn->password.data  );
     mqttSendConnect( m_client );
     
-    // --- subscribe topic of interests
-
     // --- publish messages with specific topic, in this test, we expect
     //     another client which  can act as both of subsriber or publisher, the
     //     client expects to wait for message sent by this device, or vice versa.
@@ -212,10 +233,31 @@ static void vESPtestMqttClientApp( espNetConnPtr netconn, espConn_t*  espconn,  
         mqttSendPublish( m_client );
         vESPsysDelay( 1000 );
     } // end of loop
+
+    // --- subscribe topic of interests
+    vESPtestMqttInitSubsTopics();
+    mqttPktSubs_t  *subs = &m_client->send_pkt.subs ;
+    subs->packet_id  = 11; 
+    subs->topic_cnt  = 2; 
+    subs->topics     = &subs_topics[0];
+    subs->props      = NULL;
+    mqttSendSubscribe( m_client );
+
     // --- wait for the message this device subscribed earlier in this test
     for(idx=0 ; idx<max_num_publish_msg; idx++)
     {
+        mqttClientWaitPkt( m_client, MQTT_PACKET_TYPE_PUBLISH, 0, 
+                           (void *)&m_client->recv_pkt.pub_msg );
     } // end of loop
+
+    // --- unsubscribe topics
+    mqttPktUnsubs_t *unsubs = &m_client->send_pkt.unsubs ;
+    unsubs->packet_id  = 12; 
+    unsubs->topic_cnt  = 2; 
+    unsubs->topics     = &subs_topics[0];
+    unsubs->props      = NULL;
+    mqttSendUnsubscribe( m_client );
+
     // --- send DISCONNECT packet to broker ---
     m_client->send_pkt.disconn.reason_code = MQTT_REASON_NORMAL_DISCONNECTION;
     m_client->send_pkt.disconn.props       = NULL;

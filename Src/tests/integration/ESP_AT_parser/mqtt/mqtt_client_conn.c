@@ -243,6 +243,76 @@ int   mqttSendPublish( mqttCtx_t *mctx )
 
 
 
+int   mqttSendSubscribe( mqttCtx_t *mctx )
+{
+    int          status;
+    byte        *tx_buf;
+    word32       tx_buf_len;
+    word32       pkt_total_len;
+    if( mctx == NULL ){ 
+        return MQTT_RETURN_ERROR_BAD_ARG;
+    }
+    mqttPktSubs_t *subs = &mctx->send_pkt.subs ;
+    // there must be at least one topic to subscribe
+    if((subs->topics == NULL) || (subs->topic_cnt == 0)){
+        return MQTT_RETURN_ERROR_BAD_ARG;
+    }
+    tx_buf         =  mctx->tx_buf;
+    tx_buf_len     =  mctx->tx_buf_len;
+    pkt_total_len  =  mqttEncodePktSubscribe( tx_buf, tx_buf_len, subs );
+    if(pkt_total_len <= 0) {
+        return  MQTT_RETURN_ERROR_MALFORMED_DATA;
+    }
+    else if(pkt_total_len > tx_buf_len) {
+        return  MQTT_RETURN_ERROR_OUT_OF_BUFFER;
+    }
+
+    status = mqttPktWrite( mctx, tx_buf, pkt_total_len );
+    if( status != MQTT_RETURN_SUCCESS ) {
+        return status;
+    }
+    status = mqttClientWaitPkt( mctx, MQTT_PACKET_TYPE_SUBACK, subs->packet_id, 
+                                (void *)&mctx->recv_pkt.suback );
+    return status;
+} // end of mqttSendSubscribe
+
+
+
+
+
+int   mqttSendUnsubscribe( mqttCtx_t *mctx )
+{
+    int          status;
+    byte        *tx_buf;
+    word32       tx_buf_len;
+    word32       pkt_total_len;
+    if( mctx == NULL ){ 
+        return MQTT_RETURN_ERROR_BAD_ARG;
+    }
+    mqttPktUnsubs_t *unsubs = &mctx->send_pkt.unsubs ;
+    // there must be at least one topic to unsubscribe
+    if((unsubs->topics == NULL) || (unsubs->topic_cnt == 0)){
+        return MQTT_RETURN_ERROR_BAD_ARG;
+    }
+    tx_buf         =  mctx->tx_buf;
+    tx_buf_len     =  mctx->tx_buf_len;
+    pkt_total_len  =  mqttEncodePktUnsubscribe( tx_buf, tx_buf_len, unsubs );
+    if(pkt_total_len <= 0) {
+        return  MQTT_RETURN_ERROR_MALFORMED_DATA;
+    }
+    else if(pkt_total_len > tx_buf_len) {
+        return  MQTT_RETURN_ERROR_OUT_OF_BUFFER;
+    }
+
+    status = mqttPktWrite( mctx, tx_buf, pkt_total_len );
+    if( status != MQTT_RETURN_SUCCESS ) {
+        return status;
+    }
+    status = mqttClientWaitPkt( mctx, MQTT_PACKET_TYPE_UNSUBACK, unsubs->packet_id , 
+                                (void *)&mctx->recv_pkt.unsuback );
+    return status;
+} // end of mqttSendUnsubscribe
+
 
 
 
