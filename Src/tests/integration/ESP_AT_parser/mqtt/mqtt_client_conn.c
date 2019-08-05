@@ -242,6 +242,51 @@ int   mqttSendPublish( mqttCtx_t *mctx )
 
 
 
+int  mqttSendPubResp( mqttCtx_t *mctx, mqttCtrlPktType  cmdtype )
+{
+    int          status;
+    byte        *tx_buf;
+    word32       tx_buf_len;
+    word32       pkt_total_len;
+    mqttPktPubResp_t   *pub_resp;
+
+    if( mctx == NULL ){ 
+        return MQTT_RETURN_ERROR_BAD_ARG;
+    }
+    switch(cmdtype) {
+        case MQTT_PACKET_TYPE_PUBACK   :   
+        case MQTT_PACKET_TYPE_PUBRECV  :   
+        case MQTT_PACKET_TYPE_PUBREL   :   
+        case MQTT_PACKET_TYPE_PUBCOMP  :
+            break;
+        default: 
+            return MQTT_RETURN_ERROR_BAD_ARG;
+    }
+    pub_resp       = &mctx->send_pkt.pub_resp;
+    tx_buf         =  mctx->tx_buf;
+    tx_buf_len     =  mctx->tx_buf_len;
+    pkt_total_len  =  mqttEncodePktPubResp( tx_buf, tx_buf_len, pub_resp, cmdtype );
+    if(pkt_total_len <= 0) {
+        return  MQTT_RETURN_ERROR_MALFORMED_DATA;
+    }
+    else if(pkt_total_len > tx_buf_len) {
+        return  MQTT_RETURN_ERROR_OUT_OF_BUFFER;
+    }
+    status = mqttPktWrite( mctx, tx_buf, pkt_total_len );
+    if( status != MQTT_RETURN_SUCCESS ) {
+        return status;
+    }
+    if((cmdtype==MQTT_PACKET_TYPE_PUBRECV) || (cmdtype==MQTT_PACKET_TYPE_PUBREL)) 
+    { // wait for subsequent response if QoS = 2
+        status = mqttClientWaitPkt( mctx, (cmdtype + 1), pub_resp->packet_id, 
+                                (void *)&mctx->recv_pkt.pub_resp );
+    }
+    return status;
+} // end of mqttSendPubResp
+
+
+
+
 
 int   mqttSendSubscribe( mqttCtx_t *mctx )
 {

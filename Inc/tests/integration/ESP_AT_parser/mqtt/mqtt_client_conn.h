@@ -97,6 +97,9 @@ int   mqttSendConnect( mqttCtx_t *mctx );
 //         PUBLISH_REL and wait for PUBLISH_COMP.
 int   mqttSendPublish( mqttCtx_t *mctx );
 
+// send publish response packet
+int  mqttSendPubResp( mqttCtx_t *mctx, mqttCtrlPktType  cmdtype );
+
 // encodes & sends MQTT SUBSCRIBE packet, then waits for SUBACK packet
 int   mqttSendSubscribe( mqttCtx_t *mctx );
 

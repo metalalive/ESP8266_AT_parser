@@ -316,9 +316,9 @@ static word32 mqttDecodeFxHeader( byte *rx_buf, word32 rx_buf_len, word32 *remai
     if(MQTT_CTRL_PKT_TYPE_GET(header->type_flgs) != cmdtype) {
         return len;
     }
-    if(retain != NULL) {    *retain    = (header->type_flgs & 0x1) >> 0; }
-    if(qos != NULL) {       *qos       = (header->type_flgs & 0x3) >> 1; }
-    if(duplicate != NULL) { *duplicate = (header->type_flgs & 0x1) >> 3; }
+    if(retain != NULL) {    *retain    = (header->type_flgs >> 0) & 0x1; }
+    if(qos != NULL) {       *qos       = (header->type_flgs >> 1) & 0x3; }
+    if(duplicate != NULL) { *duplicate = (header->type_flgs >> 3) & 0x1; }
     len += 1;
     len += mqttDecodeVarBytes( &header->remain_len[0], &_remain_len );
     if(remain_len != NULL) { *remain_len = _remain_len; }
@@ -533,6 +533,51 @@ word32  mqttEncodePktPublish( byte *tx_buf, word32 tx_buf_len, struct __mqttMsg 
 
 
 
+
+word32  mqttDecodePktPublish( byte *rx_buf, word32 rx_buf_len, struct __mqttMsg *msg )
+{
+    word32   fx_head_len  = 0;
+    word32   var_head_len = 0;
+    word32   payload_len  = 0;
+    word32   props_len    = 0;
+    word16   tmp = 0;
+    byte    *curr_buf_pos ;
+
+    if((msg == NULL) || (rx_buf == NULL) || (rx_buf_len == 0)) { 
+        return  0;
+    }
+    fx_head_len = mqttDecodeFxHeader( rx_buf, rx_buf_len, &payload_len, 
+                                      MQTT_PACKET_TYPE_PUBLISH, &msg->retain,
+                                      &msg->qos, &msg->duplicate );
+    curr_buf_pos  = &rx_buf[fx_head_len]; 
+    // variable header : topic filter
+    var_head_len  = mqttDecodeStr( curr_buf_pos, &msg->topic.data, &msg->topic.len );
+    curr_buf_pos += var_head_len;
+    // variable header : check QoS & see if we have packet ID field in the received PUBLISH packet
+    if(msg->qos > MQTT_QOS_0) {
+        curr_buf_pos  += mqttDecodeWord16( curr_buf_pos, &msg->packet_id );
+        var_head_len  += 2;
+    }
+    // variable header : optional properties
+    tmp = mqttDecodeVarBytes( curr_buf_pos, &props_len );
+    var_head_len += tmp;
+    curr_buf_pos += tmp;
+    if(props_len > 0) {
+        var_head_len += props_len;
+        curr_buf_pos += mqttDecodeProps( curr_buf_pos, &msg->props, props_len );
+    }
+    // payload, if Rx buffer is insufficient to store entire application message, then we only store
+    // the beginning part (and lose part of the application message)
+    payload_len -= var_head_len;
+    msg->buff    = curr_buf_pos;
+    msg->app_data_len = payload_len; 
+    msg->inbuf_len    = ESP_MIN( payload_len, rx_buf_len );
+    return (fx_head_len + var_head_len + payload_len);
+} // end of mqttDecodePktPublish
+
+
+
+
 word32  mqttEncodePktSubscribe( byte *tx_buf, word32 tx_buf_len, mqttPktSubs_t *subs )
 {
     if((subs == NULL) || (tx_buf == NULL) || (tx_buf_len == 0)) { 
@@ -627,6 +672,38 @@ word32  mqttEncodePktUnsubscribe( byte *tx_buf, word32 tx_buf_len, mqttPktUnsubs
 
 
 
+word32  mqttEncodePktPubResp( byte *tx_buf, word32 tx_buf_len, mqttPktPubResp_t *resp, mqttCtrlPktType cmdtype )
+{
+    if((resp == NULL) || (tx_buf == NULL) || (tx_buf_len == 0)) { 
+        return  0;
+    }
+    word32   fx_head_len = 0;
+    word32   remain_len  = 0;
+    word32   props_len   = 0;
+    byte    *curr_buf_pos ;
+
+    remain_len  = 2;  // 2 bytes for packet ID
+    if((resp->reason_code != MQTT_REASON_SUCCESS) || (resp->props != NULL)) {
+        remain_len += 1; // 1 byte for reason code 
+        props_len   = mqttEncodeProps( NULL, resp->props );
+        remain_len += props_len; 
+        remain_len += mqttEncodeVarBytes( NULL, props_len );
+    }
+    fx_head_len  = mqttEncodeFxHeader( tx_buf, tx_buf_len, remain_len, cmdtype, 0, 0, 0 );
+    curr_buf_pos  = &tx_buf[fx_head_len] ;
+    curr_buf_pos += mqttEncodeWord16( curr_buf_pos, resp->packet_id );
+
+    if((resp->reason_code != MQTT_REASON_SUCCESS) || (resp->props != NULL)) {
+        *curr_buf_pos++ = resp->reason_code ;
+        curr_buf_pos += mqttEncodeVarBytes( curr_buf_pos, props_len );
+        curr_buf_pos += mqttEncodeProps( curr_buf_pos, resp->props );
+    }
+    return  (fx_head_len + remain_len);
+} // end of mqttEncodePktPubResp
+
+
+
+
 
 word32  mqttDecodePktPubResp( byte *rx_buf, word32 rx_buf_len, mqttPktPubResp_t *resp, mqttCtrlPktType cmdtype )
 {
@@ -703,7 +780,7 @@ word32  mqttDecodePktUnsuback( byte *rx_buf, word32 rx_buf_len, mqttPktUnsuback_
     if(props_len > 0) {
         curr_buf_pos += mqttDecodeProps( curr_buf_pos, &unsuback->props, props_len );
     }
-    // the SUBACK payload contains a list of return codes
+    // the UNSUBACK payload contains a list of return codes
     unsuback->return_codes = curr_buf_pos; 
     return  (fx_head_len + remain_len);
 } // end of mqttDecodePktUnsuback
@@ -745,7 +822,8 @@ int  mqttPktRead( struct __mqttCtx *mctx, byte *buf, word32 buf_max_len, word32 
     // the return of the function call below should be the same as idx + 1
     buf        += mqttDecodeVarBytes( &header->remain_len[0], &remain_len );
     if(buf_max_len < (remain_len + header_len)) {
-        // current Rx buffer cannot hold entire packet, so we return error instead.
+        // current Rx buffer cannot hold entire packet, chances are that received application
+        // message exceeds the limit of Rx buffer ,so we return error instead.
         return  MQTT_RETURN_ERROR_OUT_OF_BUFFER;
     }
     do {  // read remaining part
@@ -783,10 +861,12 @@ int  mqttPktWrite( struct __mqttCtx *mctx, byte *buf, word32 buf_len )
 
 
 
+
 int mqttDecodePkt( struct __mqttCtx *mctx, byte *buf, word32 buf_len, void *p_decode, word16 *recv_pkt_id  )
 {
     const   mqttPktFxHead_t  *header = (mqttPktFxHead_t *) buf;
     mqttCtrlPktType  cmdtype = MQTT_CTRL_PKT_TYPE_GET(header->type_flgs);
+
     switch (cmdtype)
     {
         case MQTT_PACKET_TYPE_CONNACK      : 
@@ -798,11 +878,28 @@ int mqttDecodePkt( struct __mqttCtx *mctx, byte *buf, word32 buf_len, void *p_de
             }
             break;  
         case MQTT_PACKET_TYPE_PUBLISH      :
+        {
+            mqttDecodePktPublish( buf, buf_len, (mqttMsg_t *)p_decode );
+            mqttQoS qos =  ((mqttMsg_t *)p_decode)->qos;
+            *recv_pkt_id = ((mqttMsg_t *)p_decode)->packet_id;
+            if(p_decode != NULL) {
+                mqttPropertyDel( ((mqttMsg_t *)p_decode)->props );
+            }
+            if(qos > MQTT_QOS_0) {
+                cmdtype = ( qos == MQTT_QOS_1 ? MQTT_PACKET_TYPE_PUBACK: MQTT_PACKET_TYPE_PUBRECV );
+                mqttPktPubResp_t *pub_resp = &mctx->send_pkt.pub_resp ;
+                ESP_MEMSET( pub_resp, 0x00, sizeof(mqttPktPubResp_t) );
+                pub_resp->packet_id   = *recv_pkt_id ;
+                pub_resp->reason_code = MQTT_REASON_SUCCESS;
+                mqttSendPubResp( mctx, cmdtype );
+            }
             break; 
-        case MQTT_PACKET_TYPE_PUBACK       :   
-        case MQTT_PACKET_TYPE_PUBRECV      :   
-        case MQTT_PACKET_TYPE_PUBREL       :   
-        case MQTT_PACKET_TYPE_PUBCOMP      :
+        }
+        case MQTT_PACKET_TYPE_PUBACK   :   
+        case MQTT_PACKET_TYPE_PUBRECV  :   
+        case MQTT_PACKET_TYPE_PUBREL   :   
+        case MQTT_PACKET_TYPE_PUBCOMP  :  
+        {
             mqttDecodePktPubResp( buf, buf_len, (mqttPktPubResp_t *)p_decode, cmdtype );
             *recv_pkt_id = ((mqttPktPubResp_t *)p_decode)->packet_id ;
             if(p_decode != NULL) {
@@ -810,7 +907,17 @@ int mqttDecodePkt( struct __mqttCtx *mctx, byte *buf, word32 buf_len, void *p_de
                 //  clientPropStack[...] while decoding the packet
                 mqttPropertyDel( ((mqttPktPubResp_t  *)p_decode)->props );
             }
+            // TODO: send publish response packet when QoS = 2
+            if((cmdtype==MQTT_PACKET_TYPE_PUBRECV) || (cmdtype==MQTT_PACKET_TYPE_PUBREL)) {
+                cmdtype = cmdtype + 1 ;
+                mqttPktPubResp_t *pub_resp = &mctx->send_pkt.pub_resp ;
+                ESP_MEMSET( pub_resp, 0x00, sizeof(mqttPktPubResp_t) );
+                pub_resp->packet_id   = *recv_pkt_id ;
+                pub_resp->reason_code = MQTT_REASON_SUCCESS;
+                mqttSendPubResp( mctx, cmdtype );
+            }
             break; 
+        }
         case MQTT_PACKET_TYPE_SUBACK       :  
             mqttDecodePktSuback( buf, buf_len, (mqttPktSuback_t *)p_decode );
             *recv_pkt_id = ((mqttPktSuback_t *)p_decode)->packet_id ;

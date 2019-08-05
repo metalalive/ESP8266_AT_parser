@@ -243,12 +243,15 @@ static void vESPtestMqttClientApp( espNetConnPtr netconn, espConn_t*  espconn,  
     subs->props      = NULL;
     mqttSendSubscribe( m_client );
 
+    m_client->cmd_timeout_ms = ESP_SYS_MAX_TIMEOUT;
     // --- wait for the message this device subscribed earlier in this test
     for(idx=0 ; idx<max_num_publish_msg; idx++)
     {
-        mqttClientWaitPkt( m_client, MQTT_PACKET_TYPE_PUBLISH, 0, 
-                           (void *)&m_client->recv_pkt.pub_msg );
+        mqttMsg_t  *recv_msg  = &m_client->recv_pkt.pub_msg ;
+        ESP_MEMSET( (void *)recv_msg, 0x00, sizeof(mqttMsg_t) );
+        mqttClientWaitPkt( m_client, MQTT_PACKET_TYPE_PUBLISH, 0, (void *)recv_msg );
     } // end of loop
+    m_client->cmd_timeout_ms = MQTT_CMD_TIMEOUT_MS;
 
     // --- unsubscribe topics
     mqttPktUnsubs_t *unsubs = &m_client->send_pkt.unsubs ;
