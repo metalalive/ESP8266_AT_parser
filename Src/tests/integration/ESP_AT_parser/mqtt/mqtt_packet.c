@@ -658,7 +658,7 @@ word32  mqttEncodePktUnsubscribe( byte *tx_buf, word32 tx_buf_len, mqttPktUnsubs
     }
     // build fixed header of UNSUBSCRIBE packet 
     fx_head_len = mqttEncodeFxHeader( tx_buf, tx_buf_len, remain_len, 
-                                      MQTT_PACKET_TYPE_UNSUBSCRIBE, 0, 0, 0 );
+                                      MQTT_PACKET_TYPE_UNSUBSCRIBE, 0, MQTT_QOS_1, 0 );
     curr_buf_pos  = &tx_buf[fx_head_len]; 
     // variable header, packet ID, and optional properties
     curr_buf_pos += mqttEncodeWord16( curr_buf_pos, unsubs->packet_id );
