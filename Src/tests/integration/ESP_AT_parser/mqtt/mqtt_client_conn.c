@@ -125,8 +125,10 @@ void   mqttPropertyDel( mqttProp_t *head )
     mqttProp_t*  curr_node = head;
     mqttProp_t*  next_node = NULL;
     while( curr_node != NULL ) {
-        next_node = curr_node->next; 
-        ESP_MEMSET( curr_node, 0x0, sizeof(mqttProp_t) );
+        next_node = curr_node->next;
+        curr_node->next = NULL; 
+        curr_node->type = MQTT_PROP_NONE;
+        //// ESP_MEMSET( curr_node, 0x0, sizeof(mqttProp_t) );
         curr_node = next_node;
     }
 } // end of mqttPropertyDel
@@ -229,9 +231,11 @@ int   mqttSendPublish( mqttCtx_t *mctx )
         } // end of while-loop
 
         if( qos > MQTT_QOS_0 ) {
+            mqttPktPubResp_t  *pub_resp = &mctx->recv_pkt.pub_resp;
+            ESP_MEMSET( (void *)pub_resp, 0x00, sizeof(mqttPktPubResp_t) );
             wait_cmdtype = (qos==MQTT_QOS_1) ? MQTT_PACKET_TYPE_PUBACK: MQTT_PACKET_TYPE_PUBCOMP;
             // implement qos=1 or 2 wait for response packet
-            status = mqttClientWaitPkt( mctx, wait_cmdtype, msg->packet_id, (void *)&mctx->recv_pkt.pub_resp );
+            status = mqttClientWaitPkt( mctx, wait_cmdtype, msg->packet_id, (void *)pub_resp );
         } 
         // we only loop back & resend PUBLISH packet again if QoS = 1, 
         // and we didn't get PUBACK from the network after a period of time.
@@ -316,8 +320,10 @@ int   mqttSendSubscribe( mqttCtx_t *mctx )
     if( status != MQTT_RETURN_SUCCESS ) {
         return status;
     }
+    mqttPktSuback_t  *suback = &mctx->recv_pkt.suback;
+    ESP_MEMSET( (void *)suback, 0x00, sizeof(mqttPktSuback_t) );
     status = mqttClientWaitPkt( mctx, MQTT_PACKET_TYPE_SUBACK, subs->packet_id, 
-                                (void *)&mctx->recv_pkt.suback );
+                                (void *)suback );
     return status;
 } // end of mqttSendSubscribe
 
@@ -353,8 +359,10 @@ int   mqttSendUnsubscribe( mqttCtx_t *mctx )
     if( status != MQTT_RETURN_SUCCESS ) {
         return status;
     }
+    mqttPktUnsuback_t   *unsuback = &mctx->recv_pkt.unsuback;
+    ESP_MEMSET( (void *)unsuback, 0x00, sizeof(mqttPktUnsuback_t) );
     status = mqttClientWaitPkt( mctx, MQTT_PACKET_TYPE_UNSUBACK, unsubs->packet_id , 
-                                (void *)&mctx->recv_pkt.unsuback );
+                                (void *)unsuback );
     return status;
 } // end of mqttSendUnsubscribe
 

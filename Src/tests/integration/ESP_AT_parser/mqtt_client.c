@@ -252,6 +252,7 @@ static void vESPtestMqttClientApp( espNetConnPtr netconn, espConn_t*  espconn,  
         mqttClientWaitPkt( m_client, MQTT_PACKET_TYPE_PUBLISH, 0, (void *)recv_msg );
     } // end of loop
     m_client->cmd_timeout_ms = MQTT_CMD_TIMEOUT_MS;
+    vESPsysDelay( 1000 );
 
     // --- unsubscribe topics
     mqttPktUnsubs_t *unsubs = &m_client->send_pkt.unsubs ;
@@ -260,6 +261,7 @@ static void vESPtestMqttClientApp( espNetConnPtr netconn, espConn_t*  espconn,  
     unsubs->topics     = &subs_topics[0];
     unsubs->props      = NULL;
     mqttSendUnsubscribe( m_client );
+    vESPsysDelay( 1000 );
 
     // --- send DISCONNECT packet to broker ---
     m_client->send_pkt.disconn.reason_code = MQTT_REASON_NORMAL_DISCONNECTION;
@@ -277,7 +279,7 @@ static void vESPtestMqttClientTask(void *params)
     espRes_t        response ;
     uint8_t         devPresent ;
     espConn_t*      conn      =  NULL;
-    const char      hostname[]= "124.9.130.7";
+    const char      hostname[]= "124.9.131.121";
     uint16_t        host_len  = ESP_STRLEN( hostname );
     espPort_t       port      = 1883;
 
