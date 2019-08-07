@@ -61,6 +61,8 @@ espRes_t  eESPprocessPieceRecvResp( espBuf_t *recv_buf, uint8_t *isEndOfATresp)
             else if((curr_chr == ':') && (strncmp( &recv_data_line_buf[0], "+IPD", 4)==0) && (recv_data_line_buf_idx>5))
             {   // setup for handling received IPD string.
                 eESPparseIPDsetup( &recv_data_line_buf[0] );
+                // skip the colon ':' of IPD data, payload data starts immediately after the colon mark.
+                idx += 1;
                 // again clear the index of received line buffer, for storing IPD data.
                 recv_data_line_buf_idx = 0x0;
                 break;
