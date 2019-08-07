@@ -24,7 +24,8 @@ word32  mqttPktLowLvlRead( struct __mqttCtx *mctx, byte *buf, word32 buf_len )
     byte           *curr_src_p ;
     byte           *curr_dst_p ;
     size_t          rd_ptr;
-    size_t          copied_len = 0;
+    size_t          copied_len_total = 0; // total length of copied data
+    size_t          copied_len_iter  = 0; // length of copied data in each iteration
     size_t          remain_payld_len = 0;
  
     if((mctx == NULL) || (buf == NULL)) { return 0; }
@@ -38,19 +39,21 @@ word32  mqttPktLowLvlRead( struct __mqttCtx *mctx, byte *buf, word32 buf_len )
             response = eESPnetconnGrabNextPkt( espconn, &unfinish_rd_pktbuf,  mctx->cmd_timeout_ms );
             if( response != espOK ){
                 unfinish_rd_pktbuf = NULL;
-                return copied_len; 
+                return copied_len_total; 
             }
             unfinish_rd_pktbuf_head = unfinish_rd_pktbuf;
         }
         rd_ptr       = unfinish_rd_pktbuf->rd_ptr ;
         curr_src_p   = & unfinish_rd_pktbuf->payload[rd_ptr] ;
-        curr_dst_p   = & buf[ copied_len ];
-        remain_payld_len = unfinish_rd_pktbuf->payload_len - rd_ptr ;
-        copied_len  += ESP_MIN( buf_len, remain_payld_len );
-        ESP_MEMCPY( curr_dst_p, curr_src_p, copied_len );
-        buf_len     -= copied_len;
-        rd_ptr      += copied_len;
-        if(rd_ptr == unfinish_rd_pktbuf->payload_len) {
+        curr_dst_p   = & buf[ copied_len_total ];
+        remain_payld_len  = unfinish_rd_pktbuf->payload_len - rd_ptr ;
+        copied_len_iter   = ESP_MIN( buf_len, remain_payld_len );
+        copied_len_total += copied_len_iter;
+        ESP_MEMCPY( curr_dst_p, curr_src_p, copied_len_iter );
+        buf_len     -= copied_len_iter;
+        rd_ptr      += copied_len_iter;
+        unfinish_rd_pktbuf->rd_ptr =  rd_ptr ;
+        if(rd_ptr >= unfinish_rd_pktbuf->payload_len) {
             unfinish_rd_pktbuf = unfinish_rd_pktbuf->next;
             if(unfinish_rd_pktbuf == NULL) {
                 // free the allocated space to the last packet we read
@@ -58,12 +61,9 @@ word32  mqttPktLowLvlRead( struct __mqttCtx *mctx, byte *buf, word32 buf_len )
                 unfinish_rd_pktbuf_head = NULL;
             }
         }
-        else{
-            unfinish_rd_pktbuf->rd_ptr =  rd_ptr ;
-        }
     } // end of while-loop
 
-    return  copied_len;
+    return  copied_len_total;
 } // end of mqttPktLowLvlRead
 
 
