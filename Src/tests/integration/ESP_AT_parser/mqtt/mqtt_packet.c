@@ -555,8 +555,9 @@ word32  mqttDecodePktPublish( byte *rx_buf, word32 rx_buf_len, struct __mqttMsg 
     curr_buf_pos += var_head_len;
     // variable header : check QoS & see if we have packet ID field in the received PUBLISH packet
     if(msg->qos > MQTT_QOS_0) {
-        curr_buf_pos  += mqttDecodeWord16( curr_buf_pos, &msg->packet_id );
-        var_head_len  += 2;
+        tmp            = mqttDecodeWord16( curr_buf_pos, &msg->packet_id );
+        curr_buf_pos  += tmp;
+        var_head_len  += tmp;
     }
     // variable header : optional properties
     tmp = mqttDecodeVarBytes( curr_buf_pos, &props_len );
@@ -571,7 +572,8 @@ word32  mqttDecodePktPublish( byte *rx_buf, word32 rx_buf_len, struct __mqttMsg 
     payload_len -= var_head_len;
     msg->buff    = curr_buf_pos;
     msg->app_data_len = payload_len; 
-    msg->inbuf_len    = ESP_MIN( payload_len, rx_buf_len );
+    msg->inbuf_len    = ESP_MIN( payload_len, rx_buf_len - fx_head_len - var_head_len);
+    msg->buff_len     = msg->inbuf_len ;
     return (fx_head_len + var_head_len + payload_len);
 } // end of mqttDecodePktPublish
 
@@ -606,9 +608,10 @@ word32  mqttEncodePktSubscribe( byte *tx_buf, word32 tx_buf_len, mqttPktSubs_t *
         }
         else{ return 0; }
     }
-    // build fixed header of SUBSCRIBE packet 
+    // build fixed header of SUBSCRIBE packet, 
+    // TODO: figure out why it's 0010 at the reserved field 
     fx_head_len = mqttEncodeFxHeader( tx_buf, tx_buf_len, remain_len, 
-                                      MQTT_PACKET_TYPE_SUBSCRIBE, 0, 0, 0 );
+                                      MQTT_PACKET_TYPE_SUBSCRIBE, 0, MQTT_QOS_1, 0 );
     curr_buf_pos  = &tx_buf[fx_head_len]; 
     // variable header, packet ID, and optional properties
     curr_buf_pos += mqttEncodeWord16( curr_buf_pos, subs->packet_id );
