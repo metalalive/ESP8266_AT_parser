@@ -1,6 +1,6 @@
 #include "tests/integration/ESP_AT_parser/mqtt_client.h"
 
-#define  TASK_MIN_STACK_SIZE             (( unsigned portSHORT ) 0x9e)
+#define  TASK_MIN_STACK_SIZE             (( unsigned portSHORT ) 0xbe)
 #define  MQTT_CONN_TX_BUF_SIZE           0x100
 #define  MQTT_CONN_RX_BUF_SIZE           0x100
 #define  MQTT_CMD_TIMEOUT_MS             25000
@@ -277,8 +277,8 @@ static void vESPtestMqttClientTask(void *params)
     espRes_t        response ;
     uint8_t         devPresent ;
     espConn_t*      conn      =  NULL;
-    const char      hostname[]= "124.9.129.137";
-    uint16_t        host_len  = strlen(hostname);
+    const char      hostname[]= "124.9.130.7";
+    uint16_t        host_len  = ESP_STRLEN( hostname );
     espPort_t       port      = 1883;
 
     // setup data structure required for this MQTT client
