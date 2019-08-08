@@ -22,10 +22,6 @@ extern "C" {
 #define ESP_DBG_TYPE_ALL            (ESP_DBG_TYPE_TRACE | ESP_DBG_TYPE_STATE)   /*!< All debug types */
 
 
-#if ESP_CFG_DBG && !defined(ESP_CFG_DBG_OUT)
-#warning "ESP_CFG_DBG_OUT is not defined but debugging is enabled!"
-#endif
-
 
 
 

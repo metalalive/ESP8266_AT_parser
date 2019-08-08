@@ -47,7 +47,7 @@ static void  vESPappendIPtoStr( uint8_t **curr_chr_pp, espIp_t* ip )
 espRes_t    eESPinitATcmd( espMsg_t* msg )
 {
     espRes_t response = espOK;
-    uint8_t     cmd_str[0x40] = {'A', 'T', }; // automatically set 2 characters "AT" firstly.
+    uint8_t     cmd_str[ESP_CFG_MAX_AT_CMD_SIZE] = {'A', 'T', }; // automatically set 2 characters "AT" firstly.
     uint8_t    *cmd_str_p   = &cmd_str[2]; // Note: &arr[2] != (&arr) + 2 for some compilers
     uint16_t    cmd_str_len = 0;
 

@@ -15,15 +15,14 @@ extern "C" {
 
 #include "system/esp_sys.h"
 
+#include "esp/esp_netconn.h"
+
 #if (ESP_CFG_MODE_STATION  != 0)
 #include "esp/esp_sta.h"
 #endif /* ESP_CFG_MODE_STATION */
 #if (ESP_CFG_MODE_ACCESS_POINT  != 0)
 #include "esp/esp_ap.h"
 #endif /* ESP_CFG_MODE_ACCESS_POINT  */
-#if (ESP_CFG_NETCONN  != 0)
-#include "esp/esp_netconn.h"
-#endif /* ESP_CFG_NETCONN */
 #if (ESP_CFG_PING  != 0)
 #include "esp/esp_ping.h"
 #endif /* ESP_CFG_PING */

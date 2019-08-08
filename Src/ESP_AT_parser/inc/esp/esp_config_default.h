@@ -20,23 +20,10 @@
 
 
 // maximum number of bytes we can send at a single AT commnad, due to limitation of
-// ESP8266 device, the size cannot exceed 2048 bytes. 
+// ESP8266 device, the size cannot exceed 64 bytes. 
 #ifndef ESP_CFG_MAX_AT_CMD_SIZE
-#define ESP_CFG_MAX_AT_CMD_SIZE  2048
+#define ESP_CFG_MAX_AT_CMD_SIZE  0x40
 #endif // end of ESP_CFG_MAX_AT_CMD_SIZE
-
-
-// maximum number of times we retry sending an AT command when it failed to send 
-// over network last time.
-#ifndef ESP_CFG_MAX_SEND_RETRY
-#define ESP_CFG_MAX_SEND_RETRY  3 
-#endif // end of ESP_CFG_MAX_SEND_RETRY
-
-
-// maximum size of a single buffer in bytes for a single TCP/UDP connection.
-#ifndef ESP_CFG_IPD_MAX_BUF_SIZE
-#define ESP_CFG_IPD_MAX_BUF_SIZE 1460
-#endif // end of ESP_CFG_IPD_MAX_BUF_SIZE
 
 
 // default baudrate for the ESP device
@@ -95,50 +82,6 @@
 #endif // end of ESP_CFG_MAX_SSID_LEN
 
 
-// set global debug support
-#ifndef ESP_CFG_DBG
-#define ESP_CFG_DBG  0  
-#endif 
-
-
-// output function for printf-like debugging
-// [TODO] should we implement put char function ?
-#ifndef ESP_CFG_DBG_OUT
-#define ESP_CFG_DBG_OUT( fmt, ... ) \
-{ \
-    extern int printf( const char* format, ... ); \
-    printf( fmt, ## __VA_ARGS__ ); \
-}
-#endif
-
-
-// Set debug level for init function.
-#ifndef ESP_CFG_DBG_INIT
-#define ESP_CFG_DBG_INIT    0
-#endif
-
-// Set debug level for memory manager
-#ifndef ESP_CFG_DBG_MEM
-#define ESP_CFG_DBG_MEM    0
-#endif
-
-// enable / disable test assertion function for checking expected / actual value
-#ifndef ESP_CFG_DBG_ASSERT
-#define ESP_CFG_DBG_ASSERT  0
-#endif
-
-
-// Set debug level for incoming data received from device
-#ifndef ESP_CFG_DBG_IPD
-#define ESP_CFG_DBG_IPD     0 
-#endif
-
-
-// Set debug level for netconn sequential API
-#ifndef ESP_CFG_DBG_NETCONN
-#define ESP_CFG_DBG_NETCONN    0 
-#endif
-
 
 // turn on/off AT echo mode, the mode is useful when debugging ESP communication
 #ifndef ESP_CFG_AT_ECHO
@@ -157,12 +100,6 @@
 #define ESP_CFG_AT_CMD_RESP_MBOX_SIZE    16
 #endif
 
-// [TODO] figure out how this parameter affect other functions
-// Enable / disable network connection API support for OS systems
-// To use this feature, OS support is mandatory.
-#ifndef ESP_CFG_NETCONN
-#define ESP_CFG_NETCONN                     0
-#endif
 
 // Enables or disables receive timeout feature
 // When this option is enabled, user will get an option to set timeout value for receive data on netconn,
