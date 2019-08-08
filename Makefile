@@ -293,7 +293,8 @@ help:
 	@echo "                                                      ";
 	@echo " * make INTEGRATION_TEST=yes TESTNAME=<test_name> OS_NAME=<os_name>  ";
 	@echo "   Build image to run specified integration tests.    ";
-	@echo "   where <test_name> can be 'ping' or 'http_server'   ";
+	@echo "   where <test_name> can be 'ping', 'http_server', or ";
+	@echo "   'mqtt_client'                                      ";
 	@echo "                                                      ";
 	@echo "   <os_name> : ";
 	@echo "   so far we only integrate FreeRTOS to the ESP parser";
