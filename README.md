@@ -44,7 +44,10 @@ Note that :
 
 
 ### Quick Start
-For building images, you have :
+
+1. Ensure to add defined macro `ESP_CFG_SYS_PORT` in your configuration header file, `ESP_CFG_SYS_PORT` can be the default platform `ESP_SYS_PORT_FREERTOS` or any other platforms you works with, please refer to  [developer guide](DEVELOPER.md) .
+
+2. For building images, you have :
 ``` 
 make INTEGRATION_TEST=yes TESTNAME=<test_name> OS_NAME=<os_name>
 ```
@@ -52,7 +55,7 @@ where :
 *  `<os_name>` : So far this ESP AT-command parser is implemented only on FreeRTOS and STM32 platform. For anyone who is willing to port for other Operating Systems / platforms, please refer to [developer guide](DEVELOPER.md) 
 *  `<test_name>` can be `ping`, `http_server`, or `mqtt_client`
 
-For debugging tool, it is optional to use OpenOCD / gdb-multiarch, build latest version of OpenOCD from source, then run the command below : 
+3. For debugging tool, it is optional to use OpenOCD / gdb-multiarch, build latest version of OpenOCD from source, then run the command below : 
 ```
 make dbg_server OPENOCD_HOME=/PATH/TO/YOUR_OPENOCD
 ```
