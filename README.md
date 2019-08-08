@@ -27,17 +27,20 @@ There are 3 test cases in this repository, these tests start after your ESP devi
 |----------------|--------------------------------|
 |`ping`          | ping a specific host           |
 |`http_server`   | turn on server mode, demonstrate basic capability of HTTP/1.1 handshaking process. |
-|`mqtt_client`   | start TCP connection, demonstrate publish/subscribe capability of MQTT v5.0 handshaking process. |
+|`mqtt_client`   | start TCP connection, demonstrate publishing/subscribing capability of MQTT v5.0 handshaking process. |
 
 Note that :
 * For the test `http_server`, you can send HTTP requests to the ESP server by using web browsers, related commands like `wget`, or other debugging tools
-* For the test `mqtt_client`, you need to run MQTT broker (server) & subscribing software on other devices in order to run this test. (In my case, I run **Mosquitto MQTT broker** and **Paho.MQTT.C subscriber** seperately on 2 of my Raspberry PIs)
+* For the test `mqtt_client`, you need to run MQTT broker (server) & subscribing software on other devices in order to interact with this test MQTT client. (In my case, I run **Mosquitto MQTT broker** and **Paho.MQTT.C subscriber** seperately on 2 of my Raspberry PIs)
 
 
 ### Quick Start
-For build
+For building images, you have :
+``` 
+make INTEGRATION_TEST=yes TESTNAME=<test_name> OS_NAME=<os_name>
+```
 
 
 ### Porting Guide
-
+So far this ESP AT parser is integrated only with FreeRTOS and STM32 port, anyone is free to port 
 
