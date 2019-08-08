@@ -4,7 +4,7 @@ This ESP8266 AT-command parser is platform-independent, minimal implementation f
 
 
 ### Table of Content
-* [Issues about versions of the AT firmware](DEVELOPER.md##issues-about-versions-of-the-at-firmware-) 
+* [Issues about versions of the AT firmware](DEVELOPER.md#issues-about-versions-of-the-at-firmware) 
 * [AT commands available](DEVELOPER.md#at-commands-available) 
 * [Tests](DEVELOPER.md#tests) 
 * [Quick Start](DEVELOPER.md#quick-start) 
