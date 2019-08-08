@@ -52,7 +52,7 @@ Note that :
 make INTEGRATION_TEST=yes TESTNAME=<test_name> OS_NAME=<os_name>
 ```
 where :
-*  `<os_name>` : So far this ESP AT-command parser is implemented only on FreeRTOS and STM32 platform. For anyone who is willing to port for other Operating Systems / platforms, please refer to [developer guide](DEVELOPER.md) 
+*  `<os_name>` : So far this ESP AT-command parser is implemented only on FreeRTOS and STM32 platform, the default value of this is `FreeRTOS`. For anyone who is willing to port for other Operating Systems / platforms, please refer to [developer guide](DEVELOPER.md) 
 *  `<test_name>` can be `ping`, `http_server`, or `mqtt_client`
 
 3. For debugging tool, it is optional to use OpenOCD / gdb-multiarch, build latest version of OpenOCD from source, then run the command below : 
