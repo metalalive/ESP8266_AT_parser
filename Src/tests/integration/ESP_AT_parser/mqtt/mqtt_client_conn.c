@@ -160,8 +160,9 @@ int   mqttSendConnect( mqttCtx_t *mctx )
     if( status != MQTT_RETURN_SUCCESS ) {
         return status;
     }
-    status = mqttClientWaitPkt( mctx, MQTT_PACKET_TYPE_CONNACK, 0, 
-                                (void *)&mctx->recv_pkt.connack );
+    mqttPktHeadConnack_t *connack = &mctx->recv_pkt.connack ; 
+    ESP_MEMSET( (void *)connack, 0x00, sizeof(mqttPktHeadConnack_t) );
+    status = mqttClientWaitPkt( mctx, MQTT_PACKET_TYPE_CONNACK, 0,  (void *)connack );
     return  status;
 } // end of mqttSendConnect
 
@@ -282,8 +283,9 @@ int  mqttSendPubResp( mqttCtx_t *mctx, mqttCtrlPktType  cmdtype )
     }
     if((cmdtype==MQTT_PACKET_TYPE_PUBRECV) || (cmdtype==MQTT_PACKET_TYPE_PUBREL)) 
     { // wait for subsequent response if QoS = 2
-        status = mqttClientWaitPkt( mctx, (cmdtype + 1), pub_resp->packet_id, 
-                                (void *)&mctx->recv_pkt.pub_resp );
+        word16  packet_id = pub_resp->packet_id;
+        ESP_MEMSET( (void *)pub_resp, 0x00, sizeof(mqttPktPubResp_t) );
+        status = mqttClientWaitPkt( mctx, (cmdtype + 1), packet_id, (void *)pub_resp );
     }
     return status;
 } // end of mqttSendPubResp
