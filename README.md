@@ -3,6 +3,15 @@
 This ESP8266 AT-command parser is platform-independent, minimal implementation for building application-specific network projects , which connect with old ESP8266 wifi modules (not like NodeMCU ESP device) and resource-constraint embedded devices like host MCU boards. 
 
 
+### Table of Content
+* [Issues about versions of the AT firmware](DEVELOPER.md##issues-about-versions-of-the-at-firmware-) 
+* [AT commands available](DEVELOPER.md#at-commands-available) 
+* [Tests](DEVELOPER.md#tests) 
+* [Quick Start](DEVELOPER.md#quick-start) 
+
+
+
+
 ### Issues about versions of the AT firmware ...
 If you program the latest version (v1.7.x) of AT firmware to the ESP device, there would be more new AT commands supported on the device, however it is not that every new AT command always works as expected, also the AT firmware requires more than 512KB flash memory space since the version v1.7.0 was released, that means you are NOT allowed to use the latest AT firmware on some old ESP8266 devices (e.g. ESP-01). 
 Therefore I don't implement all of the existing AT commands at here, I also choose the stable version (v1.6.0) of AT firmware instead, which can work with all types of ESP8266 devices.  
@@ -43,7 +52,7 @@ where :
 *  `<os_name>` : So far this ESP AT-command parser is implemented only on FreeRTOS and STM32 platform. For anyone who is willing to port for other Operating Systems / platforms, please refer to [developer guide](DEVELOPER.md) 
 *  `<test_name>` can be `ping`, `http_server`, or `mqtt_client`
 
-For debugging tool, you can optionally use OpenOCD / gdb-multiarch, build latest version of OpenOCD from source, then run the command below : 
+For debugging tool, it is optional to use OpenOCD / gdb-multiarch, build latest version of OpenOCD from source, then run the command below : 
 ```
 make dbg_server OPENOCD_HOME=/PATH/TO/YOUR_OPENOCD
 ```
