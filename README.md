@@ -30,7 +30,7 @@ There are 3 test cases in this repository, these tests start after your ESP devi
 |`mqtt_client`   | start TCP connection, demonstrate publishing/subscribing capability of MQTT v5.0 handshaking process. |
 
 Note that :
-* For the test `http_server`, you can send HTTP requests to the ESP server by using web browsers, related commands like `wget`, or other debugging tools
+* For the test `http_server`, you can send HTTP requests to the test server running on the ESP device, by using web browsers, related commands like `wget`, or other debugging tools.
 * For the test `mqtt_client`, you need to run MQTT broker (server) & subscribing software on other devices in order to interact with this test MQTT client. (In my case, I run **Mosquitto MQTT broker** and **Paho.MQTT.C subscriber** seperately on 2 of my Raspberry PIs)
 
 
@@ -39,8 +39,17 @@ For building images, you have :
 ``` 
 make INTEGRATION_TEST=yes TESTNAME=<test_name> OS_NAME=<os_name>
 ```
+where :
+*  `<os_name>` : So far this ESP AT-command parser is implemented only on FreeRTOS and STM32 platform. For anyone who is willing to port for other Operating Systems / platforms, please refer to [developer guide](DEVELOPER.md) 
+*  `<test_name>` can be `ping`, `http_server`, or `mqtt_client`
 
+For debugging tool, you can optionally use OpenOCD / gdb-multiarch, build latest version of OpenOCD from source, then run the command below : 
+```
+make dbg_server OPENOCD_HOME=/PATH/TO/YOUR_OPENOCD
+```
+and 
+```
+make dbg_client
+```
 
-### Porting Guide
-So far this ESP AT parser is integrated only with FreeRTOS and STM32 port, anyone is free to port 
 
