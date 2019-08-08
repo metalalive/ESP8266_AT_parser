@@ -45,7 +45,7 @@ Note that :
 
 ### Quick Start
 
-1. Ensure to add defined macro `ESP_CFG_SYS_PORT` in your configuration header file, `ESP_CFG_SYS_PORT` can be the default platform `ESP_SYS_PORT_FREERTOS` or any other platforms you works with, please refer to  [developer guide](DEVELOPER.md) .
+1. Ensure to add defined macro `ESP_CFG_SYS_PORT` in your configuration header file, `ESP_CFG_SYS_PORT` can be the default platform `ESP_SYS_PORT_FREERTOS` or any other platform you work with, please refer to  [developer guide](DEVELOPER.md) .
 
 2. For building images, you have :
 ``` 
