@@ -45,7 +45,9 @@ Note that :
 
 ### Quick Start
 
-1. Ensure to add defined macro `ESP_CFG_SYS_PORT` in your configuration header file, `ESP_CFG_SYS_PORT` can be the default platform `ESP_SYS_PORT_FREERTOS` or any other platform you work with, please refer to  [developer guide](DEVELOPER.md) .
+1. Ensure to add following essential defined macros :
+   * `ESP_CFG_SYS_PORT` in your configuration header file, `ESP_CFG_SYS_PORT` can be the default platform `ESP_SYS_PORT_FREERTOS` or any other platform you work with, please refer to  [developer guide](DEVELOPER.md) .
+   * The type of your ESP8266 device, so far this ESP AT-command parser has been verified with ESP-01s and ESP-12s modules. Please add macro `ESP_CFG_DEV_ESP01` or `ESP_CFG_DEV_ESP12`, accroding to the ESP device you work with.
 
 2. For building images, you have :
 ``` 
