@@ -26,7 +26,7 @@ Here is the list of AT-commands available in this repository.
 | AT+CWJAP    | AT+CWLAP     | AT+CWQAP     | AT+CIPSTATUS | 
 | AT+CIPSTART | AT+CIPCLOSE  | AT+CIPSEND   | AT+CIFSR     |
 | AT+CIPMUX   | AT+CIPSERVER | AT+CIPSTO    | AT+CIPMODE   |
-| AT+PING     | AT+CIPDINFO  | |  |
+| AT+PING     | AT+CIPDINFO  | AT+GSLP      |  |
 
 
 ### Tests
