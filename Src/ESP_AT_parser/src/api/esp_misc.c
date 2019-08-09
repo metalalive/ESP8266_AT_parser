@@ -117,6 +117,25 @@ espRes_t   eESPsetIPDextraMsg( espFnEn_t en )
 
 
 
+espRes_t   eESPenterDeepSleep( uint32_t sleep_ms, const espApiCmdCbFn api_cb, void* const api_cb_arg, const uint32_t blocking )
+{ 
+// in general, ESP-01 device does not support wake up from deep sleep mode.
+// unless you manually solder GPIO16 (XPD_DCDC pin on the chip) to the RST pin 
+#if (ESP_CFG_DEV_ESP01)
+    return  espERR;
+#else
+    espRes_t response = espOK ; 
+    espMsg_t *msg     = NULL;
+    msg = pxESPmsgCreate( ESP_CMD_GSLP, api_cb, api_cb_arg, blocking );
+    if( msg == NULL) { return espERRMEM; }
+    msg->body.deepslp.ms = sleep_ms;
+    msg->block_time      = sleep_ms;
+    response = eESPsendReqToMbox( msg, eESPinitATcmd );
+    return  response;
+#endif // end of ESP_CFG_DEV_ESP01 == 1
+} // end of eESPenterDeepSleep
+
+
 
 
 espRes_t  eESPdeviceSetPresent( uint8_t present, const espApiCmdCbFn cb, void* const cb_arg )

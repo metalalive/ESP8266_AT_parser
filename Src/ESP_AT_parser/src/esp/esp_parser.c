@@ -384,8 +384,6 @@ void   vESPparseRecvATrespLine( const uint8_t *data_line_buf, uint16_t buf_idx, 
                 eESPparseVersion( &curr_chr_p, &espGlobal.dev.version_sdk );
             }
             break;
-        case ESP_CMD_GSLP:
-            break;
 #if (ESP_CFG_MODE_STATION != 0)
         case ESP_CMD_WIFI_CWLAP :
             msg->res = eESPparseFoundAP( &curr_chr_p, msg );

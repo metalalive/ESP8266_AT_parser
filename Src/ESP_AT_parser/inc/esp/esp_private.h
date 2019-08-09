@@ -28,11 +28,8 @@ typedef enum {
     ESP_CMD_GSLP,                               /*!< Set ESP to sleep mode */
     ESP_CMD_RESTORE,                            /*!< Restore ESP internal settings to default values */
     ESP_CMD_UART,
-    ESP_CMD_SLEEP,
     ESP_CMD_WAKEUPGPIO,
     ESP_CMD_RFPOWER,
-    ESP_CMD_RFVDD,
-    ESP_CMD_RFAUTOTRACE,
     ESP_CMD_SYSRAM,
     ESP_CMD_SYSADC,
     ESP_CMD_SYSIOSETCFG,
@@ -147,6 +144,9 @@ typedef struct espMsg  {
         struct {
             uint32_t delay;                     /*!< Delay in units of milliseconds before executing first RESET command */
         } reset;                                /*!< Reset device */
+        struct {
+            uint32_t ms;
+        } deepslp;
         struct {
             uint32_t baudrate;                  /*!< Baudrate for AT port */
         } uart;                                 /*!< UART configuration */

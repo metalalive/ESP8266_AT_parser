@@ -85,17 +85,14 @@ espRes_t    eESPinitATcmd( espMsg_t* msg )
             break;  
         case ESP_CMD_GSLP                    :
             AT_APPEND_STR( &cmd_str_p, "+GSLP=", 6 ); 
-            // TODO: remember to give sleeping time.
+            cmd_str_p += uiESPcvtNumToStr( cmd_str_p, msg->body.deepslp.ms, ESP_DIGIT_BASE_DECIMAL );
             break;            
         case ESP_CMD_RESTORE                 :
             AT_APPEND_STR( &cmd_str_p, "+RESTORE", 8 );
             break;            
         case ESP_CMD_UART                    :  break;         
-        case ESP_CMD_SLEEP                   :  break;         
         case ESP_CMD_WAKEUPGPIO              :  break;         
         case ESP_CMD_RFPOWER                 :  break;         
-        case ESP_CMD_RFVDD                   :  break;         
-        case ESP_CMD_RFAUTOTRACE             :  break;         
         case ESP_CMD_SYSRAM                  :  break;         
         case ESP_CMD_SYSADC                  :  break;         
         case ESP_CMD_SYSIOSETCFG             :  break;         

@@ -23,6 +23,7 @@ espRes_t    eESPresetWithDelay( uint32_t dly_ms, const espApiCmdCbFn cb , void* 
 espRes_t    eESPrestore( const espApiCmdCbFn cb, void* const cb_arg );
 espRes_t    eESPupdateSW( const espApiCmdCbFn cb, void* const cb_arg );
 
+espRes_t    eESPenterDeepSleep( uint32_t sleep_ms, const espApiCmdCbFn api_cb, void* const api_cb_arg, const uint32_t blocking );
 espRes_t    eESPsetBaud( uint32_t baud, const espApiCmdCbFn cb, void* const cb_arg, const uint8_t blocking);
 espRes_t    eESPsetWifiMode( espMode_t mode, uint8_t saveDef, const espApiCmdCbFn cb, void* const cb_arg, const uint8_t blocking);
 espRes_t    eESPsetTransmitMode( espTransMode_t mode,     const espApiCmdCbFn cb, void* const cb_arg, const uint8_t blocking);

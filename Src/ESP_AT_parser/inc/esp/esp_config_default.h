@@ -2,6 +2,15 @@
 #define __ESP_CONFIG_DEFAULT_H
 
 
+#ifndef ESP_CFG_DEV_ESP01
+#define ESP_CFG_DEV_ESP01  0
+#endif // end of ESP_CFG_DEV_ESP01
+
+
+#ifndef ESP_CFG_DEV_ESP12
+#define ESP_CFG_DEV_ESP12  0
+#endif // end of ESP_CFG_DEV_ESP12
+
 
 // address alignment for dynamic memory allocation
 // Some CPUs can work faster with the aligned address, e.g. 4-bytes, 8-bytes aligned
@@ -216,6 +225,11 @@
 #error "WPS function should be enabled in station mode"
 #endif 
 
+
+// one of the ESP8266 device must be selected (defined) in user application
+#if (!ESP_CFG_DEV_ESP01 && !ESP_CFG_DEV_ESP12)
+#error "Invalid ESP configuration. At least one of the ESP8266 device must be selected (defined) in user application "
+#endif
 
 
 
