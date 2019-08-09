@@ -27,12 +27,28 @@ Here is quick overview of the API functions which would be frequently called in 
   
 * ```espRes_t    eESPresetWithDelay( uint32_t dly_ms, const espApiCmdCbFn cb , void* const cb_arg )``` : reset ESP device with given milliseconds. The optional arguments ```espApiCmdCbFn cb``` and ```void* const cb_arg ``` are API callback function pointer and the callback's argument, they take effect after reset is done.
 
+* ```espRes_t  eESPsetWifiMode( espMode_t mode, uint8_t saveDef, const espApiCmdCbFn cb, void* const cb_arg, const uint8_t blocking )``` :  turn on station mode, or Access-Point mode (or both) in the target ESP device, where ```espApiCmdCbFn cb```, ```void* const cb_arg``` are API callback & associated arguments, note that most of API functions have these 2 arguments, they work the same way.
+
+* ```espRes_t  eESPstaListAP(const char* ssid, uint16_t  ssid_len, espAP_t* aps, uint16_t apslen, uint16_t* num_ap_found,  const espApiCmdCbFn cb, void* const cb_arg, const uint32_t blocking)``` : scan and list other wifi Access-Points around the ESP device, copy the list to the given structure `aps` and number of APs found `num_ap_found`.
+
+* ```espRes_t  eESPstaJoin(const char* ssid, uint16_t ssid_len, const char* pass, uint16_t pass_len, const espMac_t* mac,  uint8_t saveDef, const espApiCmdCbFn cb, void* const cb_arg, const uint32_t blocking)``` : connect to the Access-Point with given `ssid`, and password `pass`.
+
+* ```espRes_t   eESPstaQuit(const espApiCmdCbFn cb, void* const cb_arg, const uint32_t blocking)``` : quit from the Access-Point this ESP device connected to in the last time.
+
+* ```espRes_t   eESPconnClientStart( espConn_t *conn_in, espConnType_t type, const char* const host, uint16_t host_len, espPort_t port, espEvtCbFn evt_cb,  espEvtCbFn api_cb,  void* const api_cb_arg,  const uint32_t blocking )``` : start new TCP/UDP connection (specified in `type`) to a given remote IP `host` , the port `port`, and specify connection ID in `conn_in` that hasn't been used as an established TCP/UDP connection.
+
+* ```espRes_t eESPconnClientClose( espConn_t *conn_in, espEvtCbFn api_cb,  void* const api_cb_arg, const uint32_t blocking)``` : close a TCP/UDP connection established before, the with given connection ID managed inside ESP device.
+
+* ```espRes_t       eESPconnClientSend( espConn_t *conn, const uint8_t *data, size_t d_size, espEvtCbFn cb, void* const cb_arg, const uint32_t blocking)``` send  raw data bytes through the established TCP/UDP connection (specified in `espConn_t *conn`).
+
+
 
 ### Macros to declare in each platform
-xxx
+Here are the macros you must declare if you integrated this ESP AT-command parser with other platforms / operating system environment.
+
 
 ### Low-level system functions to port
-xxx
+Here are the functions you must implement if you integrated this ESP AT-command parser with other platforms / operating system environment .
 
 
 
