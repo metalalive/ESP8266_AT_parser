@@ -25,6 +25,7 @@ OPT = -Og
 
 OPENOCD_HOME?=/PATH/TO/YOUR_OPENOCD_INSTALL
 OS_NAME?=FreeRTOS
+PLATFORM?=STM32F4
 
 #######################################
 # paths
@@ -37,34 +38,6 @@ BUILD_DIR = build
 ######################################
 # C sources
 C_SOURCES =  \
-Src/stm32f4xx_it.c \
-Src/stm32f4xx_hal_msp.c \
-Src/stm32f4xx_hal_timebase_tim.c \
-Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_tim.c \
-Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_tim_ex.c \
-Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_uart.c \
-Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_rcc.c \
-Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_rcc_ex.c \
-Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_flash.c \
-Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_flash_ex.c \
-Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_flash_ramfunc.c \
-Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_gpio.c \
-Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dma_ex.c \
-Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dma.c \
-Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_pwr.c \
-Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_pwr_ex.c \
-Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_cortex.c \
-Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal.c \
-Src/system_stm32f4xx.c \
-Src/FreeRTOS/Source/portable/MemMang/heap_4.c \
-Src/FreeRTOS/Source/portable/GCC/ARM_CM4_MPU/port.c \
-Src/FreeRTOS/Source/croutine.c      \
-Src/FreeRTOS/Source/event_groups.c  \
-Src/FreeRTOS/Source/list.c          \
-Src/FreeRTOS/Source/queue.c         \
-Src/FreeRTOS/Source/stream_buffer.c \
-Src/FreeRTOS/Source/tasks.c         \
-Src/FreeRTOS/Source/timers.c        \
 Src/ESP_AT_parser/src/api/esp_misc.c    \
 Src/ESP_AT_parser/src/api/esp_ping.c    \
 Src/ESP_AT_parser/src/api/esp_sta.c     \
@@ -81,57 +54,14 @@ Src/ESP_AT_parser/src/esp/esp_thread.c
 
 
 # ASM sources
-ASM_SOURCES =  \
-startup_stm32f446xx.s
-
-
-#######################################
-# binaries
-#######################################
-PREFIX = arm-none-eabi-
-# The gcc compiler bin path can be either defined in make command via GCC_PATH variable (> make GCC_PATH=xxx)
-# either it can be added to the PATH environment variable.
-ifdef GCC_PATH
-CC = $(GCC_PATH)/$(PREFIX)gcc
-AS = $(GCC_PATH)/$(PREFIX)gcc -x assembler-with-cpp
-CP = $(GCC_PATH)/$(PREFIX)objcopy
-SZ = $(GCC_PATH)/$(PREFIX)size
-DUMP = $(GCC_PATH)/$(PREFIX)objdump
-else
-CC = $(PREFIX)gcc
-AS = $(PREFIX)gcc -x assembler-with-cpp
-CP = $(PREFIX)objcopy
-SZ = $(PREFIX)size
-DUMP = $(PREFIX)objdump
-endif
-HEX = $(CP) -O ihex
-BIN = $(CP) -O binary -S
- 
-#######################################
-# CFLAGS
-#######################################
-# cpu
-CPU = -mcpu=cortex-m4
-
-# fpu
-FPU = -mfpu=fpv4-sp-d16
-
-# float-abi
-FLOAT-ABI = -mfloat-abi=hard
-
-# mcu
-MCU = $(CPU) -mthumb $(FPU) $(FLOAT-ABI)
+ASM_SOURCES = 
 
 # macros for gcc
 # AS defines
 AS_DEFS = 
 
 # C defines
-C_DEFS =  \
--DUSE_HAL_DRIVER \
--DSTM32F446xx 
-
-
+C_DEFS =  
 
 # AS includes
 AS_INCLUDES = 
@@ -139,19 +69,41 @@ AS_INCLUDES =
 # C includes
 C_INCLUDES =  \
 -IInc \
--IDrivers/STM32F4xx_HAL_Driver/Inc \
--IDrivers/STM32F4xx_HAL_Driver/Inc/Legacy \
--IDrivers/CMSIS/Device/ST/STM32F4xx/Include \
--IDrivers/CMSIS/Include \
--ISrc/FreeRTOS/Source/include \
--ISrc/FreeRTOS/Source/portable/GCC/ARM_CM4_MPU \
 -ISrc/ESP_AT_parser/inc
 
 
-#### different files for different underlying operating system.
-ifeq ($(OS_NAME), FreeRTOS)
-    C_SOURCES += Src/ESP_AT_parser/src/system/esp_system_freertos.c
+#### include hardware platfrom specific files
+include  ./auto/platform/makefile.$(PLATFORM).inc 
+#### include OS-specific files
+include  ./auto/os/makefile.$(OS_NAME).inc 
+
+
+
+
+#######################################
+# binaries
+#######################################
+# The gcc compiler bin path can be either defined in make command via GCC_PATH variable (> make GCC_PATH=xxx)
+# either it can be added to the PATH environment variable.
+ifdef GCC_PATH
+CC = $(GCC_PATH)/$(C_TOOLCHAIN_PREFIX)gcc
+AS = $(GCC_PATH)/$(C_TOOLCHAIN_PREFIX)gcc -x assembler-with-cpp
+CP = $(GCC_PATH)/$(C_TOOLCHAIN_PREFIX)objcopy
+SZ = $(GCC_PATH)/$(C_TOOLCHAIN_PREFIX)size
+DUMP = $(GCC_PATH)/$(C_TOOLCHAIN_PREFIX)objdump
+else
+CC = $(C_TOOLCHAIN_PREFIX)gcc
+AS = $(C_TOOLCHAIN_PREFIX)gcc -x assembler-with-cpp
+CP = $(C_TOOLCHAIN_PREFIX)objcopy
+SZ = $(C_TOOLCHAIN_PREFIX)size
+DUMP = $(C_TOOLCHAIN_PREFIX)objdump
 endif
+HEX = $(CP) -O ihex
+BIN = $(CP) -O binary -S
+ 
+
+
+
 
 #### ------------------------------------------------------------------
 #### ---- different files & paths for unit test, integration test -----
@@ -164,7 +116,6 @@ else
             Src/tests/testlogger.c \
             Src/Third_Party/Unity/src/unity.c \
             Src/Third_Party/Unity/extras/fixture/src/unity_fixture.c \
-            Src/tests/integration/ESP_AT_parser/port/stm32f446_nucleo_hal.c \
             Src/tests/integration/ESP_AT_parser/common.c                \
             Src/tests/integration/ESP_AT_parser/connect_ap_ping.c       \
             Src/tests/integration/ESP_AT_parser/http_server.c           \
@@ -214,8 +165,6 @@ CFLAGS += -MMD -MP -MF"$(@:%.o=%.d)"
 #######################################
 # LDFLAGS
 #######################################
-# link script
-LDSCRIPT = STM32F446RETx_FLASH.ld
 
 # libraries
 LIBS = -lc -lm -lnosys 
@@ -275,9 +224,7 @@ clean:
 # execute/debug in the tests
 #######################################
 dbg_server:
-	@openocd -f $(OPENOCD_HOME)/tcl/board/st_nucleo_f4.cfg \
-                 -f $(OPENOCD_HOME)/tcl/interface/stlink-v2-1.cfg \
-                 -c init -c "reset init"
+	@openocd  $(OPENOCD_CFG_FILES)  -c init -c "reset init"
 
 dbg_client:
 	@gdb-multiarch -x ./test_utility.gdb
