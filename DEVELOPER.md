@@ -46,6 +46,22 @@ Here is quick overview of the API functions which would be called in user applic
 ### Macros to declare in each platform
 Here are the macros you must declare if you integrated this ESP AT-command parser with other platforms / operating system environment.
 
+* ```ESP_SYS_PORT_<YOUR_OS_NAME>``` : when you integrate this parser for any specific operating system port , you must declare this macro at first. Give an understandable name to ```<YOUR_OS_NAME>```, also give an unique number that shouldn't be duplicate from other existing system port(s).  e.g. For Debian system, it can be something like 
+  ```
+  #define ESP_SYS_PORT_DEBIAN  12
+  ```
+  
+* ```ESP_APPS_THREAD_PRIO``` : priority of an application thread, its priority starts from the lowest level
+
+* ```ESP_SYS_THREAD_PRIO``` :  priority of the 2 threads -- Request-handling task and Response-handling task described above, their priority must be higher than the applcation thread's priority, that is :
+  ```
+  ESP_APPS_THREAD_PRIO < ESP_SYS_THREAD_PRIO
+  ```
+
+* ```ESP_SYS_THREAD_STACK_SIZE``` : stack size of the Request-handling task and Response-handling task
+
+* ```ESP_ASSERT( cond )``` : for assertion check.
+
 
 ### Low-level system functions to port
 Here are the functions you must implement if you integrated this ESP AT-command parser with other platforms / operating system environment .
