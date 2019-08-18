@@ -43,7 +43,7 @@ Here is quick overview of the API functions which would be called in user applic
 
 
 
-### Macros to declare in each platform
+### Macros to declare in each low-level system 
 Here are the macros you must declare if you integrated this ESP AT-command parser with other platforms / operating system environment.
 
 * ```ESP_SYS_PORT_<YOUR_OS_NAME>``` : when you integrate this parser for any specific operating system port , you must declare this macro at first. Give an understandable name to ```<YOUR_OS_NAME>```, also give an unique number that shouldn't be duplicate from other existing system port(s).  e.g. For Debian system, it can be something like 
@@ -63,9 +63,86 @@ Here are the macros you must declare if you integrated this ESP AT-command parse
 * ```ESP_ASSERT( cond )``` : for assertion check.
 
 
+### Data structures to declare in each low-level system 
+* ```espSysMtx_t``` : mutex
+
+* ```espSysSem_t``` : semaphore
+
+* ```espSysMbox_t``` : messgae box to temperarily store AT-command requests & received response. It's supposed to be  FIFO queue structure.
+
+* ```espSysThread_t``` : thread structure
+
+
+
 ### Low-level system functions to port
 Here are the functions you must implement if you integrated this ESP AT-command parser with other platforms / operating system environment .
 
+* Initialization code for underlying operating system
+  ```
+  espRes_t   eESPsysInit( void );
+  ```
+
+* Mutex operations :  create / delete / lock / unlock
+  ```
+  espSysMtx_t  xESPsysMtxCreate   ( void );
+  void         vESPsysMtxDelete   ( espSysMtx_t* mtx );
+  espRes_t     eESPsysMtxLock     ( espSysMtx_t* mtx );
+  espRes_t     eESPsysMtxUnlock   ( espSysMtx_t* mtx );
+  ```
+  
+* Semaphore operations :  create / delete / take / release
+  ```
+  espSysSem_t   xESPsysSemCreate   ( void );
+  void          vESPsysSemDelete   ( espSysSem_t* sem );
+  espRes_t      eESPsysSemWait     ( espSysSem_t  sem, uint32_t block_time );
+  espRes_t      eESPsysSemRelease  ( espSysSem_t  sem );
+  ```
+
+* Message box operations : create / delete / add new item (whether in ISR or not) / get item from it
+  ```
+  espSysMbox_t  xESPsysMboxCreate   ( size_t length );
+  void          vESPsysMboxDelete   ( espSysMbox_t* mb );
+  espRes_t      eESPsysMboxPut      ( espSysMbox_t  mb, void*  msg, uint32_t block_time );
+  espRes_t      eESPsysMboxGet      ( espSysMbox_t  mb, void** msg, uint32_t block_time );
+  espRes_t      eESPsysMboxPutISR   ( espSysMbox_t  mb, void*  msg );
+  ```
+
+* Thread operations : create / delete / yield
+  ```
+  espRes_t   eESPsysThreadCreate( espSysThread_t* t, const char* name, espSysThreFunc  thread_fn, void* const arg,
+                                size_t stack_size, espSysThreadPrio_t prio,  uint8_t isPrivileged );
+
+  espRes_t    eESPsysThreadDelete( espSysThread_t* t );
+  
+  espRes_t    eESPsysThreadYield( void );
+  ```
+
+* Timing delay function : ```void  vESPsysDelay( const uint32_t ms ) ```
 
 
+* Hardware platform initalization / de-initialization :
+  ```
+  espRes_t   eESPlowLvlDevInit  (void *params);
+  espRes_t   eESPlowLvlDevDeInit(void *params);
+  ```
+
+* hardware reset function
+  ```
+  espRes_t   eESPlowLvlRstFn  ( uint8_t state );
+  ```
+  
+* Send / Receive raw data bytes
+  ```
+  espRes_t   eESPlowLvlSendFn ( void* data, size_t len, uint32_t timeout );
+  espRes_t   eESPlowLvlRecvStartFn( void );
+  void       vESPlowLvlRecvStopFn( void );
+  ```
+
+
+### Functions which must be called in your system port
+
+* When your implement your own interrupt service routine (ISR), you must call following function in ISR for further processing received bytes :
+```
+espRes_t  eESPappendRecvRespISR(uint8_t* data, uint16_t data_len);
+```
 
