@@ -54,7 +54,7 @@ int main(void)
     // TODO: add C Unity to check values at some points
     // vInitTestLogger(); 
     vCreateAllTestTasks();
-    vTaskStartScheduler();
+    eESPsysTskSchedulerStart();
     TestEnd();
 }
 

@@ -22,6 +22,14 @@ extern "C" {
     #include "system/esp_system_user.h"
 #endif // end of ESP_CFG_SYS_PORT
 
+
+typedef enum {
+    ESP_SYS_TASK_SCHEDULER_NOT_STARTED , // scheduler hasn't been started, none of the created threads has been running
+    ESP_SYS_TASK_SCHEDULER_RUNNING ,
+    ESP_SYS_TASK_SCHEDULER_SUSPENDED , // scheduler already started but suspended by OS under some confitions.
+} espTskSchrState_t ;
+
+
 // -------------------------------------------------------------------
 // List of system-level APIs that should be implemented in each port.
 // -------------------------------------------------------------------
@@ -77,6 +85,14 @@ espRes_t   eESPsysThreadCreate( espSysThread_t* t, const char* name,
                                 uint8_t isPrivileged );
 
 espRes_t    eESPsysThreadDelete( espSysThread_t* t );
+
+// for some system ports, users can check whether task/thread scheduler is running or not
+espTskSchrState_t   eESPsysGetTskSchedulerState( void );
+
+// start / stop task scheduler
+espRes_t    eESPsysTskSchedulerStart( void );
+espRes_t    eESPsysTskSchedulerStop( void );
+
 
 // thread yielding function, to give up CPU control & perform OS context switch
 espRes_t    eESPsysThreadYield();

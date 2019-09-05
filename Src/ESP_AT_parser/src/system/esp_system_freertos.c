@@ -138,6 +138,42 @@ PRIVILEGED_FUNCTION  espRes_t  eESPsysThreadDelete( espSysThread_t* t )
 
 
 
+espTskSchrState_t   eESPsysGetTskSchedulerState( void )
+{
+    espTskSchrState_t status ;
+    switch(xTaskGetSchedulerState())
+    {
+        case taskSCHEDULER_RUNNING:
+            status = ESP_SYS_TASK_SCHEDULER_RUNNING;
+            break;
+        case taskSCHEDULER_SUSPENDED:
+            status = ESP_SYS_TASK_SCHEDULER_SUSPENDED ;
+            break;
+        case taskSCHEDULER_NOT_STARTED:
+        default:
+            status = ESP_SYS_TASK_SCHEDULER_NOT_STARTED;
+            break;
+    } // end of switch statement
+    return status;
+} // end of eESPsysGetTskSchedulerState
+
+
+
+espRes_t    eESPsysTskSchedulerStart( void )
+{
+    vTaskStartScheduler();
+    return espOK;
+} // end of eESPsysTskSchedulerStart
+
+
+
+espRes_t    eESPsysTskSchedulerStop( void )
+{
+    vTaskEndScheduler();
+    return espOK;
+} // end of eESPsysTskSchedulerStop
+
+
 
 espRes_t     eESPsysMtxLock     ( espSysMtx_t*  mtx )
 {
