@@ -25,7 +25,6 @@ void    vESPthreadATreqHandler ( void* const arg )
         is_blocking = msg->is_blocking;
         block_time  = msg->block_time ;
         if(block_time == 0) { block_time += 50; }
-        if( espGlobal.status.flg.dev_present == 0) { response = espERRNODEVICE;  }
         // generating AT command string
         if(response == espOK) {
             response = (msg->fn != NULL) ? msg->fn(msg) : espERR ;

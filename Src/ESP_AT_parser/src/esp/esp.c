@@ -119,24 +119,21 @@ espRes_t   eESPinit( espEvtCbFn cb )
         else {
             // set initialized flag
             espGlobal.status.flg.initialized = 1;
-            espGlobal.status.flg.dev_present = 1;
             espGlobal.evt.type = ESP_EVT_INIT_FINISH;
             vESPrunEvtCallbacks( &espGlobal.evt );
         }
     }
 
     if(init_fail == 0) {
-        if(espGlobal.status.flg.dev_present == 1) {
-            eESPcoreUnlock();
+        eESPcoreUnlock();
 #if (ESP_CFG_RESTORE_ON_INIT != 0)
-            response =  eESPrestore( NULL, NULL );
+        response =  eESPrestore( NULL, NULL );
 #elif (ESP_CFG_RST_ON_INIT != 0)
-            // reset assertion for few milliseconds 
-            response =  eESPresetWithDelay( 1, NULL, NULL );
+        // reset assertion for few milliseconds 
+        response =  eESPresetWithDelay( 1, NULL, NULL );
 #endif //end of ESP_CFG_RST_ON_INIT, ESP_CFG_RESTORE_ON_INIT
-            eESPcoreLock();
-            if(response != espOK) { init_fail++; }
-        }
+        eESPcoreLock();
+        if(response != espOK) { init_fail++; }
     }
     // release system lock at the end
     eESPcoreUnlock();
@@ -199,8 +196,8 @@ espRes_t    eESPsendReqToMbox (espMsg_t* msg, espRes_t (*initATcmdFn)(espMsg_t *
     espRes_t response = espOK;
     // check any situation that could make this function fail to send request to message box.
     eESPcoreLock();
-    if( espGlobal.status.flg.dev_present == 0 ) {
-        response = espERRNODEVICE;
+    if( espGlobal.status.flg.initialized == 0 ) {
+        response = espERR;
     }
     if((espGlobal.locked_cnt > 1) && (msg->is_blocking == ESP_AT_CMD_BLOCKING)) {
         response = espERRBLOCKING;

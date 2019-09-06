@@ -12,6 +12,7 @@ static espRes_t  eESPparseVersion( uint8_t **curr_chr_pp, espFwVer_t *ver )
     ver->major = iESPparseFirstNumFromStr( curr_chr_pp, ESP_DIGIT_BASE_DECIMAL ); 
     ver->minor = iESPparseFirstNumFromStr( curr_chr_pp, ESP_DIGIT_BASE_DECIMAL ); 
     ver->patch = iESPparseFirstNumFromStr( curr_chr_pp, ESP_DIGIT_BASE_DECIMAL ); 
+    // TODO: minimum version check
     return  espOK;
 } // end of eESPparseVersion
 
@@ -378,6 +379,9 @@ void   vESPparseRecvATrespLine( const uint8_t *data_line_buf, uint16_t buf_idx, 
             if(strncmp(curr_chr_p, "AT version", 10) == 0) {
                 curr_chr_p += 10;
                 eESPparseVersion( &curr_chr_p, &espGlobal.dev.version_at );
+                // we can confirm that the ESP device is present & ready ONLY when we
+                // get correct response of AT+GMR command.
+                espGlobal.status.flg.dev_present = 1;
             }
             else if(strncmp(curr_chr_p, "SDK version", 11) == 0) {
                 curr_chr_p += 11;
