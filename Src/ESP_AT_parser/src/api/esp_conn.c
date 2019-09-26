@@ -228,7 +228,7 @@ espConn_t*    pxESPgetNxtAvailConn( void )
 
 
 espRes_t   eESPconnClientStart( espConn_t *conn_in, espConnType_t type, const char* const host, uint16_t host_len,
-                                espPort_t port, espEvtCbFn evt_cb,  espEvtCbFn api_cb,  void* const api_cb_arg,  const uint32_t blocking )
+                                espPort_t port, espEvtCbFn evt_cb, espApiCmdCbFn api_cb,  void* const api_cb_arg,  const uint32_t blocking )
 {
     espRes_t response = espOK ; 
     espMsg_t *msg = NULL;
@@ -262,7 +262,7 @@ espRes_t   eESPconnClientStart( espConn_t *conn_in, espConnType_t type, const ch
 
 
 // TODO: test this API
-espRes_t       eESPconnClientClose( espConn_t *conn_in, espEvtCbFn api_cb,  void* const api_cb_arg, const uint32_t blocking)
+espRes_t       eESPconnClientClose( espConn_t *conn_in, espApiCmdCbFn api_cb,  void* const api_cb_arg, const uint32_t blocking)
 {
     espRes_t response = espOK ; 
     espMsg_t *msg = NULL;
@@ -282,7 +282,7 @@ espRes_t       eESPconnClientClose( espConn_t *conn_in, espEvtCbFn api_cb,  void
 
 
 
-static espRes_t  eESPconnClientSendLimit( espConn_t *conn, const uint8_t *data, size_t d_size, espEvtCbFn cb, 
+static espRes_t  eESPconnClientSendLimit( espConn_t *conn, const uint8_t *data, size_t d_size, espApiCmdCbFn cb, 
                                           void* const cb_arg, const uint32_t blocking )
 {
     espRes_t response = espOK ; 
@@ -309,15 +309,14 @@ static espRes_t  eESPconnClientSendLimit( espConn_t *conn, const uint8_t *data, 
 
 
 
-espRes_t       eESPconnClientSend( espConn_t *conn, const uint8_t *data, size_t d_size, espEvtCbFn cb, 
+espRes_t       eESPconnClientSend( espConn_t *conn, const uint8_t *data, size_t d_size, espApiCmdCbFn cb, 
                                    void* const cb_arg, const uint32_t blocking)
 {
     // since maximum transfer size of each AT+CIPSEND (for ESP8266 device)  is 2048, 
     // therefore we must check whether several AT+CIPSEND commands are required for this API call.
     #define      ESP_MAX_BYTES_PER_CIPSEND    256
     espRes_t        response    = espOK ; 
-    espMsg_t       *msg         = NULL;
-    uint8_t        *curr_data_p = NULL;
+    const uint8_t  *curr_data_p = NULL;
     size_t          curr_d_size = 0;
     if((conn==NULL) || (data==NULL) || (d_size==0)) {
         return  espERRARGS;

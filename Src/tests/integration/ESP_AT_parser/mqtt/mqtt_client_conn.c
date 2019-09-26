@@ -171,7 +171,6 @@ int   mqttSendConnect( mqttCtx_t *mctx )
 
 int   mqttSendDisconnect( mqttCtx_t *mctx )
 {
-    int      status ;
     byte    *tx_buf;
     word32   tx_buf_len;
     word32   pkt_total_len;

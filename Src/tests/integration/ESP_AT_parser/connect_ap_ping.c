@@ -6,7 +6,6 @@
 
 static void vESPtestConnAPtask(void *params)
 {
-    espRes_t  response ;
     uint8_t   devPresent ;
     const uint8_t  waitUntilConnected = 0x0;
 
@@ -34,7 +33,6 @@ static void vESPtestConnAPtask(void *params)
 
 static void vESPtestPingTask(void *params)
 {
-    espRes_t  response ;
     uint32_t  pingresptime = 0;
     for(;;)
     {
@@ -51,8 +49,7 @@ static void vESPtestPingTask(void *params)
 
 static espRes_t vESPinitCallBack( espEvt_t*  evt )
 {
-    uint8_t   devPresent ;
-    espRes_t  response ;
+    espRes_t  response = espOK;
     switch( evt->type )
     {
         case ESP_EVT_INIT_FINISH :
@@ -92,6 +89,7 @@ static espRes_t vESPinitCallBack( espEvt_t*  evt )
         default:
             break;
     } // end of switch statement
+    return response ;
 } // end of vESPinitCallBack
 
 
@@ -100,18 +98,15 @@ static espRes_t vESPinitCallBack( espEvt_t*  evt )
 
 static void vESPtestInitTask(void *params)
 {
-    uint8_t     xState ;
     uint8_t     isPrivileged = 0x1;
-    espRes_t  response =  eESPinit( vESPinitCallBack );
+    espRes_t    response     =  eESPinit( vESPinitCallBack );
     if( response == espOK ) {
         // create the 2 threads for this test
-        xState = eESPsysThreadCreate( NULL, "espTestPing", vESPtestPingTask, NULL ,
+        response = eESPsysThreadCreate( NULL, "espTestPing", vESPtestPingTask, NULL ,
                                    (0x20 + TASK_MIN_STACK_SIZE), ESP_APPS_THREAD_PRIO , isPrivileged );
-        xState = eESPsysThreadCreate( NULL, "espTestConnAP", vESPtestConnAPtask, NULL ,
+        response = eESPsysThreadCreate( NULL, "espTestConnAP", vESPtestConnAPtask, NULL ,
                                    (0x20 + TASK_MIN_STACK_SIZE), (ESP_APPS_THREAD_PRIO + 1) , isPrivileged );
-    }
-    else {
-        // failed to initialize ESP AT library
+        ESP_ASSERT( response == espOK ); 
     }
     eESPsysThreadDelete( NULL );
 } // end of vESPinitTask

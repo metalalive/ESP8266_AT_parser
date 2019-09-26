@@ -48,7 +48,7 @@ espRes_t  eESPprocessPieceRecvResp( espBuf_t *recv_buf, uint8_t *isEndOfATresp)
             // TODO: for AT command, currently we only support ASCII, will support UTF-8 in future
             if(! ESP_ISVALIDASCII(curr_chr)) {  break;  }
             // currently ESP device is waiting for response of ongoing AT command.
-            vESPappendChrToRecvDataBuf( &recv_data_line_buf , &recv_data_line_buf_idx, curr_chr );
+            vESPappendChrToRecvDataBuf( &recv_data_line_buf[0] , &recv_data_line_buf_idx, curr_chr );
             if((prev_chr == ESP_ASCII_CR) && (curr_chr == ESP_ASCII_LF)) 
             {
                 // that means currently the ESP device is in AT-command mode, 
@@ -58,7 +58,7 @@ espRes_t  eESPprocessPieceRecvResp( espBuf_t *recv_buf, uint8_t *isEndOfATresp)
                 // clear the index of received line buffer for next line
                 recv_data_line_buf_idx = 0x0;
             }
-            else if((curr_chr == ':') && (strncmp( &recv_data_line_buf[0], "+IPD", 4)==0) && (recv_data_line_buf_idx>5))
+            else if((curr_chr == ':') && (strncmp( (const char *)&recv_data_line_buf[0], "+IPD", 4)==0) && (recv_data_line_buf_idx>5))
             {   // setup for handling received IPD string.
                 eESPparseIPDsetup( &recv_data_line_buf[0] );
                 // skip the colon ':' of IPD data, payload data starts immediately after the colon mark.

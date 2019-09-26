@@ -164,9 +164,9 @@ typedef struct espMsg  {
             const char* pass;                   /*!< AP password */
             uint16_t    name_len;
             uint16_t    pass_len;
-            const espMac_t* mac;               /*!< Specific MAC address to use when connecting to AP */
-            uint8_t def;                        /*!< Value indicates to connect as current only or as default */
-            uint8_t error_num;                  /*!< Error number on connecting */
+            const espMac_t* mac;                /*!< Specific MAC address to use when connecting to AP */
+            uint8_t     def;                    /*!< Value indicates to connect as current only or as default */
+            uint8_t     error_num;              /*!< Error number on connecting */
         } sta_join;                             /*!< Message for joining to access point */
         struct {
             uint8_t en;                         /*!< Status to enable/disable auto join feature */
@@ -211,9 +211,9 @@ typedef struct espMsg  {
             uint8_t def;                        /*!< Value for receiving default or current settings */
         } sta_ap_getmac;                        /*!< Message for reading station or access point MAC address */
         struct {
-            const espIp_t* ip;                 /*!< Pointer to IP variable */
-            const espIp_t* gw;                 /*!< Pointer to gateway variable */
-            const espIp_t* nm;                 /*!< Pointer to netmask variable */
+            const espIp_t* ip;                  /*!< Pointer to IP variable */
+            const espIp_t* gw;                  /*!< Pointer to gateway variable */
+            const espIp_t* nm;                  /*!< Pointer to netmask variable */
             uint8_t def;                        /*!< Value for receiving default or current settings */
         } sta_ap_setip;                         /*!< Message for setting station or access point IP */
         struct {
@@ -221,10 +221,10 @@ typedef struct espMsg  {
             uint8_t def;                        /*!< Value for receiving default or current settings */
         } sta_ap_setmac;                        /*!< Message for setting station or access point MAC address */
         struct {
-            const espIp_t*    sta_ip;
-            const espMac_t*   sta_mac;
-            const espIp_t*    ap_ip;
-            const espMac_t*   ap_mac;
+            espIp_t*    sta_ip;
+            espMac_t*   sta_mac;
+            espIp_t*    ap_ip;
+            espMac_t*   ap_mac;
         } local_ip_mac;
         struct {
             const char* hostname_set;           /*!< Hostname set value */
@@ -247,8 +247,8 @@ typedef struct espMsg  {
             espConn_t*  conn;                   /*!< Pointer to connection to close */
         } conn_close;                           /*!< Close connection */
         struct {
-            espConn_t      *conn;               /*!< Pointer to connection to send data */
-            const uint8_t  *data;               /*!< Data to send */
+            espConn_t       *conn;               /*!< Pointer to connection to send data */
+            const  uint8_t  *data;               /*!< Data to send */
             uint16_t        d_size;             /*!< size of data (bytes) ready to transfer, shouldn't be greater than 2048 */
             const espIp_t  *remote_ip;          /*!< Remote IP address for UDP connection */
             espPort_t       remote_port;        /*!< Remote port address for UDP connection */

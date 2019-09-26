@@ -74,7 +74,7 @@ word32 mqttEncodeVarBytes( byte *buf, word32  value )
 
 
 
-word32 mqttDecodeVarBytes( byte *buf, word32 *value )
+word32 mqttDecodeVarBytes(const byte *buf, word32 *value )
 {
     word32  val = 0;
     word16  idx = 0;
@@ -166,7 +166,7 @@ word32 mqttDecodeStr( byte *buf, const char **pstr, word16 *pstrlen )
     word32  len  = 0;
     if((buf != NULL) && (pstrlen != NULL) && (pstr != NULL)){
         len    = mqttDecodeWord16( buf, pstrlen );
-        *pstr  = &buf[len] ;
+        *pstr  = (const char *)&buf[len] ;
         len   += *pstrlen;
     }
     return  len;
@@ -206,13 +206,13 @@ word32 mqttEncodeProps( byte *buf, mqttProp_t *props )
                 break;
             case MQTT_DATA_TYPE_BINARY       : 
             case MQTT_DATA_TYPE_STRING       :
-                len = mqttEncodeStr( buf, curr_prop->body.str.data,  curr_prop->body.str.len );
+                len = mqttEncodeStr( buf, (const char *)curr_prop->body.str.data,  curr_prop->body.str.len );
                 break;
             case MQTT_DATA_TYPE_STRING_PAIR  :
-                len  = mqttEncodeStr( buf, curr_prop->body.strpair[0].data,  curr_prop->body.strpair[0].len );
+                len  = mqttEncodeStr( buf, (const char *)curr_prop->body.strpair[0].data,  curr_prop->body.strpair[0].len );
                 if(buf != NULL){ buf  += len; }
                 total_len += len;
-                len += mqttEncodeStr( buf, curr_prop->body.strpair[1].data,  curr_prop->body.strpair[1].len );
+                len += mqttEncodeStr( buf, (const char *)curr_prop->body.strpair[1].data,  curr_prop->body.strpair[1].len );
                 break;
             default:
                 len = 0;
@@ -246,7 +246,7 @@ word32 mqttDecodeProps( byte *buf, mqttProp_t **props , word32  props_len )
             break; // memory error
         }
         // first byte of each property must represent the type
-        len           = mqttDecodeVarBytes( buf, (word32 *)&curr_prop->type );
+        len           = mqttDecodeVarBytes((const byte *)buf, (word32 *)&curr_prop->type );
         props_len    -= len;
         copied_len   += len;
         buf          += len;
@@ -263,15 +263,15 @@ word32 mqttDecodeProps( byte *buf, mqttProp_t **props , word32  props_len )
                 len = mqttDecodeWord32( buf, &curr_prop->body.u32 );
                 break;
             case MQTT_DATA_TYPE_VAR_INT      :
-                len = mqttDecodeVarBytes( buf, &curr_prop->body.u32 );
+                len = mqttDecodeVarBytes( (const byte *)buf, &curr_prop->body.u32 );
                 break;
             case MQTT_DATA_TYPE_BINARY       : 
             case MQTT_DATA_TYPE_STRING       :
-                len = mqttDecodeStr( buf, &curr_prop->body.str.data,  &curr_prop->body.str.len );
+                len = mqttDecodeStr( buf, (const char **)&curr_prop->body.str.data,  &curr_prop->body.str.len );
                 break;
             case MQTT_DATA_TYPE_STRING_PAIR  :
-                len  = mqttDecodeStr( &buf[0]  , &curr_prop->body.strpair[0].data,  &curr_prop->body.strpair[0].len );
-                len += mqttDecodeStr( &buf[len], &curr_prop->body.strpair[1].data,  &curr_prop->body.strpair[1].len );
+                len  = mqttDecodeStr( &buf[0]  , (const char **)&curr_prop->body.strpair[0].data,  &curr_prop->body.strpair[0].len );
+                len += mqttDecodeStr( &buf[len], (const char **)&curr_prop->body.strpair[1].data,  &curr_prop->body.strpair[1].len );
                 break;
             default:
                 len = 0;
@@ -332,7 +332,7 @@ word32  mqttEncodePktConnect( byte *tx_buf, word32 tx_buf_len, struct __mqttConn
     word32   fx_head_len = 0;
     word32   remain_len  = 0;
     word32   props_len   = 0;
-    mqttPktHeadConnect_t  var_head = {{0, MQTT_CONN_PROTOCOL_NAME_LEN}, {'M','Q','T','T'}, 0, 0, 0, 0}; 
+    mqttPktHeadConnect_t  var_head = {{0, MQTT_CONN_PROTOCOL_NAME_LEN}, {'M','Q','T','T'}, 0, 0, 0}; 
     byte    *curr_buf_pos ;
 
     if((conn == NULL) || (tx_buf == NULL) || (tx_buf_len == 0)) { 
@@ -382,10 +382,10 @@ word32  mqttEncodePktConnect( byte *tx_buf, word32 tx_buf_len, struct __mqttConn
     curr_buf_pos += mqttEncodeProps( curr_buf_pos, conn->props );
 
     // copy all elements of the payload to buffer
-    curr_buf_pos += mqttEncodeStr( curr_buf_pos, conn->client_id.data,  conn->client_id.len );
+    curr_buf_pos += mqttEncodeStr( curr_buf_pos, (const char *)conn->client_id.data,  conn->client_id.len );
     // TODO: implement will property, will topic, and will payload
     if(conn->username.data != NULL) {
-        curr_buf_pos += mqttEncodeStr( curr_buf_pos, conn->username.data,  conn->username.len );
+        curr_buf_pos += mqttEncodeStr( curr_buf_pos, (const char *)conn->username.data,  conn->username.len );
     }
     else {
         // [Note]
@@ -395,7 +395,7 @@ word32  mqttEncodePktConnect( byte *tx_buf, word32 tx_buf_len, struct __mqttConn
         curr_buf_pos += mqttEncodeWord16( curr_buf_pos, (word16)0 );
     }
     if(conn->password.data != NULL) {
-        curr_buf_pos += mqttEncodeStr( curr_buf_pos, conn->password.data,  conn->password.len );
+        curr_buf_pos += mqttEncodeStr( curr_buf_pos, (const char *)conn->password.data,  conn->password.len );
     }
 
     return  (remain_len + fx_head_len);
@@ -422,7 +422,7 @@ word32  mqttDecodePktConnack( byte *rx_buf, word32 rx_buf_len,  mqttPktHeadConna
     connack->reason_code  = *curr_buf_pos++;
     if(end_of_buf > curr_buf_pos) {
         // copy all properties from buffer
-        curr_buf_pos += mqttDecodeVarBytes( curr_buf_pos, &props_len );
+        curr_buf_pos += mqttDecodeVarBytes( (const byte *)curr_buf_pos, &props_len );
         curr_buf_pos += mqttDecodeProps( curr_buf_pos, &connack->props, props_len );
     }
     return  (fx_head_len + remain_len);
@@ -507,7 +507,7 @@ word32  mqttEncodePktPublish( byte *tx_buf, word32 tx_buf_len, struct __mqttMsg 
 
     curr_buf_pos  = &tx_buf[fx_head_len]; 
     // variable header : topic filter
-    curr_buf_pos += mqttEncodeStr( curr_buf_pos, msg->topic.data, msg->topic.len );
+    curr_buf_pos += mqttEncodeStr( curr_buf_pos, (const char *)msg->topic.data, msg->topic.len );
     // variable header : packet ID (if QoS > 0)
     if(msg->qos > MQTT_QOS_0) {
         curr_buf_pos += mqttEncodeWord16( curr_buf_pos, msg->packet_id );
@@ -553,7 +553,7 @@ word32  mqttDecodePktPublish( byte *rx_buf, word32 rx_buf_len, struct __mqttMsg 
                                       &msg->qos, &msg->duplicate );
     curr_buf_pos  = &rx_buf[fx_head_len]; 
     // variable header : topic filter
-    var_head_len  = mqttDecodeStr( curr_buf_pos, &msg->topic.data, &msg->topic.len );
+    var_head_len  = mqttDecodeStr( curr_buf_pos, (const char **)&msg->topic.data, &msg->topic.len );
     curr_buf_pos += var_head_len;
     // variable header : check QoS & see if we have packet ID field in the received PUBLISH packet
     if(msg->qos > MQTT_QOS_0) {
@@ -562,7 +562,7 @@ word32  mqttDecodePktPublish( byte *rx_buf, word32 rx_buf_len, struct __mqttMsg 
         var_head_len  += tmp;
     }
     // variable header : optional properties
-    tmp = mqttDecodeVarBytes( curr_buf_pos, &props_len );
+    tmp = mqttDecodeVarBytes( (const byte *)curr_buf_pos, &props_len );
     var_head_len += tmp;
     curr_buf_pos += tmp;
     if(props_len > 0) {
@@ -622,7 +622,7 @@ word32  mqttEncodePktSubscribe( byte *tx_buf, word32 tx_buf_len, mqttPktSubs_t *
     // payload
     for( idx=0; idx<subs->topic_cnt; idx++ ) {
         curr_topic  = &subs->topics[idx];
-        curr_buf_pos += mqttEncodeStr( curr_buf_pos, curr_topic->filter.data, curr_topic->filter.len );
+        curr_buf_pos += mqttEncodeStr( curr_buf_pos, (const char *)curr_topic->filter.data, curr_topic->filter.len );
         *curr_buf_pos = (byte) curr_topic->qos; // TODO: implement all fields of the subscription options byte
         curr_buf_pos++;
     }
@@ -669,7 +669,7 @@ word32  mqttEncodePktUnsubscribe( byte *tx_buf, word32 tx_buf_len, mqttPktUnsubs
     // payload
     for( idx=0; idx<unsubs->topic_cnt; idx++ ){
         curr_topic    = &unsubs->topics[idx];
-        curr_buf_pos += mqttEncodeStr( curr_buf_pos, curr_topic->filter.data, curr_topic->filter.len );
+        curr_buf_pos += mqttEncodeStr( curr_buf_pos, (const char *)curr_topic->filter.data, curr_topic->filter.len );
     }
     return (fx_head_len + remain_len);
 } // end of mqttEncodePktUnsubscribe
@@ -738,7 +738,7 @@ word32  mqttDecodePktPubResp( byte *rx_buf, word32 rx_buf_len, mqttPktPubResp_t 
     }
     if(end_of_buf > curr_buf_pos) {
         // copy all properties from buffer
-        curr_buf_pos += mqttDecodeVarBytes( curr_buf_pos, &props_len );
+        curr_buf_pos += mqttDecodeVarBytes( (const byte *)curr_buf_pos, &props_len );
         curr_buf_pos += mqttDecodeProps( curr_buf_pos, &resp->props, props_len );
     }
     return  (fx_head_len + remain_len);
@@ -760,7 +760,7 @@ word32  mqttDecodePktSuback( byte *rx_buf, word32 rx_buf_len, mqttPktSuback_t *s
                                       MQTT_PACKET_TYPE_SUBACK, NULL, NULL, NULL );
     curr_buf_pos  = &rx_buf[fx_head_len];
     curr_buf_pos += mqttDecodeWord16( curr_buf_pos, &suback->packet_id );
-    curr_buf_pos += mqttDecodeVarBytes( curr_buf_pos, &props_len );
+    curr_buf_pos += mqttDecodeVarBytes( (const byte *)curr_buf_pos, &props_len );
     curr_buf_pos += mqttDecodeProps( curr_buf_pos, &suback->props, props_len );
     // the SUBACK payload contains a list of return codes that indicate whether the topic 
     // filters are subscribed successfully on the borker side.
@@ -784,7 +784,7 @@ word32  mqttDecodePktUnsuback( byte *rx_buf, word32 rx_buf_len, mqttPktUnsuback_
                                       MQTT_PACKET_TYPE_UNSUBACK, NULL, NULL, NULL );
     curr_buf_pos  = &rx_buf[fx_head_len];
     curr_buf_pos += mqttDecodeWord16( curr_buf_pos, &unsuback->packet_id );
-    curr_buf_pos += mqttDecodeVarBytes( curr_buf_pos, &props_len );
+    curr_buf_pos += mqttDecodeVarBytes( (const byte *)curr_buf_pos, &props_len );
     curr_buf_pos += mqttDecodeProps( curr_buf_pos, &unsuback->props, props_len );
     // the UNSUBACK payload contains a list of return codes that indicate whether the topic
     // filters are unsubscribed successfully on the borker side.

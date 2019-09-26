@@ -471,8 +471,8 @@ extern void* unity_malloc(size_t size);
     if(logger->failFlag == 0x0) { \
         void *expectptr0  =  unity_malloc( sizeof(UNITY_UINT32) ); \
         void *actualptr   =  unity_malloc( sizeof(UNITY_UINT32) ); \
-        *(UNITY_UINT32 *)expectptr0  =  expectVal;   \
-        *(UNITY_UINT32 *)actualptr   =  actualVal;   \
+        *(UNITY_UINT32 *)expectptr0  =  (UNITY_UINT32 )expectVal;   \
+        *(UNITY_UINT32 *)actualptr   =  (UNITY_UINT32 )actualVal;   \
         vLogTestMismatchGeneric( logger, line, compare_option, \
                                  expectptr0, NULL , actualptr ); \
     }

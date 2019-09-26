@@ -705,7 +705,7 @@ static int UnityIsOneArrayNull(UNITY_INTERNAL_PTR expected,
                                const TestLogger_t* logger )
                                //// const char* msg)
 {
-    const TestLogger_t* xlogger = logger;
+    TestLogger_t* xlogger = logger;
     if (expected == actual) return 0; /* Both are NULL or same pointer */
     if( xlogger==NULL ) { xlogger = currUnitTestLogger; }
 
@@ -855,7 +855,7 @@ void UnityAssertEqualIntArray(UNITY_INTERNAL_PTR expected,
 {
     UNITY_UINT32 elements = num_elements;
     unsigned int length   = style & 0xF;
-    const TestLogger_t* xlogger = logger;
+    TestLogger_t* xlogger = logger;
     if( xlogger==NULL ) { xlogger = currUnitTestLogger; }
 
     RETURN_IF_FAIL_OR_IGNORE;
@@ -984,7 +984,7 @@ void UnityAssertEqualFloatArray(UNITY_PTR_ATTRIBUTE const UNITY_FLOAT* expected,
     UNITY_UINT32 elements = num_elements;
     UNITY_PTR_ATTRIBUTE const UNITY_FLOAT* ptr_expected = expected;
     UNITY_PTR_ATTRIBUTE const UNITY_FLOAT* ptr_actual = actual;
-    const TestLogger_t* xlogger = logger;
+    TestLogger_t* xlogger = logger;
 
     RETURN_IF_FAIL_OR_IGNORE;
     if( xlogger==NULL ) { xlogger = currUnitTestLogger; }
@@ -1150,7 +1150,7 @@ void UnityAssertEqualDoubleArray(UNITY_PTR_ATTRIBUTE const UNITY_DOUBLE* expecte
     UNITY_UINT32 elements = num_elements;
     UNITY_PTR_ATTRIBUTE const UNITY_DOUBLE* ptr_expected = expected;
     UNITY_PTR_ATTRIBUTE const UNITY_DOUBLE* ptr_actual = actual;
-    const TestLogger_t* xlogger = logger;
+    TestLogger_t* xlogger = logger;
 
     RETURN_IF_FAIL_OR_IGNORE;
     if( xlogger==NULL ) { xlogger = currUnitTestLogger; }
@@ -1537,7 +1537,7 @@ void UnityAssertEqualMemory(UNITY_INTERNAL_PTR expected,
     UNITY_PTR_ATTRIBUTE const unsigned char* ptr_act = (UNITY_PTR_ATTRIBUTE const unsigned char*)actual;
     UNITY_UINT32 elements = num_elements;
     UNITY_UINT32 bytes;
-    const TestLogger_t* xlogger = logger;
+    TestLogger_t* xlogger = logger;
     if( xlogger==NULL ) { xlogger = currUnitTestLogger; }
 
     RETURN_IF_FAIL_OR_IGNORE;

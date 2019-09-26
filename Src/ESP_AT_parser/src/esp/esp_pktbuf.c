@@ -10,7 +10,7 @@ espPbuf_t*  pxESPpktBufCreate( size_t len )
     espPbuf_t *buf_p   = NULL;
     uint8_t   *payload = NULL; 
 
-    buf_p = (uint8_t *) ESP_MALLOC( sizeof(espPbuf_t) + len );
+    buf_p = (espPbuf_t *) ESP_MALLOC( sizeof(espPbuf_t) + len );
     ESP_ASSERT( buf_p != NULL );
     payload = ((uint8_t *)buf_p) + sizeof(espPbuf_t); 
     buf_p->next = NULL; 

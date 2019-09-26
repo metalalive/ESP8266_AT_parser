@@ -130,8 +130,8 @@ word32 mqttDecodeStr( byte *buf, const char **pstr, word16 *pstrlen );
 word32 mqttEncodeStr( byte *buf, const char   *str, word16   strlen );
 
 // encode/decode variable-bytes number
-word32 mqttDecodeVarBytes( byte *buf, word32 *value );
-word32 mqttEncodeVarBytes( byte *buf, word32  value );
+word32 mqttDecodeVarBytes( const byte *buf, word32 *value );
+word32 mqttEncodeVarBytes(       byte *buf, word32  value );
 
 // encode/decode property for certain types of packets
 word32 mqttDecodeProps( byte *buf, mqttProp_t **props, word32  props_len );

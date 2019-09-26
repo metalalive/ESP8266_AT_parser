@@ -122,7 +122,7 @@ static  void  vESPtestGenJSONmsg( byte *buf, word32 buff_len,  word32 *app_data_
         buf += json_moisture_len;
         copied_len += json_moisture_len;
 
-        num_chr_append = uiESPcvtNumToStr( &num2str_buf, (int)chosen_moisture, ESP_DIGIT_BASE_DECIMAL );
+        num_chr_append = uiESPcvtNumToStr( &num2str_buf[0], (int)chosen_moisture, ESP_DIGIT_BASE_DECIMAL );
         ESP_MEMCPY( buf, &num2str_buf, num_chr_append );
         buf += num_chr_append;
         copied_len += num_chr_append;
@@ -134,7 +134,7 @@ static  void  vESPtestGenJSONmsg( byte *buf, word32 buff_len,  word32 *app_data_
         buf += json_pH_len;
         copied_len += json_pH_len;
 
-        num_chr_append = uiESPcvtNumToStr( &num2str_buf, (int)chosen_pH, ESP_DIGIT_BASE_DECIMAL );
+        num_chr_append = uiESPcvtNumToStr( &num2str_buf[0], (int)chosen_pH, ESP_DIGIT_BASE_DECIMAL );
         ESP_MEMCPY( buf, &num2str_buf, num_chr_append );
         buf += num_chr_append;
         copied_len += num_chr_append;
@@ -146,7 +146,7 @@ static  void  vESPtestGenJSONmsg( byte *buf, word32 buff_len,  word32 *app_data_
         buf += json_fertility_len;
         copied_len += json_fertility_len;
 
-        num_chr_append = uiESPcvtNumToStr( &num2str_buf, (int)chosen_fertility, ESP_DIGIT_BASE_DECIMAL );
+        num_chr_append = uiESPcvtNumToStr( &num2str_buf[0], (int)chosen_fertility, ESP_DIGIT_BASE_DECIMAL );
         ESP_MEMCPY( buf, &num2str_buf, num_chr_append );
         buf += num_chr_append;
         copied_len += num_chr_append;
@@ -173,14 +173,14 @@ static  void  vESPtestGenJSONmsg( byte *buf, word32 buff_len,  word32 *app_data_
 
 static void vESPtestMqttInitSubsTopics( void )
 {
-    subs_topics[0].filter.data = "control/sprayer/workseconds"; 
-    subs_topics[0].filter.len  = ESP_STRLEN( subs_topics[0].filter.data );
+    subs_topics[0].filter.data = (byte *)&("control/sprayer/workseconds");
+    subs_topics[0].filter.len  = ESP_STRLEN( (const char *)subs_topics[0].filter.data );
     subs_topics[0].qos         = MQTT_QOS_1;
     subs_topics[0].reason_code = 0;
     subs_topics[0].sub_id      = 0; 
 
-    subs_topics[1].filter.data = "sensor/moisture/threshold"; 
-    subs_topics[1].filter.len  = ESP_STRLEN( subs_topics[1].filter.data );
+    subs_topics[1].filter.data = (byte *)&("sensor/moisture/threshold");
+    subs_topics[1].filter.len  = ESP_STRLEN( (const char *)subs_topics[1].filter.data );
     subs_topics[1].qos         = MQTT_QOS_0;
     subs_topics[1].reason_code = 0;
     subs_topics[1].sub_id      = 0; 
@@ -202,20 +202,20 @@ static void vESPtestMqttClientApp( espNetConnPtr netconn, espConn_t*  espconn,  
     mconn->clean_session  = 0;
     mconn->keep_alive_sec = MQTT_DEFAULT_KEEPALIVE_SEC;
     mconn->protocol_lvl   = MQTT_CONN_PROTOCOL_LEVEL; 
-    mconn->client_id.data = "esp_freertos_stm32";
-    mconn->username.data  = "testuser";
-    mconn->password.data  = "guesspswd";
-    mconn->client_id.len  = ESP_STRLEN( mconn->client_id.data );
-    mconn->username.len   = ESP_STRLEN( mconn->username.data  );
-    mconn->password.len   = ESP_STRLEN( mconn->password.data  );
+    mconn->client_id.data = (byte *)&("my_client_name");
+    mconn->username.data  = (byte *)&("testuser");
+    mconn->password.data  = (byte *)&("guesspswd");
+    mconn->client_id.len  = ESP_STRLEN( (const char *)mconn->client_id.data );
+    mconn->username.len   = ESP_STRLEN( (const char *)mconn->username.data  );
+    mconn->password.len   = ESP_STRLEN( (const char *)mconn->password.data  );
     mqttSendConnect( m_client );
     
     // --- publish messages with specific topic, in this test, we expect
     //     another client which  can act as both of subsriber or publisher, the
     //     client expects to wait for message sent by this device, or vice versa.
     mqttMsg_t  *pub_msg  =  &m_client->send_pkt.pub_msg;
-    pub_msg->topic.data = "get/soilQuality/today"; 
-    pub_msg->topic.len  = ESP_STRLEN( pub_msg->topic.data ); 
+    pub_msg->topic.data = (byte *)&("get/soilQuality/today"); 
+    pub_msg->topic.len  = ESP_STRLEN( (const char *)pub_msg->topic.data ); 
     pub_msg->retain     = 0; // we don't consider retain message in this test.
     // if QoS = 1 and we need to send duplicate PUBLISH packet, the duplicate
     // field will be set in mqttSendPublish()
@@ -276,10 +276,9 @@ static void vESPtestMqttClientApp( espNetConnPtr netconn, espConn_t*  espconn,  
 
 static void vESPtestMqttClientTask(void *params) 
 {
-    espRes_t        response ;
     uint8_t         devPresent ;
     espConn_t*      conn      =  NULL;
-    const char      hostname[]= "124.9.131.121";
+    const char      hostname[]= "123.4.56.78";
     uint16_t        host_len  = ESP_STRLEN( hostname );
     espPort_t       port      = 1883;
 
@@ -317,13 +316,12 @@ static void vESPtestInitTask( void  *params )
 {
     uint8_t   isPrivileged = 0x1;
     uint8_t   waitUntilConnected = 0x1;
-    int       status ;
     // initialize ESP AT parser
     espRes_t  response =  eESPinit( eESPtestEvtCallBack );
     // initialize  MQTT connection object for this test.
     m_client = NULL;
-    status =  mqttClientInit( &m_client, MQTT_CMD_TIMEOUT_MS,
-                               MQTT_CONN_TX_BUF_SIZE, MQTT_CONN_RX_BUF_SIZE );
+    mqttClientInit( &m_client, MQTT_CMD_TIMEOUT_MS,
+                    MQTT_CONN_TX_BUF_SIZE, MQTT_CONN_RX_BUF_SIZE );
     ESP_ASSERT( m_client != NULL );
 
     if( response == espOK ) {

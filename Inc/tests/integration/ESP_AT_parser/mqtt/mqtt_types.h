@@ -187,7 +187,7 @@ typedef enum {
 
 typedef struct {
     word16  len;
-    byte   *data
+    byte   *data;
 } mqttStr_t ;
 
 

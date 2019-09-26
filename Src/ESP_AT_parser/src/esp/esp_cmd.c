@@ -24,7 +24,7 @@ static void  AT_APPEND_STR( uint8_t **_des_p, const uint8_t *_str, uint16_t _str
 
 
 
-static void  vESPappendIPtoStr( uint8_t **curr_chr_pp, espIp_t* ip )
+static void  vESPappendIPtoStr( uint8_t **curr_chr_pp, const espIp_t* ip )
 {
     const uint8_t ip_num_cnt = 4;
     uint32_t  num_chr_append = 0;
@@ -41,6 +41,23 @@ static void  vESPappendIPtoStr( uint8_t **curr_chr_pp, espIp_t* ip )
     AT_APPEND_CHR( curr_chr_pp, ESP_ASCII_DOUBLE_QUOTE ) ;
 } // end of vESPappendIPtoStr
 
+
+
+
+static void  vESPappendMACtoStr( uint8_t *out, const espMac_t* mac_in )
+{
+    const uint8_t num_cnt = 6;
+    uint32_t  num_chr_append = 0;
+    uint8_t   idx = 0;
+
+    for (idx=0; idx<num_cnt; idx++) {
+	num_chr_append = uiESPcvtNumToStr( out, mac_in->mac[idx], ESP_DIGIT_BASE_HEX );
+        out           += num_chr_append;
+        if(idx < (num_cnt - 1)) {
+            AT_APPEND_CHR( &out, ESP_ASCII_COLON ) ;
+        }
+    }
+} // end of vESPappendMACtoStr
 
 
 
@@ -70,25 +87,25 @@ espRes_t    eESPinitATcmd( espMsg_t* msg )
             else {
                 // TODO: should we set the delay after reset de-assertion if ESP device is reset by
                 //       AT command.
-                AT_APPEND_STR( &cmd_str_p, "+RST", 4); 
+                AT_APPEND_STR( &cmd_str_p, (const uint8_t *)&("+RST"), 4); 
             }
             break;
             
         case ESP_CMD_ATE0                    :
-                AT_APPEND_STR( &cmd_str_p, "E0", 2 ); 
+                AT_APPEND_STR( &cmd_str_p, (const uint8_t *)&("E0"), 2 ); 
                 break;
         case ESP_CMD_ATE1                    :
-                AT_APPEND_STR( &cmd_str_p, "E1", 2 ); 
+                AT_APPEND_STR( &cmd_str_p, (const uint8_t *)&("E1"), 2 ); 
                 break;
         case ESP_CMD_GMR                     :
-            AT_APPEND_STR( &cmd_str_p, "+GMR", 4 ); 
+            AT_APPEND_STR( &cmd_str_p, (const uint8_t *)&("+GMR"), 4 ); 
             break;  
         case ESP_CMD_GSLP                    :
-            AT_APPEND_STR( &cmd_str_p, "+GSLP=", 6 ); 
+            AT_APPEND_STR( &cmd_str_p, (const uint8_t *)&("+GSLP="), 6 ); 
             cmd_str_p += uiESPcvtNumToStr( cmd_str_p, msg->body.deepslp.ms, ESP_DIGIT_BASE_DECIMAL );
             break;            
         case ESP_CMD_RESTORE                 :
-            AT_APPEND_STR( &cmd_str_p, "+RESTORE", 8 );
+            AT_APPEND_STR( &cmd_str_p, (const uint8_t *)&("+RESTORE"), 8 );
             break;            
         case ESP_CMD_UART                    :  break;         
         case ESP_CMD_WAKEUPGPIO              :  break;         
@@ -101,54 +118,56 @@ espRes_t    eESPinitATcmd( espMsg_t* msg )
         case ESP_CMD_SYSGPIOWRITE            :  break;         
         case ESP_CMD_SYSGPIOREAD             :  break;         
         case ESP_CMD_SYSMSG                  :
-            AT_APPEND_STR( &cmd_str_p, "+SYSMSG_CUR=", 12 );
+            AT_APPEND_STR( &cmd_str_p, (const uint8_t *)&("+SYSMSG_CUR="), 12 );
 	    AT_APPEND_CHR( &cmd_str_p, (msg->body.sysargs.ext_info_netconn==ESP_ENABLE ? '1': '0') ); 
             break; 
         case ESP_CMD_WIFI_CWLAPOPT           :  break;           
 
         case ESP_CMD_WIFI_CWMODE             :
-	    AT_APPEND_STR( &cmd_str_p, (msg->body.wifi_mode.def==ESP_SETVALUE_SAVE ? "+CWMODE_DEF=" : "+CWMODE_CUR=") , 12 ); 
+	    AT_APPEND_STR( &cmd_str_p, (msg->body.wifi_mode.def==ESP_SETVALUE_SAVE ? (const uint8_t *)&"+CWMODE_DEF=" : (const uint8_t *)&"+CWMODE_CUR=") , 12 ); 
 	    AT_APPEND_CHR( &cmd_str_p, ESP_NUMTOCHAR(msg->body.wifi_mode.mode) ); 
             break;            
 #if (ESP_CFG_MODE_STATION != 0)
         case ESP_CMD_WIFI_CWJAP                  :
-	    AT_APPEND_STR( &cmd_str_p, (msg->body.sta_join.def==ESP_SETVALUE_SAVE ? "+CWJAP_DEF=" : "+CWJAP_CUR=") , 11 );
+	    AT_APPEND_STR( &cmd_str_p, (msg->body.sta_join.def==ESP_SETVALUE_SAVE ? (const uint8_t *)&"+CWJAP_DEF=" : (const uint8_t *)&"+CWJAP_CUR=") , 11 );
 	    AT_APPEND_CHR( &cmd_str_p, ESP_ASCII_DOUBLE_QUOTE );
-	    AT_APPEND_STR( &cmd_str_p, msg->body.sta_join.name, msg->body.sta_join.name_len );
+	    AT_APPEND_STR( &cmd_str_p, (const uint8_t *)&msg->body.sta_join.name[0], msg->body.sta_join.name_len );
 	    AT_APPEND_CHR( &cmd_str_p, ESP_ASCII_DOUBLE_QUOTE );
 	    AT_APPEND_CHR( &cmd_str_p, ESP_ASCII_COMMA );
 	    AT_APPEND_CHR( &cmd_str_p, ESP_ASCII_DOUBLE_QUOTE );
-	    AT_APPEND_STR( &cmd_str_p, msg->body.sta_join.pass, msg->body.sta_join.pass_len );
+	    AT_APPEND_STR( &cmd_str_p, (const uint8_t *)&msg->body.sta_join.pass[0], msg->body.sta_join.pass_len );
 	    AT_APPEND_CHR( &cmd_str_p, ESP_ASCII_DOUBLE_QUOTE );
             if(msg->body.sta_join.mac != NULL) {
+                uint8_t mac_str[17];
+                vESPappendMACtoStr( &mac_str[0],  msg->body.sta_join.mac );
 	        AT_APPEND_CHR( &cmd_str_p, ESP_ASCII_COMMA );
 	        AT_APPEND_CHR( &cmd_str_p, ESP_ASCII_DOUBLE_QUOTE );
-	        AT_APPEND_STR( &cmd_str_p, msg->body.sta_join.mac , 17 ); //TODO: finish this part
+	        AT_APPEND_STR( &cmd_str_p, (const uint8_t *)&mac_str[0], 17 );
 	        AT_APPEND_CHR( &cmd_str_p, ESP_ASCII_DOUBLE_QUOTE );
             }
             break; 
         case ESP_CMD_WIFI_CWJAP_GET              :
-	    AT_APPEND_STR( &cmd_str_p, "+CWJAP_CUR?" , 11 );
+	    AT_APPEND_STR( &cmd_str_p, (const uint8_t *)&("+CWJAP_CUR?") , 11 );
             break;  
         case ESP_CMD_WIFI_CWQAP                  :
-	    AT_APPEND_STR( &cmd_str_p, "+CWQAP", 6 );
+	    AT_APPEND_STR( &cmd_str_p, (const uint8_t *)&("+CWQAP"), 6 );
             break;   
         case ESP_CMD_WIFI_CWLAP                  :
-	    AT_APPEND_STR( &cmd_str_p, "+CWLAP", 6 );
+	    AT_APPEND_STR( &cmd_str_p, (const uint8_t *)&("+CWLAP"), 6 );
             if( msg->body.ap_list.ssid != NULL ) {
 	        AT_APPEND_CHR( &cmd_str_p, '=' );
 	        AT_APPEND_CHR( &cmd_str_p, ESP_ASCII_DOUBLE_QUOTE );
-                AT_APPEND_STR( &cmd_str_p, msg->body.ap_list.ssid, msg->body.ap_list.ssid_len );
+                AT_APPEND_STR( &cmd_str_p, (const uint8_t *)&msg->body.ap_list.ssid[0], msg->body.ap_list.ssid_len );
 	        AT_APPEND_CHR( &cmd_str_p, ESP_ASCII_DOUBLE_QUOTE );
             }
             break;   
         case ESP_CMD_WIFI_CIPSTAMAC_GET          :  break;   
         case ESP_CMD_WIFI_CIPSTAMAC_SET          :  break;   
         case ESP_CMD_WIFI_CIPSTA_GET             :
-	    AT_APPEND_STR( &cmd_str_p,  "+CIPSTA_CUR?" , 12 ); 
+	    AT_APPEND_STR( &cmd_str_p, (const uint8_t *)&("+CIPSTA_CUR?") , 12 ); 
             break;
         case ESP_CMD_WIFI_CIPSTA_SET             :
-	    AT_APPEND_STR( &cmd_str_p, (msg->body.sta_ap_setip.def==ESP_SETVALUE_SAVE ? "+CIPSTA_DEF=" : "+CIPSTA_CUR=") , 12 ); 
+	    AT_APPEND_STR( &cmd_str_p, (msg->body.sta_ap_setip.def==ESP_SETVALUE_SAVE ? (const uint8_t *)&"+CIPSTA_DEF=" : (const uint8_t *)&"+CIPSTA_CUR=") , 12 ); 
              // TODO: finish the rest
             break;   
         case ESP_CMD_WIFI_CWAUTOCONN             :  break;   
@@ -160,10 +179,10 @@ espRes_t    eESPinitATcmd( espMsg_t* msg )
         case ESP_CMD_WIFI_CIPAPMAC_GET           :  break; 
         case ESP_CMD_WIFI_CIPAPMAC_SET           :  break; 
         case ESP_CMD_WIFI_CIPAP_GET              :
-	    AT_APPEND_STR( &cmd_str_p, "+CIPAP_CUR?", 11 ); 
+	    AT_APPEND_STR( &cmd_str_p, (const uint8_t *)&("+CIPAP_CUR?"), 11 ); 
             break; 
         case ESP_CMD_WIFI_CIPAP_SET              :
-	    AT_APPEND_STR( &cmd_str_p, (msg->body.sta_ap_setip.def==ESP_SETVALUE_SAVE ? "+CIPAP_DEF=" : "+CIPAP_CUR=") , 11 ); 
+	    AT_APPEND_STR( &cmd_str_p, (msg->body.sta_ap_setip.def==ESP_SETVALUE_SAVE ? (const uint8_t *)&"+CIPAP_DEF=" : (const uint8_t *)&"+CIPAP_CUR=") , 11 ); 
             vESPappendIPtoStr( &cmd_str_p, msg->body.sta_ap_setip.ip );
 	    AT_APPEND_CHR( &cmd_str_p, ESP_ASCII_COMMA ); 
             vESPappendIPtoStr( &cmd_str_p, msg->body.sta_ap_setip.gw );
@@ -194,52 +213,52 @@ espRes_t    eESPinitATcmd( espMsg_t* msg )
 #endif /* ESP_CFG_DNS  */ 
 
         case ESP_CMD_TCPIP_CIPSTATUS               :
-            AT_APPEND_STR( &cmd_str_p, "+CIPSTATUS", 10 ); 
+            AT_APPEND_STR( &cmd_str_p, (const uint8_t *)&("+CIPSTATUS"), 10 ); 
             break;
         case ESP_CMD_TCPIP_CIPSTART                :
-            AT_APPEND_STR( &cmd_str_p, "+CIPSTART=", 10 ); 
+            AT_APPEND_STR( &cmd_str_p, (const uint8_t *)&("+CIPSTART="), 10 ); 
 	    AT_APPEND_CHR( &cmd_str_p, ESP_NUMTOCHAR(ucESPconnGetID( *(msg->body.conn_start.conn) )) ); 
 	    AT_APPEND_CHR( &cmd_str_p, ESP_ASCII_COMMA ); 
 	    AT_APPEND_CHR( &cmd_str_p, ESP_ASCII_DOUBLE_QUOTE );
             // note that built-in SSL function will no longer be used since it was proved insecure.
-            AT_APPEND_STR( &cmd_str_p, (msg->body.conn_start.type == ESP_CONN_TYPE_TCP ? "TCP": "UDP"), 3 ); 
+            AT_APPEND_STR( &cmd_str_p, (msg->body.conn_start.type == ESP_CONN_TYPE_TCP ? (const uint8_t *)&"TCP": (const uint8_t *)&"UDP"), 3 ); 
 	    AT_APPEND_CHR( &cmd_str_p, ESP_ASCII_DOUBLE_QUOTE );
 	    AT_APPEND_CHR( &cmd_str_p, ESP_ASCII_COMMA ); 
 	    AT_APPEND_CHR( &cmd_str_p, ESP_ASCII_DOUBLE_QUOTE );
-            AT_APPEND_STR( &cmd_str_p, msg->body.conn_start.host, msg->body.conn_start.host_len ); 
+            AT_APPEND_STR( &cmd_str_p, (const uint8_t *)&msg->body.conn_start.host[0], msg->body.conn_start.host_len ); 
 	    AT_APPEND_CHR( &cmd_str_p, ESP_ASCII_DOUBLE_QUOTE );
 	    AT_APPEND_CHR( &cmd_str_p, ESP_ASCII_COMMA ); 
             cmd_str_p += uiESPcvtNumToStr( cmd_str_p, msg->body.conn_start.port , ESP_DIGIT_BASE_DECIMAL );
             break;
         case ESP_CMD_TCPIP_CIPCLOSE                :
-            AT_APPEND_STR( &cmd_str_p, "+CIPCLOSE=", 10 ); 
+            AT_APPEND_STR( &cmd_str_p, (const uint8_t *)&("+CIPCLOSE="), 10 ); 
             cmd_str_p += uiESPcvtNumToStr( cmd_str_p, ucESPconnGetID(msg->body.conn_close.conn) , ESP_DIGIT_BASE_DECIMAL );
             break;
         case ESP_CMD_TCPIP_CIPSEND                 :
-            AT_APPEND_STR( &cmd_str_p, "+CIPSEND=", 9 ); 
+            AT_APPEND_STR( &cmd_str_p, (const uint8_t *)&("+CIPSEND="), 9 ); 
             cmd_str_p += uiESPcvtNumToStr( cmd_str_p, ucESPconnGetID(msg->body.conn_send.conn) , ESP_DIGIT_BASE_DECIMAL );
 	    AT_APPEND_CHR( &cmd_str_p, ESP_ASCII_COMMA ); 
             cmd_str_p += uiESPcvtNumToStr( cmd_str_p, msg->body.conn_send.d_size , ESP_DIGIT_BASE_DECIMAL );
             break; 
         case ESP_CMD_TCPIP_CIFSR                   :
-            AT_APPEND_STR( &cmd_str_p, "+CIFSR", 6 ); 
+            AT_APPEND_STR( &cmd_str_p, (const uint8_t *)&("+CIFSR"), 6 ); 
             break;     
         case ESP_CMD_TCPIP_CIPMUX                  :
-            AT_APPEND_STR( &cmd_str_p, "+CIPMUX=", 8 ); 
+            AT_APPEND_STR( &cmd_str_p, (const uint8_t *)&("+CIPMUX="), 8 ); 
             AT_APPEND_CHR( &cmd_str_p, ESP_NUMTOCHAR(msg->body.tcpip_attri.mux) ); 
             break;     
         case ESP_CMD_TCPIP_CIPSERVER               :
-            AT_APPEND_STR( &cmd_str_p, "+CIPSERVER=", 11 ); 
+            AT_APPEND_STR( &cmd_str_p, (const uint8_t *)&("+CIPSERVER="), 11 ); 
             cmd_str_p += uiESPcvtNumToStr( cmd_str_p, msg->body.tcpip_server.en, ESP_DIGIT_BASE_DECIMAL );
 	    AT_APPEND_CHR( &cmd_str_p, ESP_ASCII_COMMA ); 
             cmd_str_p += uiESPcvtNumToStr( cmd_str_p, msg->body.tcpip_server.port, ESP_DIGIT_BASE_DECIMAL );
             break;     
         case ESP_CMD_TCPIP_CIPSTO                  :
-            AT_APPEND_STR( &cmd_str_p, "+CIPSTO=", 8 ); 
+            AT_APPEND_STR( &cmd_str_p, (const uint8_t *)&("+CIPSTO="), 8 ); 
             cmd_str_p += uiESPcvtNumToStr( cmd_str_p, msg->body.tcpip_server.timeout, ESP_DIGIT_BASE_DECIMAL );
             break; 
         case ESP_CMD_TCPIP_CIPMODE                 :  
-            AT_APPEND_STR( &cmd_str_p, "+CIPMODE=", 9 ); 
+            AT_APPEND_STR( &cmd_str_p, (const uint8_t *)&("+CIPMODE="), 9 ); 
             AT_APPEND_CHR( &cmd_str_p, ESP_NUMTOCHAR(msg->body.tcpip_attri.trans_mode) ); 
             break;     
 #if (ESP_CFG_CONN_MANUAL_TCP_RECV  != 0)
@@ -249,9 +268,9 @@ espRes_t    eESPinitATcmd( espMsg_t* msg )
 
 #if  (ESP_CFG_PING != 0)
         case ESP_CMD_TCPIP_PING                    :
-            AT_APPEND_STR( &cmd_str_p, "+PING=", 6 ); 
+            AT_APPEND_STR( &cmd_str_p, (const uint8_t *)&("+PING="), 6 ); 
 	    AT_APPEND_CHR( &cmd_str_p, ESP_ASCII_DOUBLE_QUOTE );
-	    AT_APPEND_STR( &cmd_str_p, msg->body.tcpip_ping.host, msg->body.tcpip_ping.host_len );
+	    AT_APPEND_STR( &cmd_str_p, (const uint8_t *)&msg->body.tcpip_ping.host[0], msg->body.tcpip_ping.host_len );
 	    AT_APPEND_CHR( &cmd_str_p, ESP_ASCII_DOUBLE_QUOTE );
             break;     
 #endif /* ESP_CFG_PING  */
@@ -264,7 +283,7 @@ espRes_t    eESPinitATcmd( espMsg_t* msg )
 #endif /* ESP_SNT  */
 
         case ESP_CMD_TCPIP_CIPDINFO                :
-            AT_APPEND_STR( &cmd_str_p, "+CIPDINFO=", 10 );
+            AT_APPEND_STR( &cmd_str_p, (const uint8_t *)&("+CIPDINFO="), 10 );
 	    AT_APPEND_CHR( &cmd_str_p, (msg->body.sysargs.ext_info_ipd==ESP_ENABLE ? '1': '0') ); 
             break;     
         default:
@@ -293,7 +312,7 @@ espRes_t    eESPcmdStartSendData( espMsg_t* msg )
     if(msg == NULL) { return espERR; }
     if(GET_CURR_CMD(msg) != ESP_CMD_TCPIP_CIPSEND){ return espERR; }
 
-    uint8_t    *data_p   = msg->body.conn_send.data; 
+    uint8_t    *data_p   = (uint8_t *)msg->body.conn_send.data; 
     uint16_t    data_len = msg->body.conn_send.d_size;
     uint32_t    block_time  = 50; 
     espGlobal.ll.send_fn( data_p, data_len, block_time );

@@ -68,6 +68,8 @@ extern "C" {
 #define ESP_CHR_COMMA             ","
 #define ESP_ASCII_DOT             0x2E
 #define ESP_CHR_DOT               "."
+#define ESP_ASCII_COLON           0x3A
+#define ESP_CHR_COLON             ":"
 
 #define ESP_ASCII_CRLF_LEN         2
 

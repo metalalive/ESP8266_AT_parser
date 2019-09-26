@@ -108,7 +108,7 @@ PRIVILEGED_FUNCTION  espRes_t  eESPsysThreadCreate ( espSysThread_t* t, const ch
     }
     else {
         // add extra region for logging assertion failure in unprivileged tasks.
-        tskparams.xRegions[0].pvBaseAddress   = (UBaseType_t) __unpriv_data_start__;
+        tskparams.xRegions[0].pvBaseAddress   = (UBaseType_t *) __unpriv_data_start__;
         tskparams.xRegions[0].ulLengthInBytes = (UBaseType_t) __unpriv_data_end__ - (UBaseType_t) __unpriv_data_start__;
         tskparams.xRegions[0].ulParameters    = portMPU_REGION_READ_WRITE | MPU_RASR_S_Msk
                                                | MPU_RASR_C_Msk | MPU_RASR_B_Msk;

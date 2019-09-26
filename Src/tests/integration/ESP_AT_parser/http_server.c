@@ -12,7 +12,7 @@ typedef enum {
 
 typedef struct {
    httpMthrEnum     method ; 
-   const uint8_t    uri[TEST_MAX_CHARS_URI] ;
+   uint8_t          uri[TEST_MAX_CHARS_URI] ;
    uint16_t         resp_msg_len ;
    uint8_t*         resp_msg ;
 } httpTestMsg_t;
@@ -116,11 +116,11 @@ static void  vESPtestHttpSimpleApp( espPbuf_t *pktbuf, httpTestMsg_t  *http_msg_
     // get newly received application message
     curr_pbuf = pktbuf;
     content_p = curr_pbuf->payload;
-    if(strncmp(content_p, "GET ", 4) == 0) {
+    if(strncmp((const char *)content_p, "GET ", 4) == 0) {
         http_msg_p->method = HTTP_METHOD_GET;
         content_p += 4;
     }
-    else if(strncmp(content_p, "POST ", 5) == 0) {
+    else if(strncmp((const char *)content_p, "POST ", 5) == 0) {
         http_msg_p->method = HTTP_METHOD_POST;
         content_p += 5;
     }
@@ -128,7 +128,7 @@ static void  vESPtestHttpSimpleApp( espPbuf_t *pktbuf, httpTestMsg_t  *http_msg_
         return;   // this test doesn't handle other types of HTTP methods
     }
     // get URI from raw HTTP request message
-    num_bytes_uri = uESPparseStrUntilToken( &http_msg_p->uri[0], content_p, TEST_MAX_CHARS_URI, ' ');
+    num_bytes_uri = uESPparseStrUntilToken( (char *)&http_msg_p->uri[0], (const char* )content_p, TEST_MAX_CHARS_URI, ' ');
     content_p += num_bytes_uri + 1;
     // parse number of bytes in the HTTP response entity.
     uint8_t   content_length_str[4] = {0};
@@ -207,7 +207,6 @@ static void vESPtestHttpServerTask(void *params)
 
 static void vESPtestInitTask(void *params)
 {
-    uint8_t   xState ;
     uint8_t   isPrivileged = 0x1;
     uint8_t   waitUntilConnected = 0x1;
     espRes_t  response =  eESPinit( eESPtestEvtCallBack );

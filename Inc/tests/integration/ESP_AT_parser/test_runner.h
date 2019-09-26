@@ -18,6 +18,13 @@ void vIntegrationTestTimerISR2(void);
 
 BaseType_t vIntegrationTestRTOSMemManageHandler(void);
 
+#if defined(ESP_TEST_PING)
+void    vESPtestStartPingTask(void);
+#elif defined(ESP_TEST_HTTP_SERVER)
+void    vESPtestStartHttpServerTask(void);
+#elif defined(ESP_TEST_MQTT_CLIENT)
+void    vESPtestStartMqttClientTask(void);
+#endif
 
 
 

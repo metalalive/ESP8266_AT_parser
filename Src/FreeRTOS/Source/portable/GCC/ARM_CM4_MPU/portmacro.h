@@ -329,9 +329,9 @@ void vPortExitCritical( void );
 
 
 // --------------------- interrupt masking ----------------------
-__INLINE UBaseType_t ulPortRaiseBASEPRI( void );
-__INLINE void        vPortRaiseBASEPRI( void );
-__INLINE void        vPortSetBASEPRI( UBaseType_t ulNewMaskValue );
+UBaseType_t ulPortRaiseBASEPRI( void );
+void        vPortRaiseBASEPRI( void );
+void        vPortSetBASEPRI( UBaseType_t ulNewMaskValue );
 
 // In Cortex-M4 port, to create critical section in ISR, you should
 // use portSET_INTERRUPT_MASK_FROM_ISR() and

@@ -105,10 +105,10 @@ espRes_t       eESPnetconnRecvPkt( espNetConnPtr  nc, espPbuf_t *pbuf );
 espRes_t       eESPnetconnGrabNextPkt( espNetConnPtr  nc, espPbuf_t **pbuf, uint32_t block_time_ms );
 
 espRes_t       eESPconnClientStart( espConn_t *conn_in, espConnType_t type, const char* const host, uint16_t host_len, espPort_t port, 
-                                    espEvtCbFn evt_cb,  espEvtCbFn api_cb,  void* const api_cb_arg,  const uint32_t blocking );
-espRes_t       eESPconnClientClose( espConn_t *conn_in, espEvtCbFn cb,  void* const cb_arg, const uint32_t blocking);
+                                    espEvtCbFn evt_cb,  espApiCmdCbFn api_cb,  void* const api_cb_arg,  const uint32_t blocking );
+espRes_t       eESPconnClientClose( espConn_t *conn_in, espApiCmdCbFn cb,  void* const cb_arg, const uint32_t blocking);
 
-espRes_t       eESPconnClientSend( espConn_t *conn, const uint8_t *data, size_t d_size, espEvtCbFn cb,  
+espRes_t       eESPconnClientSend( espConn_t *conn, const uint8_t *data, size_t d_size, espApiCmdCbFn cb,  
                                    void* const cb_arg, const uint32_t blocking);
 
 uint8_t       ucESPconnGetID( espConn_t * conn );
@@ -118,12 +118,12 @@ espConn_t*    pxESPgetNxtAvailConn( void );
 
 
 // used for updating connection status o ESP device.
-void        vESPparseRecvATrespLine( const uint8_t *data_line_buf, uint16_t buf_idx, uint8_t *isEndOfResp );
-espRes_t    eESPparseNetConnStatus( const uint8_t *data_line_buf );
+void        vESPparseRecvATrespLine( uint8_t *data_line_buf, uint16_t buf_idx, uint8_t *isEndOfResp );
+espRes_t    eESPparseNetConnStatus( uint8_t *data_line_buf );
 
 
 // used for extracting IPD data (incoming packet data) from ESP device
-espRes_t    eESPparseIPDsetup( const uint8_t* metadata );
+espRes_t    eESPparseIPDsetup( uint8_t* metadata );
 espRes_t    eESPparseIPDcopyData( const uint8_t* data, uint32_t data_len );
 espRes_t    eESPparseIPDreset( void );
 
