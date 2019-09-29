@@ -106,9 +106,9 @@ espRes_t   eESPinit( espEvtCbFn cb )
         //     running thread, so current running thread goes on to complete the initialization code.
         espGlobal.thread_cmd_req  = NULL;
         espGlobal.thread_cmd_resp = NULL;
-        response = eESPsysThreadCreate( NULL, "ATcmdReq", vESPthreadATreqHandler, &espGlobal.thread_cmd_req,
+        response = eESPsysThreadCreate( &espGlobal.thread_cmd_req, "ATcmdReq", vESPthreadATreqHandler, NULL, 
                                ESP_SYS_THREAD_STACK_SIZE, ESP_SYS_THREAD_PRIO, isThreadPrivileged );
-        response = eESPsysThreadCreate( NULL, "ATcmdResp", vESPthreadATrespHandler, &espGlobal.thread_cmd_resp,
+        response = eESPsysThreadCreate( &espGlobal.thread_cmd_resp, "ATcmdResp", vESPthreadATrespHandler, NULL,
                                ESP_SYS_THREAD_STACK_SIZE, ESP_SYS_THREAD_PRIO, isThreadPrivileged );
         if((response != espOK) || (espGlobal.thread_cmd_req == NULL) || (espGlobal.thread_cmd_resp == NULL)) {
             init_fail++;
