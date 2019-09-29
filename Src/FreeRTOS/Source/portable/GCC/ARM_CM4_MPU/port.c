@@ -235,7 +235,8 @@ void prvRestoreContextOfFirstTask( void )
     );
     
     // clear interrupt mask & start running first task
-    portCLEAR_INTERRUPT_MASK_FROM_ISR( 0x0 );
+    // use the CMSIS macro instead of portCLEAR_INTERRUPT_MASK_FROM_ISR()
+    __set_BASEPRI( 0x0 );
 } //// end of prvRestoreContextOfFirstTask( void )
 
 
