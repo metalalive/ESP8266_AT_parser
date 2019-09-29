@@ -36,6 +36,7 @@ typedef enum {
 
 // initialization code for underlying operating system
 espRes_t   eESPsysInit( void );
+espRes_t   eESPsysDeInit( void );
 
 // In most case, ESP device works with UART interface and few GPIO pins. 
 // Application developer must implement following  4 functions for tests with target hardware platform.

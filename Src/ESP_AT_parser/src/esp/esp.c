@@ -11,6 +11,18 @@ static espRes_t eESPdeflEvtCallback( espEvt_t*  evt )
 } // end of eESPdeflEvtCallback
 
 
+static void  vESPdeleteEvtCallbacks( espEvtCbFnLstItem_t *head )
+{
+    espEvtCbFnLstItem_t *item = head;
+    espEvtCbFnLstItem_t *next = NULL;
+    // call all the registered event callback function
+    while( item!=NULL ) {
+        next = item->next ;
+        ESP_MEMFREE( item );
+        item = next;
+    } // end of loop
+} // end of vESPdeleteEvtCallbacks
+
 
 
 espMsg_t* pxESPmsgCreate( espCmd_t cmd, espApiCmdCbFn  api_cb, void* cb_arg, const uint8_t blocking )
@@ -92,11 +104,15 @@ espRes_t   eESPinit( espEvtCbFn cb )
         //     the thread calling this ESP init function can take higher priority over the 2 threads below,
         //     once the 2 threads are created, that makes them (the 2 threads below) NOT preempt current
         //     running thread, so current running thread goes on to complete the initialization code.
-        response = eESPsysThreadCreate( NULL, "ATcmdReq", vESPthreadATreqHandler, NULL,
+        espGlobal.thread_cmd_req  = NULL;
+        espGlobal.thread_cmd_resp = NULL;
+        response = eESPsysThreadCreate( NULL, "ATcmdReq", vESPthreadATreqHandler, &espGlobal.thread_cmd_req,
                                ESP_SYS_THREAD_STACK_SIZE, ESP_SYS_THREAD_PRIO, isThreadPrivileged );
-        response = eESPsysThreadCreate( NULL, "ATcmdResp", vESPthreadATrespHandler, NULL,
+        response = eESPsysThreadCreate( NULL, "ATcmdResp", vESPthreadATrespHandler, &espGlobal.thread_cmd_resp,
                                ESP_SYS_THREAD_STACK_SIZE, ESP_SYS_THREAD_PRIO, isThreadPrivileged );
-        if(response != espOK) { init_fail++; }
+        if((response != espOK) || (espGlobal.thread_cmd_req == NULL) || (espGlobal.thread_cmd_resp == NULL)) {
+            init_fail++;
+        }
     }
 
     // take system lock for the atomic operation
@@ -143,11 +159,34 @@ espRes_t   eESPinit( espEvtCbFn cb )
         ESP_MEMFREE( espGlobal.evtCbLstHead );
         espGlobal.evtCbLstHead = NULL;
     }
-
     return response;
 } // end of eESPinit
 
 
+
+espRes_t    eESPdeinit( void )
+{
+    espRes_t response = espOK;
+    eESPcoreLock();
+    {
+        vESPlowLvlRecvStopFn();
+        response = eESPsysThreadDelete( &espGlobal.thread_cmd_req  );
+        response = eESPsysThreadDelete( &espGlobal.thread_cmd_resp );
+        espGlobal.thread_cmd_req  = NULL;
+        espGlobal.thread_cmd_resp = NULL;
+        vESPsysMboxDelete( &espGlobal.mbox_cmd_req  );
+        vESPsysMboxDelete( &espGlobal.mbox_cmd_resp );
+        espGlobal.mbox_cmd_req  = NULL; 
+        espGlobal.mbox_cmd_resp = NULL; 
+    }
+    eESPcoreUnlock();
+    vESPsysSemDelete( &espGlobal.sem_th_sync );
+    espGlobal.sem_th_sync  = NULL;
+    response = eESPsysDeInit();
+    vESPdeleteEvtCallbacks( espGlobal.evtCbLstHead );
+    espGlobal.evtCbLstHead = NULL;
+    return response;
+} // end of eESPdeinit
 
 
 

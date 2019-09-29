@@ -16,6 +16,7 @@ extern "C" {
 
 // core API functions declaration in this ESP AT library.
 espRes_t    eESPinit( espEvtCbFn cb );
+espRes_t    eESPdeinit( void );
 
 espRes_t    eESPreset( const espApiCmdCbFn cb, void* const cb_arg, const uint8_t blocking );
 espRes_t    eESPresetWithDelay( uint32_t dly_ms, const espApiCmdCbFn cb , void* const cb_arg );

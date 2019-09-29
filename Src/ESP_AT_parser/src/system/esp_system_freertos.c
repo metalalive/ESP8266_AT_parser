@@ -18,6 +18,11 @@ PRIVILEGED_FUNCTION espRes_t  eESPsysInit( void )
 } // end of eESPsysInit
 
 
+PRIVILEGED_FUNCTION espRes_t  eESPsysDeInit( void ) {
+    vESPsysMtxDelete( &internal_mutex );
+    return espOK;
+} // end of eESPsysDeInit
+
 
 PRIVILEGED_FUNCTION espSysMtx_t  xESPsysMtxCreate( void )
 {   // In FreeRTOS implementation, we apply recursive mutex as the lock to caller.
