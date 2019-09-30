@@ -172,12 +172,8 @@ espRes_t    eESPdeinit( void )
         vESPlowLvlRecvStopFn();
         response = eESPsysThreadDelete( &espGlobal.thread_cmd_req  );
         response = eESPsysThreadDelete( &espGlobal.thread_cmd_resp );
-        espGlobal.thread_cmd_req  = NULL;
-        espGlobal.thread_cmd_resp = NULL;
         vESPsysMboxDelete( &espGlobal.mbox_cmd_req  );
         vESPsysMboxDelete( &espGlobal.mbox_cmd_resp );
-        espGlobal.mbox_cmd_req  = NULL; 
-        espGlobal.mbox_cmd_resp = NULL; 
     }
     eESPcoreUnlock();
     vESPsysSemDelete( &espGlobal.sem_th_sync );
