@@ -235,7 +235,8 @@ void prvRestoreContextOfFirstTask( void )
     );
     
     // clear interrupt mask & start running first task
-    // use the CMSIS macro instead of portCLEAR_INTERRUPT_MASK_FROM_ISR()
+    // To avoid build tool from automatically generating unnecessary stack operations (at instruction level)
+    // ,we use the CMSIS macro __set_BASEPRI() at here instead of portCLEAR_INTERRUPT_MASK_FROM_ISR()
     __set_BASEPRI( 0x0 );
 } //// end of prvRestoreContextOfFirstTask( void )
 
@@ -272,9 +273,17 @@ void vPortPendSVHandler( void )
      
     // temporarily disable higher-priority-but-late-arriving interrupts
     // during context switch.
-    portDISABLE_INTERRUPTS();
+    // To avoid build tool from automatically generating unnecessary stack operations (at instruction level)
+    // ,we use the CMSIS macro __set_BASEPRI() at here instead of portCLEAR_INTERRUPT_MASK_FROM_ISR()
+    __set_BASEPRI( configMAX_SYSCALL_INTERRUPT_PRIORITY );
+    __asm volatile(
+        "isb               \n"
+        "dsb               \n"
+    );
     __asm volatile ("bl    vTaskSwitchContext  \n");
-    portCLEAR_INTERRUPT_MASK_FROM_ISR( 0x0 );
+    // To avoid build tool from automatically generating unnecessary stack operations (at instruction level)
+    // ,we use the CMSIS macro __set_BASEPRI() at here instead of portCLEAR_INTERRUPT_MASK_FROM_ISR()
+    __set_BASEPRI( 0x0 );
     // load context to the stack of next running task
     xMPU_SETTINGS *next_task_mpu_setup = 
            (xMPU_SETTINGS *)((UBaseType_t *)pxCurrentTCB + 1);
