@@ -302,8 +302,7 @@ static void vESPtestMqttClientTask(void *params)
     mqttClientDeinit( m_client );
     m_client = NULL;
     // quit from AP 
-    devPresent = 0x0;
-    eESPdeviceSetPresent( devPresent, NULL, NULL );
+    eESPcloseDevice( );
     // delete this thread
     eESPsysThreadDelete( NULL );
 } // end of vESPtestMqttClientTask

@@ -195,8 +195,7 @@ static void vESPtestHttpServerTask(void *params)
         eESPnetconnDelete( serverconn );
     }
     // quit from AP
-    devPresent = 0x0;
-    eESPdeviceSetPresent( devPresent, NULL, NULL );
+    eESPcloseDevice( );
     // delete current (the server) thread
     eESPsysThreadDelete( NULL );
 } // end of vESPtestHttpServerTask

@@ -22,14 +22,16 @@ static void vESPenableATecho (uint8_t enable )
 
 
 
-static void   vESPgetCurrATversion( void )
+static  espRes_t  eESPgetCurrATversion( void )
 {
+    espRes_t response = espERR ;
     espMsg_t *msg = NULL;
     msg = pxESPmsgCreate( ESP_CMD_GMR, NULL, NULL, ESP_AT_CMD_BLOCKING );
-    if( msg == NULL) { return; }
+    if( msg == NULL) { return espERRMEM; }
     msg->block_time = 100;
-    eESPsendReqToMbox( msg, eESPinitATcmd );
-} // end of vESPgetCurrATversion
+    response = eESPsendReqToMbox( msg, eESPinitATcmd );
+    return response;
+} // end of eESPgetCurrATversion
 
 
 
@@ -57,7 +59,18 @@ espRes_t    eESPrestore( const espApiCmdCbFn cb, void* const cb_arg )
 espRes_t    eESPresetWithDelay( uint32_t dly_ms, const espApiCmdCbFn cb , void* const cb_arg )
 {
     espMsg_t *msg = NULL;
-    espRes_t response = espERR ; 
+    espRes_t response = espERR ;
+    if(dly_ms == 0) { return espERRARGS; }
+#ifdef  ESP_CFG_PLATFORM_REINIT_ON_RST
+    // enable low-level UART/GPIO hardware function
+    eESPlowLvlDevInit(NULL);
+    // initialize (UART Rx) receiving function everytime when we'd like to reset ESP device,
+    // then the ESP device / host microcontroller can receive AT-command response or IPD data from other clients.
+    vESPlowLvlRecvStopFn();
+    response = eESPlowLvlRecvStartFn();
+    if(response != espOK){ return response; }
+#endif // end of ESP_CFG_PLATFORM_REINIT_ON_RST
+    // start resetting ESP device & feed default configurations
     msg = pxESPmsgCreate( ESP_CMD_RESET, cb, cb_arg, ESP_AT_CMD_BLOCKING );
     if( msg == NULL ) { return response; }
     msg->block_time = 1000;
@@ -68,7 +81,8 @@ espRes_t    eESPresetWithDelay( uint32_t dly_ms, const espApiCmdCbFn cb , void* 
     // turn on/off AT echo function, depends on the configuration ESP_CFG_AT_ECHO 
     vESPenableATecho( ESP_CFG_AT_ECHO );
     // read / record AT-command firmware version on current ESP device
-    vESPgetCurrATversion();
+    response = eESPgetCurrATversion();
+    if(response != espOK){ return response; }
     // automatically set to station mode after reset de-assertion.
     eESPsetWifiMode( ESP_MODE_STA, ESP_SETVALUE_NOT_SAVE, NULL, NULL, ESP_AT_CMD_NONBLOCKING );
     // enable multiple TCP connections
@@ -138,38 +152,25 @@ espRes_t   eESPenterDeepSleep( uint32_t sleep_ms, const espApiCmdCbFn api_cb, vo
 
 
 
-espRes_t  eESPdeviceSetPresent( uint8_t present, const espApiCmdCbFn cb, void* const cb_arg )
+espRes_t  eESPcloseDevice( void )
 {
     espRes_t response = espOK ; 
-    uint8_t p = ( present!=0 ? 1 : 0 );
     eESPcoreLock();
-    if (p != espGlobal.status.flg.dev_present) 
+    if (espGlobal.status.flg.dev_present == 1) 
     {
-        if(p == 0) {
-            eESPcoreUnlock();
+        eESPcoreUnlock();
 #if (ESP_CFG_MODE_STATION != 0)
-            // disconnect wifi if the ESP in station mode connected another AP.
-            eESPstaQuit( NULL, NULL, ESP_AT_CMD_BLOCKING );
+        // disconnect wifi if the ESP in station mode connected another AP.
+        eESPstaQuit( NULL, NULL, ESP_AT_CMD_BLOCKING );
 #endif // ESP_CFG_MODE_STATION  
-            // TODO: 
-            // * close all the established network connections in the ESP device.
-            eESPcoreLock();
-            // TODO:
-            // following code is workaround to avoid ESP device crashes if user would like to list / connect
-            // AP again after AT+CWQAP command.
-            // figure out how can that happen , find better way to implement this.
-            response = eESPlowLvlDevInit(NULL);
-            eESPcoreUnlock();
-            response = eESPresetWithDelay( 1, cb , cb_arg );
-            eESPcoreLock();
-        }
-        else {
-        }
-        espGlobal.status.flg.dev_present = p;
+        // TODO: 
+        // * close all the established network connections in the ESP device.
+        eESPcoreLock();
+        espGlobal.status.flg.dev_present = 0;
     }
     eESPcoreUnlock();
     return response;
-} // end of eESPdeviceSetPresent
+} // end of eESPcloseDevice
 
 
 

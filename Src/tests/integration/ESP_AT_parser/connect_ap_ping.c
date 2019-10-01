@@ -6,24 +6,21 @@
 
 static void vESPtestConnAPtask(void *params)
 {
-    uint8_t   devPresent ;
+    espRes_t response = espOK ;
     const uint8_t  waitUntilConnected = 0x0;
-
     for(;;)
     {
         // Set device is present 
-        devPresent = 0x1;
-        eESPdeviceSetPresent( devPresent, NULL, NULL );
-
-        // Connect to access point.
-        // Try unlimited time until access point accepts up.
-        // Check for station_manager.c to define preferred access points ESP should connect to
-        eESPtestConnAP( waitUntilConnected );
-        vESPsysDelay(20000);
-
+        response =  eESPresetWithDelay( 1, NULL, NULL );
+        if(response == espOK) {
+            // Connect to access point.
+            // Try unlimited time until access point accepts up.
+            // Check for station_manager.c to define preferred access points ESP should connect to
+            eESPtestConnAP( waitUntilConnected );
+            vESPsysDelay(20000);
+        }
         // Set device is NOT present 
-        devPresent = 0x0;
-        eESPdeviceSetPresent( devPresent, NULL, NULL );
+        eESPcloseDevice( );
         vESPsysDelay(5000);
     } // end of outer infinite loop
 } // end of vESPtestConnAPtask

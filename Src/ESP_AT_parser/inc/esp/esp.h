@@ -41,7 +41,7 @@ espRes_t    eESPevtUnregister( espEvtCbFn cb );
 // run event callback function(s) registered in ESP AT software.
 void        vESPrunEvtCallbacks( espEvt_t *evtp );
 
-espRes_t    eESPdeviceSetPresent( uint8_t present, const espApiCmdCbFn cb, void* const cb_arg );
+espRes_t    eESPcloseDevice( void );
 espRes_t    eESPdeviceIsPresent( void );
 
 // the entry point to process the received data from ESP device and analyze the result of the previously sent AT command.
