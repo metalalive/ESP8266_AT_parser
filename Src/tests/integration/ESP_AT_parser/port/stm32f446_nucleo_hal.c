@@ -264,7 +264,7 @@ espRes_t   eESPlowLvlRstFn ( uint8_t state )
 {
     // at here, state = 0 means reset assertion, non-zero value means reset de-assertion.
     GPIO_PinState pinstate = state==0x0 ? GPIO_PIN_RESET: GPIO_PIN_SET;
-    HAL_GPIO_WritePin( GPIOB, GPIO_PIN_4, pinstate );
+    HAL_GPIO_WritePin( GPIOB, GPIO_PIN_9, pinstate );
     return espOK;
 } // end of eESPlowLvlRstFn
 
