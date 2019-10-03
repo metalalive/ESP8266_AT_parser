@@ -395,7 +395,7 @@ espGlbl_t*  pxESPgetGlobalData( void );
 // create / delete message for new AT command request
 espMsg_t* pxESPmsgCreate( espCmd_t cmd, espApiCmdCbFn  api_cb, void* cb_arg, const uint8_t blocking );
 
-void  vESPmsgDelete(espMsg_t** msg);
+void  vESPmsgDelete(espMsg_t* msg);
 
 
 // internal functions that handle message between APIs and low-level hardware operations

@@ -56,7 +56,7 @@ void    vESPthreadATreqHandler ( void* const arg )
             }
             // for non-blocking AT-command request, there is no semaphore between this thread & the API caller,
             // we can simply free the space allocated to the message structure
-            vESPmsgDelete( &msg );
+            vESPmsgDelete( msg );
         }
         espGlobal.msg = NULL;
     } // end of outer infinite loop

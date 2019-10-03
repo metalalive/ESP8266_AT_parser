@@ -41,14 +41,14 @@ espMsg_t* pxESPmsgCreate( espCmd_t cmd, espApiCmdCbFn  api_cb, void* cb_arg, con
 
 
 
-void  vESPmsgDelete(espMsg_t** msg)
+void  vESPmsgDelete(espMsg_t *msg)
 {   // TODO: figure out why exception/fault happen when freeing the allocated memory.
-    if ((*msg)->sem != NULL) {
-        ESP_MEMFREE( (*msg)->sem );
-        (*msg)->sem = NULL;
+    if(msg == NULL) { return; }
+    if(msg->sem != NULL) {
+        ESP_MEMFREE( msg->sem );
+        msg->sem = NULL;
     }
-    ESP_MEMFREE(*msg);
-    *msg = NULL;
+    ESP_MEMFREE( msg );
 } // end of vESPmsgDelete
 
 
@@ -232,6 +232,9 @@ void  vESPrunEvtCallbacks( espEvt_t *evtp )
 espRes_t    eESPsendReqToMbox (espMsg_t* msg, espRes_t (*initATcmdFn)(espMsg_t *) )
 {
     espRes_t response = espOK;
+    if(msg == NULL || initATcmdFn == NULL) {
+       return espERRARGS;
+    }
     // check any situation that could make this function fail to send request to message box.
     eESPcoreLock();
     if( espGlobal.status.flg.initialized == 0 ) {
@@ -243,7 +246,7 @@ espRes_t    eESPsendReqToMbox (espMsg_t* msg, espRes_t (*initATcmdFn)(espMsg_t *
     eESPcoreUnlock();
     if(response != espOK) {
         // something wrong in msg, then free the space allocated to msg
-        vESPmsgDelete( &msg );
+        vESPmsgDelete( msg );
         return response;
     }
     if(msg->is_blocking == ESP_AT_CMD_BLOCKING) {
@@ -253,7 +256,7 @@ espRes_t    eESPsendReqToMbox (espMsg_t* msg, espRes_t (*initATcmdFn)(espMsg_t *
         // receives complete response (from the ESP device) .
         msg->sem =  xESPsysSemCreate();
         if( msg->sem == NULL ) {
-            vESPmsgDelete( &msg );
+            vESPmsgDelete( msg );
             response = espERRMEM;
             return response;
         }
@@ -262,7 +265,7 @@ espRes_t    eESPsendReqToMbox (espMsg_t* msg, espRes_t (*initATcmdFn)(espMsg_t *
     response =  eESPsysMboxPut( espGlobal.mbox_cmd_req, (void *)msg, msg->block_time );
     if(response != espOK) {
         // failed to send request to message box, and free the space allocated to msg
-        vESPmsgDelete( &msg );
+        vESPmsgDelete( msg );
         return response;
     }
     // succeed to put request to message box queue, it will be processed in another thread
@@ -273,7 +276,7 @@ espRes_t    eESPsendReqToMbox (espMsg_t* msg, espRes_t (*initATcmdFn)(espMsg_t *
         // , timeout would happen if following semaphore wait function returns espTIMEOUT.
         eESPsysSemWait( msg->sem, ESP_SYS_MAX_TIMEOUT );
         response = msg->res;
-        vESPmsgDelete( &msg );
+        vESPmsgDelete( msg );
     }
     return response;
 } // end of eESPsendReqToMbox

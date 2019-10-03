@@ -12,6 +12,7 @@ espPbuf_t*  pxESPpktBufCreate( size_t len )
 
     buf_p = (espPbuf_t *) ESP_MALLOC( sizeof(espPbuf_t) + len );
     ESP_ASSERT( buf_p != NULL );
+    ESP_MEMSET( buf_p, 0x00, sizeof(espPbuf_t) + len );
     payload = ((uint8_t *)buf_p) + sizeof(espPbuf_t); 
     buf_p->next = NULL; 
     buf_p->payload_len = len;   
@@ -53,10 +54,12 @@ void    vESPpktBufChainDelete( espPbuf_t *buff_head )
 {
     espPbuf_t  *curr_p   =  buff_head;
     espPbuf_t  *next_p   =  NULL;
-
+    size_t      payld_len = 0;
     while( curr_p != NULL ) {
-        next_p = curr_p->next;
+        payld_len = curr_p->payload_len;
+        next_p    = curr_p->next;
         vESPpktBufItemDelete( curr_p );
+        ESP_MEMSET( curr_p, 0x00, sizeof(espPbuf_t) + payld_len );
         curr_p = next_p ;
     }
 } // end of vESPpktBufChainDelete
