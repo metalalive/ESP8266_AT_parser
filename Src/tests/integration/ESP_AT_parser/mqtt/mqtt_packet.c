@@ -212,7 +212,7 @@ word32 mqttEncodeProps( byte *buf, mqttProp_t *props )
                 len  = mqttEncodeStr( buf, (const char *)curr_prop->body.strpair[0].data,  curr_prop->body.strpair[0].len );
                 if(buf != NULL){ buf  += len; }
                 total_len += len;
-                len += mqttEncodeStr( buf, (const char *)curr_prop->body.strpair[1].data,  curr_prop->body.strpair[1].len );
+                len  = mqttEncodeStr( buf, (const char *)curr_prop->body.strpair[1].data,  curr_prop->body.strpair[1].len );
                 break;
             default:
                 len = 0;
