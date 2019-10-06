@@ -314,7 +314,7 @@ espRes_t       eESPconnClientSend( espConn_t *conn, const uint8_t *data, size_t 
 {
     // since maximum transfer size of each AT+CIPSEND (for ESP8266 device)  is 2048, 
     // therefore we must check whether several AT+CIPSEND commands are required for this API call.
-    #define      ESP_MAX_BYTES_PER_CIPSEND    256
+    #define      ESP_MAX_BYTES_PER_CIPSEND    512
     espRes_t        response    = espOK ; 
     const uint8_t  *curr_data_p = NULL;
     size_t          curr_d_size = 0;
@@ -343,8 +343,8 @@ espRes_t       eESPconnClientSend( espConn_t *conn, const uint8_t *data, size_t 
         }
         d_size      -= curr_d_size;
         curr_data_p += curr_d_size;
-        if(d_size > 0) { // delay 20-30 ms between 2 AT+CIPSEND commands
-            vESPsysDelay( 30 );
+        if(d_size > 0) { // TODO: figure out better way to set the time interval between AT+CIPSEND commands
+            vESPsysDelay( 700 );
         }
     }
     #undef   ESP_MAX_BYTES_PER_CIPSEND

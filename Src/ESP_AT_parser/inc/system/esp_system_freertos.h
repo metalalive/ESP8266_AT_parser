@@ -29,7 +29,7 @@ typedef UBaseType_t                 espSysThreadPrio_t;
 // for system threads used in core function of ESP AT library, the priority
 // starts above the applcation thread's priority.
 #define ESP_SYS_THREAD_PRIO         (tskIDLE_PRIORITY + 2)
-#define ESP_SYS_THREAD_STACK_SIZE   (0x7e)
+#define ESP_SYS_THREAD_STACK_SIZE   (0xbe)
 
 #define ESP_ASSERT( cond )   configASSERT( cond )
 
