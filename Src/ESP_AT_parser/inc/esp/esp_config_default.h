@@ -167,6 +167,17 @@
 #define ESP_CFG_CONN_POLL_INTERVAL          500
 #endif
 
+// due to speed limits of ESP8266, users must set time interval (in milliseconds) between 2 packets,
+// users can also adjust this parameter with respect to different ESP devices they use.
+#ifndef ESP_CFG_SEND_PKT_INTERVAL_MS
+#define ESP_CFG_SEND_PKT_INTERVAL_MS       2000
+#endif
+
+// maximum transfer size of each AT+CIPSEND is 2048 bytes in ESP8266 device, or it can be smaller for experiment
+#ifndef  ESP_CFG_MAX_BYTES_PER_CIPSEND
+#define  ESP_CFG_MAX_BYTES_PER_CIPSEND    512
+#endif
+
 //  [TODO] figure out behaviour of entire TCP transacion process
 //
 //  Normally ESP automatically sends received TCP data to host device
