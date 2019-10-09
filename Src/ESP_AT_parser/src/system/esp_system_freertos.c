@@ -54,11 +54,10 @@ PRIVILEGED_FUNCTION espSysSem_t   xESPsysSemCreate   ( void )
 
 
 
-PRIVILEGED_FUNCTION void  vESPsysSemDelete ( espSysSem_t* sem )
+PRIVILEGED_FUNCTION void  vESPsysSemDelete( espSysSem_t sem )
 {
-    configASSERT( (*sem) != NULL );
-    vSemaphoreDelete( *sem );
-    *sem = NULL;
+    configASSERT( sem != NULL );
+    vSemaphoreDelete( sem );
 } // end of vESPsysSemDelete
 
 
@@ -229,7 +228,6 @@ espRes_t   eESPsysUnprotect( void )
 
 espRes_t  eESPsysMboxPut  ( espSysMbox_t  mb, void* msg, uint32_t block_time )
 {
-    configASSERT( mb != NULL );
     configASSERT( msg != NULL );
     BaseType_t QopsStatus = pdPASS;
     mboxitem item;
@@ -243,14 +241,19 @@ espRes_t  eESPsysMboxPut  ( espSysMbox_t  mb, void* msg, uint32_t block_time )
 
 espRes_t  eESPsysMboxGet ( espSysMbox_t  mb, void** msg, uint32_t block_time )
 {
-    configASSERT(  mb != NULL );
     configASSERT(  msg != NULL );
     BaseType_t QopsStatus = pdPASS;
     mboxitem item;
     QopsStatus = xQueueReceive( mb, (void *)&item, block_time );
-    configASSERT( item.datap != NULL );
-    *msg = item.datap;
-    return (QopsStatus == pdPASS ? espOK : espERRMEM);
+    // seperate return error code for queue empty, queue full, and other unknown memory errors
+    if(QopsStatus == pdPASS) {
+        configASSERT( item.datap != NULL );
+        *msg = item.datap;
+        return espOK;
+    }
+    else{ // should be errQUEUE_EMPTY
+        return espERRMEM;
+    }
 } // end of eESPsysMboxGet
 
 
@@ -258,13 +261,13 @@ espRes_t  eESPsysMboxGet ( espSysMbox_t  mb, void** msg, uint32_t block_time )
 
 espRes_t    eESPsysMboxPutISR   ( espSysMbox_t  mb, void*  msg )
 {
-    configASSERT( mb != NULL );
     configASSERT( msg != NULL );
     BaseType_t  xHigherPriorityTaskWoken = pdFALSE;
     BaseType_t  QopsStatus = pdPASS;
-    mboxitem item;
+    mboxitem    item;
     item.datap = msg;
     QopsStatus = xQueueSendToBackFromISR( mb, (void *)&item, &xHigherPriorityTaskWoken );
+    configASSERT( QopsStatus == pdPASS );
     portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
     return (QopsStatus == pdPASS ? espOK : espERRMEM);
 } // end of eESPsysMboxPutISR

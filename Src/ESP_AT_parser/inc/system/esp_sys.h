@@ -66,7 +66,7 @@ espRes_t     eESPsysMtxLock     ( espSysMtx_t* mtx );
 espRes_t     eESPsysMtxUnlock   ( espSysMtx_t* mtx );
 
 espSysSem_t   xESPsysSemCreate   ( void );
-void          vESPsysSemDelete   ( espSysSem_t* sem );
+void          vESPsysSemDelete   ( espSysSem_t  sem );
 espRes_t      eESPsysSemWait     ( espSysSem_t  sem, uint32_t block_time );
 espRes_t      eESPsysSemRelease  ( espSysSem_t  sem );
 

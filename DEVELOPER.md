@@ -93,7 +93,7 @@ Here are the functions you must implement if you integrated this ESP AT-command 
 * Semaphore operations :  create / delete / take / release
   ```
   espSysSem_t   xESPsysSemCreate   ( void );
-  void          vESPsysSemDelete   ( espSysSem_t* sem );
+  void          vESPsysSemDelete   ( espSysSem_t  sem );
   espRes_t      eESPsysSemWait     ( espSysSem_t  sem, uint32_t block_time );
   espRes_t      eESPsysSemRelease  ( espSysSem_t  sem );
   ```

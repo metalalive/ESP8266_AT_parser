@@ -45,7 +45,7 @@ void  vESPmsgDelete(espMsg_t *msg)
 {   // TODO: figure out why exception/fault happen when freeing the allocated memory.
     if(msg == NULL) { return; }
     if(msg->sem != NULL) {
-        ESP_MEMFREE( msg->sem );
+        vESPsysSemDelete( msg->sem );
         msg->sem = NULL;
     }
     ESP_MEMFREE( msg );
@@ -179,7 +179,7 @@ espRes_t    eESPdeinit( void )
         vESPsysMboxDelete( &espGlobal.mbox_cmd_resp );
     }
     eESPcoreUnlock();
-    vESPsysSemDelete( &espGlobal.sem_th_sync );
+    vESPsysSemDelete( espGlobal.sem_th_sync );
     espGlobal.sem_th_sync  = NULL;
     response = eESPsysDeInit();
     vESPdeleteEvtCallbacks( espGlobal.evtCbLstHead );
@@ -337,14 +337,12 @@ espRes_t    eESPflushMsgBox( espSysMbox_t mb )
         response = espERRARGS;
         return response;
     }
-    eESPcoreLock();
     while(1) {
         itemp    = NULL;
         response = eESPsysMboxGet( mb, (void **)&itemp, no_block_time );
         if( response == espOK ){   ESP_MEMFREE(itemp);  }
         else { break; }
     }
-    eESPcoreUnlock();
     return response;
 } // end of eESPflushMsgBox
 
