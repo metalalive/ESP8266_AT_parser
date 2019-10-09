@@ -37,66 +37,52 @@ espRes_t  eESPprocessPieceRecvResp( espBuf_t *recv_buf, uint8_t *isEndOfATresp)
     uint32_t    data_len   = (uint32_t)recv_buf->size;
     uint32_t    idx        = 0;
     uint8_t     curr_chr   = 0;
-    uint8_t     clean_line_buf = 0;
 
-    if( ipdp->read == 0x0 ) 
-    {   // currently it is AT command mode.
-        // divide current piece of received string by CR-LF charaters, for ease of analysis
-        for( idx = 0; idx < data_len; idx++ )
-        {
-            curr_chr = *curr_p++;
+    for( idx = 0; idx < data_len; idx++ )
+    { // reassemble message byte by byte, it could be response character sequence of AT command, or IPD data.
+        if( ipdp->read == 0x0 )
+        { // treat incoming bytes as response character sequence of AT command
+            curr_chr = curr_p[idx];
             // TODO: for AT command, currently we only support ASCII, will support UTF-8 in future
             if(! ESP_ISVALIDASCII(curr_chr)) {  break;  }
             // currently ESP device is waiting for response of ongoing AT command.
             vESPappendChrToRecvDataBuf( &recv_data_line_buf[0] , &recv_data_line_buf_idx, curr_chr );
             if((prev_chr == ESP_ASCII_CR) && (curr_chr == ESP_ASCII_LF)) 
-            {
-                // that means currently the ESP device is in AT-command mode, 
-                // start analyzing current line of received response string
+            {   // start analyzing current line of received response character sequence
                 vESPparseRecvATrespLine( &recv_data_line_buf[0] , recv_data_line_buf_idx, isEndOfATresp );
-                clean_line_buf = (*isEndOfATresp != 0) || (eESPparseNetConnStatus( &recv_data_line_buf[0] ) == espOK) ? 1: 0;
-                // clear the index of received line buffer for next line
+                eESPparseNetConnStatus( &recv_data_line_buf[0] );
                 recv_data_line_buf_idx = 0x0;
             }
             else if((curr_chr == ':') && (strncmp( (const char *)&recv_data_line_buf[0], "+IPD", 4)==0) && (recv_data_line_buf_idx>5))
             {   // setup for handling received IPD string.
                 eESPparseIPDsetup( &recv_data_line_buf[0] );
-                // skip the colon ':' of IPD data, payload data starts immediately after the colon mark.
-                idx += 1;
                 // again clear the index of received line buffer, for storing IPD data.
                 recv_data_line_buf_idx = 0x0;
-                break;
             }
             else if((prev_chr == '>') && (curr_chr == ' ') && (eESPcmdStartSendData( espGlobal.msg )==espOK))
             { // if current command is AT+CIPSEND & we received the characters '> '
                 recv_data_line_buf_idx = 0x0;
                 break;
             }
-            prev_chr = curr_chr;
-        } // end of end of while-loop
-    }
-
-    // check where the incoming data should go , to IPD payload ? or response line buffer of current AT command ?
-    // TODO: recheck whether received IPD data & received AT-command response will come & interleave in ESP device.
-    if( ipdp->read != 0x0 ) 
-    {   // currently ESP device is waiting for IPD data
-        uint8_t  *ipd_src = curr_p ;
-        data_len -= idx; 
-        response  = eESPparseIPDcopyData( ipd_src, data_len );
-        if(response == espOK) { 
-            // run callback function to notify user application that the IPD data is ready.
-            vESPconnRunEvtCallback( ipdp->conn, ESP_EVT_CONN_RECV );
-            // clean up IPD data, packet buffer chain.
-            eESPparseIPDreset();
-            clean_line_buf = 1;
         }
-    }
+        else // ipdp->read != 0x0
+        {   // currently the ESP device is waiting for IPD data
+            uint32_t  copied_len = data_len - idx;
+            response  = eESPparseIPDcopyData( &curr_p[idx], &copied_len );
+            idx += copied_len - 1;
+            if(response == espOK) {
+                // run callback function to notify user application that the IPD data is ready.
+                vESPconnRunEvtCallback( ipdp->conn, ESP_EVT_CONN_RECV );
+                // clean up IPD data, packet buffer chain.
+                eESPparseIPDreset();
+                curr_chr = curr_p[idx];
+            }
+            recv_data_line_buf_idx = 0x0;
+        }
+        prev_chr = curr_chr;
+        // TODO: recheck whether received IPD data & received AT-command response will come & interleave in ESP device.
+    } // end of for-loop
 
-    // clear entire line buffer 
-    if(clean_line_buf != 0){
-         ESP_MEMSET( &recv_data_line_buf , 0x00, ESP_RESP_RECV_LINE_BUF_SIZE );
-         recv_data_line_buf_idx = 0x0;
-    }
     return response;
 } // end of eESPprocessPieceRecvResp
 

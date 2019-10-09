@@ -125,7 +125,7 @@ espRes_t    eESPparseNetConnStatus( uint8_t *data_line_buf );
 
 // used for extracting IPD data (incoming packet data) from ESP device
 espRes_t    eESPparseIPDsetup( uint8_t* metadata );
-espRes_t    eESPparseIPDcopyData( const uint8_t* data, uint32_t data_len );
+espRes_t    eESPparseIPDcopyData( const uint8_t* data, uint32_t *data_len );
 espRes_t    eESPparseIPDreset( void );
 
 

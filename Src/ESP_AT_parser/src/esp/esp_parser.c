@@ -534,7 +534,7 @@ espRes_t   eESPparseIPDsetup( uint8_t* metadata )
 
 
 
-espRes_t    eESPparseIPDcopyData( const uint8_t* data, uint32_t data_len )
+espRes_t    eESPparseIPDcopyData( const uint8_t* data, uint32_t *data_len )
 {
     espRes_t    response    =  espINPROG;
     espIPD_t   *ipdp        = &espGlobal.dev.ipd;
@@ -551,7 +551,7 @@ espRes_t    eESPparseIPDcopyData( const uint8_t* data, uint32_t data_len )
         chain_cnt += 1;
     }
     // create new packet buffer to hold IPD
-    copy_len =  ESP_MIN( data_len , remain_len );
+    copy_len =  ESP_MIN( *data_len , remain_len );
     curr_p   =  (espPbuf_t *) pxESPpktBufCreate( copy_len );
     // then copy IP address, port number, and associated connection object to this packet buffer item
     ESP_MEMCPY( &(curr_p->ip), &(ipdp->ip), sizeof(espIp_t) );
@@ -568,13 +568,16 @@ espRes_t    eESPparseIPDcopyData( const uint8_t* data, uint32_t data_len )
     // copy IPD data to packet buffer
     eESPpktBufCopy( curr_p, (void *)data ,copy_len );
     // re-calculate rest of data that hasn't been received 
-    remain_len    =  (data_len > remain_len ? 0: remain_len - data_len); 
-    ipdp->rem_len =  remain_len; 
-    if(remain_len == 0) {
-        // copy the pointer of packet buffer clain to connection object while it's ready.
+    if(*data_len >= remain_len) {
+        *data_len   =  remain_len;
+        remain_len  =  0;
         ipdp->conn->pbuf = ipdp->pbuf_head;
         response = espOK;
     }
+    else {
+        remain_len -= *data_len; // in this case, *data_len == copy_len
+    }
+    ipdp->rem_len = remain_len;
     return response;
 } // end of eESPparseIPDcopyData
 
