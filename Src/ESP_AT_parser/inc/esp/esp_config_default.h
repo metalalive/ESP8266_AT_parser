@@ -209,6 +209,14 @@
 #define ESP_MALLOC( sizebytes )             malloc( (size_t)(sizebytes) )
 #endif
 
+#ifndef   ESP_CALLOC
+#define   ESP_CALLOC                        calloc((nmemb),(size))
+#endif
+
+#ifndef   ESP_REALLOC
+#define   ESP_REALLOC                       realloc((mem),(newsize))
+#endif
+
 #ifndef ESP_MEMFREE
 #define ESP_MEMFREE( mptr )                 free( (void *)(mptr) )
 #endif

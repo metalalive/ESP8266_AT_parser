@@ -434,3 +434,30 @@ uint8_t *puc;
 	}
 }
 
+void *pvPortCalloc( unsigned int nmemb, size_t size )
+{
+    void *memptr = NULL;
+    if(nmemb > 0 && size > 0) {
+        size_t  nbyteslen = size * nmemb;
+        size_t  idx       = 0;
+        char   *tmpptr    = NULL;
+        memptr = pvPortMalloc(nbyteslen);
+        tmpptr = (char *)memptr;
+        for(idx=0; idx<nbyteslen && tmpptr != NULL ; idx++) {
+            tmpptr[idx] = 0x00;
+        }
+    }
+    return memptr;
+}
+
+
+void *pvPortRealloc( void *memptr, size_t newsize )
+{
+    if(memptr != NULL && newsize > 0) {
+        vPortFree( memptr );
+        memptr = pvPortMalloc(newsize);
+    }
+    return memptr;
+}
+
+
