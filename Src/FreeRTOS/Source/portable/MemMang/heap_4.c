@@ -254,7 +254,6 @@ void *pvReturn = NULL;
 		}
 	}
 	#endif
-
 	configASSERT( ( ( ( size_t ) pvReturn ) & ( size_t ) portBYTE_ALIGNMENT_MASK ) == 0 );
 	return pvReturn;
 }
@@ -453,11 +452,36 @@ void *pvPortCalloc( unsigned int nmemb, size_t size )
 
 void *pvPortRealloc( void *memptr, size_t newsize )
 {
+    void *newptr = NULL;
     if(memptr != NULL && newsize > 0) {
-        vPortFree( memptr );
-        memptr = pvPortMalloc(newsize);
+        const uint8_t  *heap_start = (const uint8_t *)&ucHeap[0];
+        const uint8_t  *heap_end   = (const uint8_t *)&ucHeap[configTOTAL_HEAP_SIZE];
+        // check whether the given old allocated space belongs to FreeRTOS heap memory
+        // TODO: check whether the old space belongs to stack memory of any FreeRTOS task (shouldn't be freed in this case)
+        if((heap_start < (uint8_t *)memptr) && ((uint8_t *)memptr < heap_end)) {
+            // check whether size will be changed or not
+            BlockLink_t  *oldmemheader = (BlockLink_t *) ((uint8_t *)memptr - xHeapStructSize);
+            // cpy_size should be size of application content of the old allocated space in bytes.
+            size_t  cpy_size = (oldmemheader->xBlockSize & ~(xBlockAllocatedBit)) - xHeapStructSize;
+            size_t  idx = 0;
+            if(cpy_size == newsize) {
+                newptr = memptr; // no need to reallocate in this case
+            } else {
+                // allocate space to according to new size
+                newptr = pvPortMalloc(newsize);
+                // copy content from old allocated space to the new one
+                cpy_size = (newsize > cpy_size) ? cpy_size: newsize;
+                uint8_t  *cpy_src = (uint8_t *)memptr;
+                uint8_t  *cpy_dst = (uint8_t *)newptr;
+                for(idx = 0 ; idx < cpy_size; idx++) {
+                    cpy_dst[idx] = cpy_src[idx];
+                }
+                // free up space allocated to old pointer (memptr
+                vPortFree( memptr );
+            }
+        } // end of check given memory boundary
     }
-    return memptr;
-}
+    return newptr;
+} // end of pvPortRealloc
 
 
