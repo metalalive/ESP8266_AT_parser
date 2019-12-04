@@ -125,10 +125,6 @@ static espRes_t  eESPparseFoundAP( uint8_t **curr_chr_pp, espMsg_t* msg )
     aps     = &( msg->body.ap_list.aps[idx] );
     // get rid of useless characters at the beginning
     *curr_chr_pp = (uint8_t *)strstr( (const char *)*curr_chr_pp, "+CWLAP:");
-    //// if( *curr_chr_pp == NULL ) {
-    ////     response = espERR;
-    ////     return  response;
-    //// }
     *curr_chr_pp += 7; // skip the beginning part +CWLAP:xxx...
     // get encryption method
     aps->ecn    = (espEncrypt_t) iESPparseFirstNumFromStr( curr_chr_pp, ESP_DIGIT_BASE_DECIMAL );
@@ -141,7 +137,15 @@ static espRes_t  eESPparseFoundAP( uint8_t **curr_chr_pp, espMsg_t* msg )
     else{
         num_chrs_copied = uESPparseStrUntilToken( &aps->ssid[0], (const char *)*curr_chr_pp, ESP_CFG_MAX_SSID_LEN, ESP_ASCII_DOT );
     }
-    *curr_chr_pp += num_chrs_copied; 
+    *curr_chr_pp += num_chrs_copied;
+    // check whether the currently found AP is what we are looking for ?
+    if(msg->body.ap_list.ssid != NULL) {
+        if(strncmp((const char *)&msg->body.ap_list.ssid[0], (const char *)&aps->ssid[0], msg->body.ap_list.ssid_len ) != 0) {
+            return  response;
+        } // skip received bytes of this line since application caller already specified ssid & this is NOT the AP
+          // application wants to connect
+    }
+    // parse RSSI
     aps->rssi  = (int16_t) iESPparseFirstNumFromStr( curr_chr_pp, ESP_DIGIT_BASE_DECIMAL ); // Received signal strength indicator 
 
     if(**curr_chr_pp == ESP_ASCII_DOUBLE_QUOTE) {

@@ -19,9 +19,6 @@ espRes_t  eESPstaHasIP( void )
 
 
 
-
-
-
 espRes_t  eESPstaListAP(const char* ssid, uint16_t  ssid_len, espAP_t* aps, uint16_t apslen, uint16_t* num_ap_found, 
                         const espApiCmdCbFn cb, void* const cb_arg, const uint32_t blocking)
 {

@@ -154,12 +154,6 @@ espRes_t    eESPinitATcmd( espMsg_t* msg )
             break;   
         case ESP_CMD_WIFI_CWLAP                  :
 	    AT_APPEND_STR( &cmd_str_p, (const uint8_t *)&("+CWLAP"), 6 );
-            if( msg->body.ap_list.ssid != NULL ) {
-	        AT_APPEND_CHR( &cmd_str_p, '=' );
-	        AT_APPEND_CHR( &cmd_str_p, ESP_ASCII_DOUBLE_QUOTE );
-                AT_APPEND_STR( &cmd_str_p, (const uint8_t *)&msg->body.ap_list.ssid[0], msg->body.ap_list.ssid_len );
-	        AT_APPEND_CHR( &cmd_str_p, ESP_ASCII_DOUBLE_QUOTE );
-            }
             break;   
         case ESP_CMD_WIFI_CIPSTAMAC_GET          :  break;   
         case ESP_CMD_WIFI_CIPSTAMAC_SET          :  break;   
