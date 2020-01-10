@@ -311,5 +311,14 @@ void   vESPsysDelay( const uint32_t ms )
 } // end of vESPsysDelay
 
 
-
+#if (configCHECK_FOR_STACK_OVERFLOW > 0)
+void vApplicationStackOverflowHook( espSysThread_t xTask, char *pcTaskName )
+{
+    // this is software approach to let developers know stack overflow happened on last running task
+    // , this hook function is only useful for debugging purpose, not for preventing it from happening.
+    // For more instant detection on stack overflow, you need to enable hardware MPU or MMU then it
+    // will signal memory fault (or exception) when stack overflow is happening on a task.
+    configASSERT(0);
+} // end of vApplicationStackOverflowHook
+#endif // end of configCHECK_FOR_STACK_OVERFLOW
 
