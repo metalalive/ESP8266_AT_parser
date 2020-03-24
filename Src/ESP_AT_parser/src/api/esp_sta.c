@@ -18,7 +18,6 @@ espRes_t  eESPstaHasIP( void )
 } // end of eESPstaHasIP
 
 
-
 espRes_t  eESPstaListAP(const char* ssid, uint16_t  ssid_len, espAP_t* aps, uint16_t apslen, uint16_t* num_ap_found, 
                         const espApiCmdCbFn cb, void* const cb_arg, const uint32_t blocking)
 {
@@ -43,7 +42,6 @@ espRes_t  eESPstaListAP(const char* ssid, uint16_t  ssid_len, espAP_t* aps, uint
     response = eESPsendReqToMbox( msg, eESPinitATcmd );
     return response;
 } // end of eESPstaListAP
-
 
 
 
@@ -72,7 +70,6 @@ espRes_t  eESPstaJoin(const char* ssid, uint16_t ssid_len, const char* pass, uin
     response = eESPsendReqToMbox( msg, eESPinitATcmd );
     return response;
 } // end of eESPstaJoin
-
 
 
 
@@ -121,8 +118,6 @@ espRes_t    eESPstaGetIP( espIp_t* ip, espIp_t* gw, espIp_t* nm, uint8_t saveDef
 
 
 
-
-
 // TODO: find better way to  test this
 espRes_t  eESPstaCopyIP(espIp_t* ip, espIp_t* gw, espIp_t* nm)
 {
@@ -146,9 +141,6 @@ espRes_t  eESPstaCopyIP(espIp_t* ip, espIp_t* gw, espIp_t* nm)
     }
     return response;
 } // end of eESPstaCopyIP
-
-
-
 
 
 #endif // end of ESP_CFG_MODE_STATION

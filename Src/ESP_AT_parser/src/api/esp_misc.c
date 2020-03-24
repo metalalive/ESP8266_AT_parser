@@ -1,9 +1,7 @@
 #include "esp/esp.h"
 #include "esp/esp_private.h"
 
-
 extern espGlbl_t espGlobal;
-
 
 
 static void vESPenableATecho (uint8_t enable )
@@ -20,8 +18,6 @@ static void vESPenableATecho (uint8_t enable )
 
 
 
-
-
 static  espRes_t  eESPgetCurrATversion( void )
 {
     espRes_t response = espERR ;
@@ -32,10 +28,6 @@ static  espRes_t  eESPgetCurrATversion( void )
     response = eESPsendReqToMbox( msg, eESPinitATcmd );
     return response;
 } // end of eESPgetCurrATversion
-
-
-
-
 
 
 
@@ -51,8 +43,6 @@ espRes_t    eESPrestore( const espApiCmdCbFn cb, void* const cb_arg )
     response = eESPresetWithDelay( 3, cb , cb_arg );
     return response;
 } // end of eESPrestore
-
-
 
 
 
@@ -98,9 +88,6 @@ espRes_t    eESPresetWithDelay( uint32_t dly_ms, const espApiCmdCbFn cb , void* 
 
 
 
-
-
-
 espRes_t    eESPsetConnPublishExtraMsg(espFnEn_t en)
 {
     espRes_t response = espOK ; 
@@ -112,9 +99,6 @@ espRes_t    eESPsetConnPublishExtraMsg(espFnEn_t en)
     response = eESPsendReqToMbox( msg, eESPinitATcmd );
     return  response;
 } // end of eESPsetConnPublishExtraMsg
-
-
-
 
 
 espRes_t   eESPsetIPDextraMsg( espFnEn_t en )
@@ -182,15 +166,5 @@ espRes_t    eESPdeviceIsPresent( void )
     eESPcoreUnlock();
     return ( present != 0 ? espOK : espERRNODEVICE );
 } // end of eESPdeviceIsPresent
-
-
-
-
-
-
-
-
-
-
 
 

@@ -225,6 +225,10 @@
 #define ESP_STRLEN( src )                   strlen( src )
 #endif
 
+#ifndef  ESP_STRNCMP
+#define  ESP_STRNCMP(str1, str2, sz)      strncmp((const char *)(str1), (const char *)(str2), (sz))
+#endif
+
 
 #define ESP_MIN_AT_VERSION_MAJOR_ESP8266    1   // Minimal major version for ESP8266 
 #define ESP_MIN_AT_VERSION_MINOR_ESP8266    6   // Minimal minor version for ESP8266 

@@ -18,8 +18,6 @@ typedef struct espNetConn
 
 
 
-
-
 espRes_t  eESPsetWifiMode( espMode_t mode, uint8_t saveDef, const espApiCmdCbFn cb, void* const cb_arg, const uint8_t blocking )
 {
     espMsg_t *msg = NULL;
@@ -34,7 +32,6 @@ espRes_t  eESPsetWifiMode( espMode_t mode, uint8_t saveDef, const espApiCmdCbFn 
     response = eESPsendReqToMbox( msg, eESPinitATcmd );
     return response;
 } // end of eESPsetWifiMode
-
 
 
 
@@ -130,8 +127,6 @@ espNetConnPtr  pxESPnetconnCreate( espNetConnType_t type )
 
 
 
-
-
 espRes_t    eESPnetconnDelete( espNetConnPtr nc )
 {
     espRes_t response = espOK ; 
@@ -144,8 +139,6 @@ espRes_t    eESPnetconnDelete( espNetConnPtr nc )
     ESP_MEMFREE( nc );
     return   response;
 } // end of eESPnetconnDelete
-
-
 
 
 
@@ -171,8 +164,6 @@ espRes_t    eESPsetServer( espNetConnPtr serverconn, espFnEn_t en, espPort_t por
     response = eESPsendReqToMbox( msg, eESPinitATcmd );
     return   response;
 } // end of eESPsetServer
-
-
 
 
 
@@ -223,7 +214,6 @@ espConn_t*    pxESPgetNxtAvailConn( void )
     }
     return out;
 } // end of pxESPgetNxtAvailConn
-
 
 
 
@@ -377,7 +367,6 @@ espRes_t    eESPstopServer(  espNetConnPtr serverconn )
 
 
 
-
 espRes_t    eESPnetconnRecvPkt( espNetConnPtr  nc, espPbuf_t *pbuf )
 {
     espNetConn_t *nconn = (espNetConn_t *)nc;
@@ -397,9 +386,6 @@ espRes_t     eESPnetconnGrabNextPkt( espNetConnPtr  nc, espPbuf_t **pbuf, uint32
     }
     return eESPsysMboxGet( nconn->mbox_recv, (void **)pbuf, block_time_ms ) ;
 } // end of  eESPnetconnGrabNextPkt
-
-
-
 
 
 
@@ -439,7 +425,4 @@ void   vESPconnRunEvtCallback( espConn_t *conn, espEvtType_t evt_type )
             break;
     }
 } // end of vESPconnRunEvtCallback
-
-
-
 

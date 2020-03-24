@@ -1,7 +1,6 @@
 #include "esp/esp.h"
 
 
-
 int  iESPparseFirstNumFromStr( uint8_t **out_chr_pp, espDigitBase_t base_option )
 {
     uint8_t   base; 
@@ -47,8 +46,6 @@ int  iESPparseFirstNumFromStr( uint8_t **out_chr_pp, espDigitBase_t base_option 
 
 
 
-
-
 uint32_t  uiESPcvtNumToStr( uint8_t *out_chr_p, int num, espDigitBase_t base_option )
 {
     uint8_t    base     = 0; // treat as decimal number
@@ -84,8 +81,6 @@ uint32_t  uiESPcvtNumToStr( uint8_t *out_chr_p, int num, espDigitBase_t base_opt
 
 
 
-
-
 uint16_t uESPparseStrUntilToken( char* _des, const char* _src, uint16_t _des_len, uint8_t token)
 {
     uint16_t num_chrs_copied = 0;
@@ -100,9 +95,4 @@ uint16_t uESPparseStrUntilToken( char* _des, const char* _src, uint16_t _des_len
     }
     return num_chrs_copied;
 } // end of uESPparseStrUntilToken
-
-
-
-
-
 
