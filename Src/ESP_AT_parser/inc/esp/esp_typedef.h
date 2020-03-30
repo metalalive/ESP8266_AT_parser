@@ -328,6 +328,8 @@ typedef  espRes_t (* espEvtCbFn)( espEvt_t*  evt );
 // callback function after AT command is sent / before returning from the API function 
 typedef void (*espApiCmdCbFn) ( espRes_t res, void* arg );
 
+// callback function for memory deallocation to user-defined complex structure
+typedef void (*espMemFreeStructCbFn)( void* p );
 
 // function prototype which output string of AT commands
 typedef espRes_t (* espLLvlSendFn)( void* data, size_t len, uint32_t timeout);
@@ -401,10 +403,6 @@ typedef struct espConn {
         } flg;                                  /*!< Connection flags */
     } status;                                   /*!< Connection status union with flag bits */
 } espConn_t; 
-
-
-
-
 
 
 

@@ -13,7 +13,6 @@ extern "C" {
             { (v)->major = (_major); (v)->minor = (_minor); (v)->patch = (_patch); }
 
 
-
 // core API functions declaration in this ESP AT library.
 espRes_t    eESPinit( espEvtCbFn cb );
 espRes_t    eESPdeinit( void );
@@ -70,12 +69,7 @@ espRes_t  eESPgetLocalIPmac( espIp_t* sta_ip, espMac_t* sta_mac,  espIp_t* ap_ip
                              const espApiCmdCbFn cb, void* const cb_arg, const uint8_t blocking );
 
 // flush items in message boxes
-espRes_t    eESPflushMsgBox( espSysMbox_t mb );
-
-
-
-
-
+espRes_t    eESPflushMsgBox( espSysMbox_t mb, const espMemFreeStructCbFn cb );
 
 
 
@@ -133,14 +127,6 @@ espPbuf_t*   pxESPpktBufCreate( size_t len );
 espRes_t      eESPpktBufCopy( espPbuf_t *des_p, void *src_p , size_t len );
 void          vESPpktBufItemDelete( espPbuf_t *buff );
 void          vESPpktBufChainDelete( espPbuf_t *buff_head );
-
-
-
-
-
-
-
-
 
 
 #ifdef __cplusplus

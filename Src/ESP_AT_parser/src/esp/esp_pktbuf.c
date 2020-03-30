@@ -4,7 +4,6 @@
 extern espGlbl_t espGlobal;
 
 
-
 espPbuf_t*  pxESPpktBufCreate( size_t len )
 {
     espPbuf_t *buf_p   = NULL;
@@ -24,7 +23,6 @@ espPbuf_t*  pxESPpktBufCreate( size_t len )
 
 
 
-
 espRes_t     eESPpktBufCopy( espPbuf_t *des_p, void *src_p , size_t len )
 {
     espRes_t  response    =  espOK ;
@@ -40,13 +38,11 @@ espRes_t     eESPpktBufCopy( espPbuf_t *des_p, void *src_p , size_t len )
 
 
 
-
 void     vESPpktBufItemDelete ( espPbuf_t  *buff )
-{
+{ // no need to dealloc espPbuf_t.payload since it was allocated together with espPbuf_t
     ESP_ASSERT( buff != NULL );
     ESP_MEMFREE( buff );
 } // end of vESPpktBufItemDelete
-
 
 
 
@@ -54,17 +50,10 @@ void    vESPpktBufChainDelete( espPbuf_t *buff_head )
 {
     espPbuf_t  *curr_p   =  buff_head;
     espPbuf_t  *next_p   =  NULL;
-    size_t      payld_len = 0;
     while( curr_p != NULL ) {
-        payld_len = curr_p->payload_len;
         next_p    = curr_p->next;
         vESPpktBufItemDelete( curr_p );
-        ESP_MEMSET( curr_p, 0x00, sizeof(espPbuf_t) + payld_len );
         curr_p = next_p ;
     }
 } // end of vESPpktBufChainDelete
-
-
-
-
 

@@ -10,7 +10,6 @@ typedef struct espNetConn
     // list of received raw string from ESP device.  (should be IPD, incoming-packet-data)
     espSysMbox_t        mbox_recv; 
     uint32_t            conn_timeout_s; // connection timeout in seconds (only for server mode)
-    uint32_t            recv_timeout_ms; // receive timeout in milliseconds
     espNetConnType_t    type; // TCP ? UDP ? SSL ?
     espConn_t          *conn; // connection details e.g. IP, MAC, used when this struct is created as client
     espPort_t           listen_port; // listening port for server connection
@@ -126,6 +125,11 @@ espNetConnPtr  pxESPnetconnCreate( espNetConnType_t type )
 } // end of pxESPnetconnCreate
 
 
+static void vESPfreeNetConnPktBufChain(void* p)
+{
+    vESPpktBufChainDelete((espPbuf_t *)p);
+} // end of vESPfreeNetConnPktBufChain
+
 
 espRes_t    eESPnetconnDelete( espNetConnPtr nc )
 {
@@ -134,8 +138,8 @@ espRes_t    eESPnetconnDelete( espNetConnPtr nc )
         response = espERRARGS;
         return response;
     }
-    response = eESPflushMsgBox( nc->mbox_recv );
-    vESPsysMboxDelete( &(nc->mbox_recv  ) ); 
+    response = eESPflushMsgBox(nc->mbox_recv, vESPfreeNetConnPktBufChain);
+    vESPsysMboxDelete(&(nc->mbox_recv));
     ESP_MEMFREE( nc );
     return   response;
 } // end of eESPnetconnDelete

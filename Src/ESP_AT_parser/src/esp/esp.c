@@ -40,7 +40,6 @@ espMsg_t* pxESPmsgCreate( espCmd_t cmd, espApiCmdCbFn  api_cb, void* cb_arg, con
 
 
 
-
 void  vESPmsgDelete(espMsg_t *msg)
 {   // TODO: figure out why exception/fault happen when freeing the allocated memory.
     if(msg == NULL) { return; }
@@ -50,10 +49,6 @@ void  vESPmsgDelete(espMsg_t *msg)
     }
     ESP_MEMFREE( msg );
 } // end of vESPmsgDelete
-
-
-
-
 
 
 // initialize ESP AT library, this function must be called from operating system thread.
@@ -200,7 +195,6 @@ espRes_t    eESPcoreLock(void)
 
 
 
-
 espRes_t    eESPcoreUnlock(void)
 {
     espRes_t  response = espERR ;
@@ -213,8 +207,6 @@ espRes_t    eESPcoreUnlock(void)
 
 
 
-
-
 void  vESPrunEvtCallbacks( espEvt_t *evtp )
 {
     espEvtCbFnLstItem_t *item = NULL;
@@ -224,8 +216,6 @@ void  vESPrunEvtCallbacks( espEvt_t *evtp )
         item->cb( evtp );
     } // end of for-loop
 } // end of vESPrunEvtCallbacks
-
-
 
 
 
@@ -283,7 +273,6 @@ espRes_t    eESPsendReqToMbox (espMsg_t* msg, espRes_t (*initATcmdFn)(espMsg_t *
 
 
 
-
 void    vESPapiRunEvtCallbacks( espMsg_t* msg )
 {
     espRes_t       response =   msg->res;
@@ -328,7 +317,7 @@ void    vESPapiRunEvtCallbacks( espMsg_t* msg )
 
 
 
-espRes_t    eESPflushMsgBox( espSysMbox_t mb )
+espRes_t    eESPflushMsgBox( espSysMbox_t mb, const espMemFreeStructCbFn cb )
 {
     const  uint32_t no_block_time = 0;
     espRes_t  response = espOK;
@@ -340,13 +329,12 @@ espRes_t    eESPflushMsgBox( espSysMbox_t mb )
     while(1) {
         itemp    = NULL;
         response = eESPsysMboxGet( mb, (void **)&itemp, no_block_time );
-        if( response == espOK ){   ESP_MEMFREE(itemp);  }
+        if( response == espOK ){
+            if(cb != NULL) { cb(itemp); }
+            ESP_MEMFREE(itemp);
+        }
         else { break; }
     }
     return response;
 } // end of eESPflushMsgBox
-
-
-
-
 
