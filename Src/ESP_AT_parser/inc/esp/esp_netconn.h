@@ -19,9 +19,11 @@ typedef enum {
 } espNetConnType_t;
 
 // create TCP-layer connection objects & acting as a server or client
-espNetConnPtr  pxESPnetconnCreate( espNetConnType_t type );
+espNetConnPtr  pxESPnetconnCreate( espConn_t *conn_in );
+
 espRes_t        eESPnetconnDelete( espNetConnPtr nc );
 
+espConn_t*  pxESPgetConnHandleObj(espNetConnPtr  nc);
 
 
 #ifdef __cplusplus

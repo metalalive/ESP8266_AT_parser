@@ -299,20 +299,16 @@ espRes_t    eESPinitATcmd( espMsg_t* msg )
 
 
 
-
-
 espRes_t    eESPcmdStartSendData( espMsg_t* msg )
 {
     if(msg == NULL) { return espERR; }
-    if(GET_CURR_CMD(msg) != ESP_CMD_TCPIP_CIPSEND){ return espERR; }
+    if(GET_CURR_CMD(msg) != ESP_CMD_TCPIP_CIPSEND){ return espSKIP; }
 
-    uint8_t    *data_p   = (uint8_t *)msg->body.conn_send.data; 
+    uint8_t    *data_p   = (uint8_t *)msg->body.conn_send.data;
     uint16_t    data_len = msg->body.conn_send.d_size;
-    uint32_t    block_time  = 50; 
+    uint32_t    block_time  = 50;
     espGlobal.ll.send_fn( data_p, data_len, block_time );
+    vESPconnRunEvtCallback(msg->body.conn_send.conn, ESP_EVT_CONN_SEND);
     return   espOK;
 } // end of eESPcmdStartSendData
-
-
-
 

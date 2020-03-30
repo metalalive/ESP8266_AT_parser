@@ -178,6 +178,31 @@
 #define  ESP_CFG_MAX_BYTES_PER_CIPSEND    512
 #endif
 
+#ifndef  ESP_CFG_CMD_BLOCK_TIME_CWLAP
+#define  ESP_CFG_CMD_BLOCK_TIME_CWLAP   20000
+#endif
+
+#ifndef  ESP_CFG_CMD_BLOCK_TIME_CWJAP
+#define  ESP_CFG_CMD_BLOCK_TIME_CWJAP   20000
+#endif
+
+#ifndef  ESP_CFG_CMD_BLOCK_TIME_CWQAP
+#define  ESP_CFG_CMD_BLOCK_TIME_CWQAP   5000
+#endif
+
+#ifndef  ESP_CFG_CMD_BLOCK_TIME_CIPSTART
+#define  ESP_CFG_CMD_BLOCK_TIME_CIPSTART   20000
+#endif
+
+#ifndef  ESP_CFG_CMD_BLOCK_TIME_CIPCLOSE
+#define  ESP_CFG_CMD_BLOCK_TIME_CIPCLOSE   5000
+#endif
+
+#ifndef  ESP_CFG_CMD_BLOCK_TIME_CIPSEND
+#define  ESP_CFG_CMD_BLOCK_TIME_CIPSEND   25000
+#endif
+
+
 //  [TODO] figure out behaviour of entire TCP transacion process
 //
 //  Normally ESP automatically sends received TCP data to host device

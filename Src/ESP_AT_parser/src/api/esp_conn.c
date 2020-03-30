@@ -6,7 +6,6 @@ extern espGlbl_t espGlobal;
 // internal structure storing essential information of TCP/UDP connections
 typedef struct espNetConn
 {
-    uint32_t            num_recv_pkt; // number of received packets
     // list of received raw string from ESP device.  (should be IPD, incoming-packet-data)
     espSysMbox_t        mbox_recv; 
     uint32_t            conn_timeout_s; // connection timeout in seconds (only for server mode)
@@ -106,22 +105,21 @@ espRes_t  eESPgetLocalIPmac( espIp_t* sta_ip, espMac_t* sta_mac,  espIp_t* ap_ip
 
 
 
-espNetConnPtr  pxESPnetconnCreate( espNetConnType_t type )
+espNetConnPtr  pxESPnetconnCreate(espConn_t *conn_in)
 {
-    espNetConn_t *conn = NULL;
-    conn = ESP_MALLOC(sizeof(espNetConn_t));
-    if(conn != NULL) 
-    {
-        conn->type = type; 
-        conn->num_recv_pkt = 0; 
-        conn->conn = NULL; 
-        conn->mbox_recv   = xESPsysMboxCreate( ESP_CFG_NETCONN_RECV_Q_LEN ); 
-        if( conn->mbox_recv == NULL) {
-             ESP_MEMFREE( conn );
-             return NULL;
+    espNetConn_t *nc = NULL;
+    if(conn_in == NULL) { return (espNetConnPtr)nc; }
+    nc = ESP_MALLOC(sizeof(espNetConn_t));
+    if(nc != NULL) {
+        nc->type = conn_in->type;
+        nc->conn = conn_in;
+        nc->mbox_recv   = xESPsysMboxCreate( ESP_CFG_NETCONN_RECV_Q_LEN );
+        if( nc->mbox_recv == NULL) {
+             ESP_MEMFREE( nc );
+             nc = NULL;
         }
     }
-    return (espNetConnPtr)conn;
+    return (espNetConnPtr)nc;
 } // end of pxESPnetconnCreate
 
 
@@ -134,9 +132,14 @@ static void vESPfreeNetConnPktBufChain(void* p)
 espRes_t    eESPnetconnDelete( espNetConnPtr nc )
 {
     espRes_t response = espOK ; 
-    if(nc == NULL) {
-        response = espERRARGS;
-        return response;
+    if(nc == NULL) { return  espERRARGS; }
+    // release espConn_t back to connection pool of ESP library.
+    if(nc->conn != NULL) {
+        // there might be incomplete IPD data leaving pointed by espConn_t, clean up all of them if exists.
+        if(nc->conn->pbuf != NULL) {
+            vESPpktBufChainDelete( nc->conn->pbuf );
+        }
+        ESP_MEMSET(nc->conn, 0x00, sizeof(espConn_t));
     }
     response = eESPflushMsgBox(nc->mbox_recv, vESPfreeNetConnPktBufChain);
     vESPsysMboxDelete(&(nc->mbox_recv));
@@ -144,6 +147,15 @@ espRes_t    eESPnetconnDelete( espNetConnPtr nc )
     return   response;
 } // end of eESPnetconnDelete
 
+
+espConn_t*  pxESPgetConnHandleObj(espNetConnPtr  nc)
+{
+    espConn_t* out = NULL;
+    if(nc != NULL) {
+        out = nc->conn;
+    }
+    return out;
+} // end of pxESPgetConnHandleObj
 
 
 espRes_t    eESPsetServer( espNetConnPtr serverconn, espFnEn_t en, espPort_t port, espEvtCbFn evt_cb,
@@ -238,9 +250,10 @@ espRes_t   eESPconnClientStart( espConn_t *conn_in, espConnType_t type, const ch
     }
     msg = pxESPmsgCreate( ESP_CMD_TCPIP_CIPSTART, api_cb, api_cb_arg, blocking );
     if(msg == NULL){ return response; }
+    conn_in->type = type;
     // NOTE: there will be network latency while performing this AT command, so
     //       we use block time as delay time even applications call this API in non-blocking mode.
-    msg->block_time = 25000;
+    msg->block_time = ESP_CFG_CMD_BLOCK_TIME_CIPSTART;
     msg->body.conn_start.conn = &conn_in;
     msg->body.conn_start.host =  host;     
     msg->body.conn_start.host_len =  host_len;
@@ -248,14 +261,13 @@ espRes_t   eESPconnClientStart( espConn_t *conn_in, espConnType_t type, const ch
     msg->body.conn_start.type =  type;     
     msg->body.conn_start.cb   =  evt_cb;
     msg->body.conn_start.num  =  0;      
-    msg->body.conn_start.success = 0;  
+    msg->body.conn_start.success = 0;
     response = eESPsendReqToMbox( msg, eESPinitATcmd );
     return   response;
 } // end of eESPconnClientStart
 
 
 
-// TODO: test this API
 espRes_t       eESPconnClientClose( espConn_t *conn_in, espApiCmdCbFn api_cb,  void* const api_cb_arg, const uint32_t blocking)
 {
     espRes_t response = espOK ; 
@@ -267,7 +279,7 @@ espRes_t       eESPconnClientClose( espConn_t *conn_in, espApiCmdCbFn api_cb,  v
     if( msg == NULL) { return response; }
     // NOTE: there will be network latency while performing this AT command, so
     //       we use block time as delay time even applications call this API in non-blocking mode.
-    msg->block_time = 5000; 
+    msg->block_time = ESP_CFG_CMD_BLOCK_TIME_CIPCLOSE;
     msg->body.conn_close.conn = conn_in;
     response = eESPsendReqToMbox( msg, eESPinitATcmd );
     return   response;
@@ -288,7 +300,7 @@ static espRes_t  eESPconnClientSendLimit( espConn_t *conn, const uint8_t *data, 
     if( msg == NULL) { return response; }
     // NOTE: there will be network latency while performing this AT command, so
     //       we use block time as delay time even applications call this API in non-blocking mode.
-    msg->block_time = 30000; 
+    msg->block_time = ESP_CFG_CMD_BLOCK_TIME_CIPSEND;
     msg->body.conn_send.conn    = conn;
     msg->body.conn_send.data    = data;  
     msg->body.conn_send.d_size  = d_size;
@@ -402,11 +414,11 @@ void   vESPconnRunEvtCallback( espConn_t *conn, espEvtType_t evt_type )
     {
         case ESP_EVT_CONN_RECV:
             e.body.connDataRecv.conn = conn;
+            conn->num_recv_pkt++;
             if( conn->status.flg.client == 0 ) {
                 // the connection was created for server, then runs callback function to
                 // notify application that IPD data is ready
                 if(conn->cb != NULL) {
-                    //// espGlobal.evt_server( &e );
                     conn->cb( &e );
                 }
                 else { // run default callback function list
@@ -418,6 +430,7 @@ void   vESPconnRunEvtCallback( espConn_t *conn, espEvtType_t evt_type )
             }
             break;
         case ESP_EVT_CONN_SEND:
+            conn->num_sent_pkt++;
             break;
         case ESP_EVT_CONN_ACTIVE:    
             break;

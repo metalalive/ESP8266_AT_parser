@@ -330,8 +330,8 @@ espRes_t    eESPflushMsgBox( espSysMbox_t mb, const espMemFreeStructCbFn cb )
         itemp    = NULL;
         response = eESPsysMboxGet( mb, (void **)&itemp, no_block_time );
         if( response == espOK ){
-            if(cb != NULL) { cb(itemp); }
-            ESP_MEMFREE(itemp);
+            if(cb != NULL) { cb(itemp); } // user application must take responsibility to free up all space allocated
+            else { ESP_MEMFREE(itemp); }
         }
         else { break; }
     }

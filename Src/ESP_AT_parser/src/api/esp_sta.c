@@ -32,7 +32,7 @@ espRes_t  eESPstaListAP(const char* ssid, uint16_t  ssid_len, espAP_t* aps, uint
     msg = pxESPmsgCreate( ESP_CMD_WIFI_CWLAP, cb, cb_arg, blocking );
     if( msg == NULL) { return response; }
     if( blocking == ESP_AT_CMD_BLOCKING ) {
-        msg->block_time = 30000; // need longer time to search available APs
+        msg->block_time = ESP_CFG_CMD_BLOCK_TIME_CWLAP;
     }
     msg->body.ap_list.ssid   = ssid;
     msg->body.ap_list.ssid_len = ssid_len;
@@ -58,7 +58,7 @@ espRes_t  eESPstaJoin(const char* ssid, uint16_t ssid_len, const char* pass, uin
     msg = pxESPmsgCreate( ESP_CMD_WIFI_CWJAP, cb, cb_arg, blocking );
     if( msg == NULL) { return response; }
     if( blocking == ESP_AT_CMD_BLOCKING ) {
-        msg->block_time = 30000; // TODO: find proper timeout
+        msg->block_time = ESP_CFG_CMD_BLOCK_TIME_CWJAP;
     }
     msg->body.sta_join.name =  ssid;
     msg->body.sta_join.pass =  pass;
@@ -82,7 +82,7 @@ espRes_t   eESPstaQuit(const espApiCmdCbFn cb, void* const cb_arg, const uint32_
     msg = pxESPmsgCreate( ESP_CMD_WIFI_CWQAP, cb, cb_arg, blocking );
     if( msg == NULL) { return response; }
     if( blocking == ESP_AT_CMD_BLOCKING ) {
-        msg->block_time = 5000; // TODO: find proper timeout
+        msg->block_time = ESP_CFG_CMD_BLOCK_TIME_CWQAP;
     }
     response = eESPsendReqToMbox( msg, eESPinitATcmd );
     return response;

@@ -383,25 +383,26 @@ typedef struct espBuf {
 
 // connection structure
 typedef struct espConn {
-    espConnType_t   type;                       /*!< Connection type */
-    espIp_t         remote_ip;                  /*!< Remote IP address */
-    espPort_t       remote_port;                /*!< Remote port number */
-    espPort_t       local_port;                 /*!< Local IP address */
-    espEvtCbFn      cb;                         /*!< Callback function for connection */
-    void*           arg;                        /*!< User custom argument */
-    uint8_t         val_id;                     /*!< Validation ID number. It is increased each time a new connection is established.
-                                                     It protects sending data to wrong connection in case we have data in send queue,
-                                                     and connection was closed and active again in between. */
-    espPbuf_t      *pbuf;                       /*!< Linear buffer structure */
-    uint32_t        total_recved;               /*!< Total number of bytes received */
+    uint16_t        num_recv_pkt;    // number of received packets
+    uint16_t        num_sent_pkt;    // number of packets sent
+    espConnType_t   type;            // Connection type
+    espIp_t         remote_ip;       // Remote IP address
+    espPort_t       remote_port;     // Remote port number
+    espPort_t       local_port;      // Local IP address
+    espEvtCbFn      cb;              // Callback function for connection
+    void*           arg;             // User custom argument
+    uint8_t         val_id;          // Validation ID number. It is increased each time a new connection is established.
+                                     // It protects sending data to wrong connection in case we have data in send queue,
+                                     // and connection was closed and active again in between.
+    espPbuf_t      *pbuf;            // Linear buffer structure
 
     union {
         struct {
-            espConnStatus_t active;           /*!< Status whether connection is active */
-            uint8_t         client;           /*!< Status whether connection is in client mode ? or server mode ? */
-            uint8_t         data_received;    /*!< Status whether first data were received on connection */
-        } flg;                                  /*!< Connection flags */
-    } status;                                   /*!< Connection status union with flag bits */
+            espConnStatus_t active;        // Status whether connection is active
+            uint8_t         client;        // Status whether connection is in client mode or server mode
+            uint8_t         data_received; // Status whether first data were received on connection
+        } flg;
+    } status;
 } espConn_t; 
 
 
