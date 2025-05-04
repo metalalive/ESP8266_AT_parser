@@ -34,7 +34,7 @@ There are 3 test cases in this repository, these tests start after your ESP devi
 
 | test name      | what it does                   |
 |----------------|--------------------------------|
-|`ping`          | ping a specific host           |
+|`ap_ping`       | ping a specific host           |
 |`http_server`   | turn on server mode, demonstrate basic capability of HTTP/1.1 handshaking process. |
 |`mqtt_client`   | start TCP connection, demonstrate publishing/subscribing capability of MQTT v5.0 handshaking process. |
 
@@ -49,14 +49,16 @@ Note that :
    * `ESP_CFG_SYS_PORT` in your configuration header file, `ESP_CFG_SYS_PORT` can be the default platform `ESP_SYS_PORT_FREERTOS` or any other platform you work with, please refer to  [developer guide](DEVELOPER.md) .
    * The type of your ESP8266 device, so far this ESP AT-command parser has been verified with ESP-01s and ESP-12s modules. Please add macro `ESP_CFG_DEV_ESP01` or `ESP_CFG_DEV_ESP12`, accroding to the ESP device you work with.
 
-2. For building test images, you have :
-``` 
-make INTEGRATION_TEST=yes TESTNAME=<test_name> OS_NAME=<os_name>  PLATFORM=<hw_platform_name>
+2. For building test images, please clone GitHub repository `metalalive/RealTimeOS-Playground` for test image build, then run the commands below :
+```shell
+make integration_test  HW_PLATFORM=<hw_platform_name>  OS=<os_name>  \
+    TOOLCHAIN_BASEPATH=<path-to-gcc>   APP_NAME=<test_name> \
+    RTOS_HW_BUILD_PATH=<path-torealtime-os-playground>
 ```
 where :
-*  `<os_name>` : So far this ESP AT-command parser is implemented only on FreeRTOS and STM32 platform, the default value of this is `FreeRTOS`. For anyone who is willing to port for other Operating Systems / platforms, please refer to [developer guide](DEVELOPER.md) 
-*  `<hw_platform_name>` : so far this ESP parser is verified with STM32F4xx board, (ARM Cortex-M4 MCU platform), the default value is "STM32F4", For anyone who is willing to port for other platforms that haven't been implemented at here, please refer to [developer guide](DEVELOPER.md) 
-*  `<test_name>` can be `ping`, `http_server`, or `mqtt_client`
+-  `<os_name>` : So far this ESP AT-command parser is implemented only on FreeRTOS and STM32 platform, current supported option is `freertos-v10`. For other Operating Systems not implemented yet, please refer to [developer guide](DEVELOPER.md) 
+-  `<hw_platform_name>` : so far this ESP parser is verified with STM32F4xx board, (ARM Cortex-M4 MCU platform), the supproted value is `stm32f446`, For other platform ports that haven't been implemented yet, please refer to [developer guide](DEVELOPER.md) 
+-  `<test_name>` can be `ap_ping`, `http_server`, or `mqtt_client`
 
 3. For debugging tool, it is optional to use OpenOCD / gdb-multiarch, build latest version of OpenOCD from source, then run the command below : 
 ```
@@ -66,5 +68,4 @@ and
 ```
 make dbg_client
 ```
-
 

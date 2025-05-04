@@ -1,4 +1,4 @@
-#include "tests/integration/ESP_AT_parser/http_server.h"
+#include "demo_apps/http_server.h"
 
 #define  TASK_MIN_STACK_SIZE      (( unsigned portSHORT ) 0x7e)
 #define  TEST_MAX_CHARS_URI       0x40
@@ -9,14 +9,12 @@ typedef enum {
     HTTP_METHOD_POST,
 } httpMthrEnum;
 
-
 typedef struct {
    httpMthrEnum     method ; 
    uint8_t          uri[TEST_MAX_CHARS_URI] ;
    uint16_t         resp_msg_len ;
    uint8_t*         resp_msg ;
 } httpTestMsg_t;
-
 
 static espNetConnPtr  serverconn;
 
@@ -57,12 +55,9 @@ static const  char  resp_msg_footer2[] = ""
 "</body></html>" ESP_CHR_CR  ESP_CHR_LF ;
 
 
-
-static espRes_t eESPtestEvtCallBack( espEvt_t*  evt )
-{
+static espRes_t eESPtestEvtCallBack(espEvt_t* evt) {
     espRes_t  response = espOK;
-    switch( evt->type )
-    {
+    switch(evt->type) {
         case ESP_EVT_INIT_FINISH :
             break;
         case ESP_EVT_WIFI_CONNECTED:
@@ -71,18 +66,14 @@ static espRes_t eESPtestEvtCallBack( espEvt_t*  evt )
             break;
         default:
             break;
-    } // end of switch statement
+    }
     return  response;
-} // end of eESPtestEvtCallBack
+}
 
-
-
-static espRes_t eESPtestiServerCallBack( espEvt_t*  evt )
-{
+static espRes_t eESPtestiServerCallBack(espEvt_t* evt) {
     espRes_t  response = espOK;
     espConn_t  *conn   = NULL; 
-    switch( evt->type )
-    {
+    switch(evt->type) {
         case ESP_EVT_CONN_RECV:
             conn   = evt->body.connDataRecv.conn ;
             // put pointer of the new IPD data to message-box of the server,
@@ -92,12 +83,9 @@ static espRes_t eESPtestiServerCallBack( espEvt_t*  evt )
             break;
         default:
             break;
-    } // end of switch statement
+    }
     return  response;
-} // end of eESPtestiServerCallBack
-
-
-
+}
 
 // hard-coded HTML entity for this test, we only extract http method & URI
 static void  vESPtestHttpSimpleApp( espPbuf_t *pktbuf, httpTestMsg_t  *http_msg_p )
@@ -159,15 +147,12 @@ static void  vESPtestHttpSimpleApp( espPbuf_t *pktbuf, httpTestMsg_t  *http_msg_
 } // end of vESPtestHttpSimpleApp 
 
 
-
-
-static void vESPtestHttpServerTask(void *params) 
-{
+static void vESPtestHttpServerTask(void *params) {
     const uint16_t  max_req_cnt = 6;
-    espRes_t        response ;
-    uint8_t         devPresent ;
-    espPbuf_t      *pktbuf;
-    uint16_t        idx = 0;
+    espRes_t   response ;
+    uint8_t    devPresent ;
+    espPbuf_t *pktbuf;
+    uint16_t   idx = 0;
 
     // setup data structure required for this simplified server
     serverconn =  pxESPnetconnCreate( ESP_NETCONN_TYPE_TCP );
@@ -201,42 +186,33 @@ static void vESPtestHttpServerTask(void *params)
 } // end of vESPtestHttpServerTask
 
 
-
-
-
-static void vESPtestInitTask(void *params)
-{
-    uint8_t   isPrivileged = 0x1;
-    uint8_t   waitUntilConnected = 0x1;
+static void vESPtestInitTask(void *params) {
+    uint8_t  isPrivileged = 0x1, waitUntilConnected = 0x1;
     espRes_t  response =  eESPinit( eESPtestEvtCallBack );
-
     if( response == espOK ) {
         // turn on station mode as default, connect to preferred AP.
         eESPtestConnAP( waitUntilConnected );
         // once connected to AP, create server thread 
-        response = eESPsysThreadCreate( NULL, "espTestHttpServer", vESPtestHttpServerTask, NULL ,
-                                   (0x20 + TASK_MIN_STACK_SIZE), ESP_APPS_THREAD_PRIO , isPrivileged );
+        response = eESPsysThreadCreate(
+            NULL, "espTestHttpServer", vESPtestHttpServerTask, NULL ,
+            (0x20 + TASK_MIN_STACK_SIZE), ESP_APPS_THREAD_PRIO , isPrivileged
+        );
         ESP_ASSERT( response == espOK ); 
     }
     else {
         // failed to initialize ESP AT library
     }
     eESPsysThreadDelete( NULL );
-} // end of vESPinitTask
+}
 
-
-
-
-
-void  vESPtestStartHttpServerTask( void )
-{
-    espRes_t response ;
+void  vCreateAllTestTasks(void) {
     uint8_t isPrivileged = 0x1;
     // the ESP initialization thread takes the same priority as the 2 internal threads working 
     // in ESP AT software.
-    response = eESPsysThreadCreate( NULL, "espInitTask", vESPtestInitTask, NULL ,
-                                    TASK_MIN_STACK_SIZE, ESP_SYS_THREAD_PRIO ,  isPrivileged
-                                  );
+    espRes_t response = eESPsysThreadCreate(
+        NULL, "espInitTask", vESPtestInitTask, NULL,
+        TASK_MIN_STACK_SIZE, ESP_SYS_THREAD_PRIO, isPrivileged
+    );
     ESP_ASSERT( response == espOK );
     // allocate space for HTTP response message in this test.
     http_msg.method = HTTP_METHOD_UNKNOWN; 
@@ -246,8 +222,4 @@ void  vESPtestStartHttpServerTask( void )
                                                + sizeof(resp_msg_footer1) +  TEST_MAX_CHARS_URI );
     ESP_ASSERT( http_msg.resp_msg != NULL );
     ESP_MEMCPY( http_msg.resp_msg, &resp_msg_header1[0], sizeof(resp_msg_header1) );
-} // end of vESPtestStartHttpServerTask
-
-
-
-
+}

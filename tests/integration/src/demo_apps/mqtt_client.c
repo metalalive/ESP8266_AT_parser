@@ -1,4 +1,4 @@
-#include "tests/integration/ESP_AT_parser/mqtt_client.h"
+#include "demo_apps/mqtt_client.h"
 
 #define  TASK_MIN_STACK_SIZE             (( unsigned portSHORT ) 0xbe)
 #define  MQTT_CONN_TX_BUF_SIZE           0x100
@@ -34,13 +34,9 @@ static uint8_t  json_pH_history[TEST_NUM_MOCK_DATA]        = { 6, 7, 6, 5 };
 static uint8_t  json_fertility_history[TEST_NUM_MOCK_DATA] = { 32, 30, 29, 28 };
 static uint8_t  mock_db_select_data_idx   = 0;
 
-
-
-static espRes_t eESPtestEvtCallBack( espEvt_t*  evt )
-{
+static espRes_t eESPtestEvtCallBack(espEvt_t* evt) {
     espRes_t  response = espOK;
-    switch( evt->type )
-    {
+    switch(evt->type) {
         case ESP_EVT_INIT_FINISH :
             break;
         case ESP_EVT_WIFI_CONNECTED:
@@ -51,16 +47,12 @@ static espRes_t eESPtestEvtCallBack( espEvt_t*  evt )
             break;
     } // end of switch statement
     return  response;
-} // end of eESPtestEvtCallBack
+}
 
-
-
-static espRes_t eESPtestMqttClientCallBack( espEvt_t*  evt )
-{
+static espRes_t eESPtestMqttClientCallBack(espEvt_t* evt) {
     espRes_t  response = espOK;
     espConn_t  *conn   = NULL; 
-    switch( evt->type )
-    {
+    switch(evt->type) {
         case ESP_EVT_CONN_RECV:
             conn   = evt->body.connDataRecv.conn ;
             // put pointer of the new IPD data to message-box of the server,
@@ -70,13 +62,9 @@ static espRes_t eESPtestMqttClientCallBack( espEvt_t*  evt )
             break;
         default:
             break;
-    } // end of switch statement
+    }
     return  response;
-} // end of eESPtestMqttClientCallBack
-
-
-
-
+}
 
 
 // the generated JSON string in following function will look like :
@@ -94,13 +82,10 @@ static espRes_t eESPtestMqttClientCallBack( espEvt_t*  evt )
 static  void  vESPtestGenJSONmsg( byte *buf, word32 buff_len,  word32 *app_data_len )
 {
     word32  copied_len = 0;
-    uint8_t chosen_moisture   = 0 ;
-    uint8_t chosen_pH         = 0 ;
-    uint8_t chosen_fertility  = 0 ;
-    uint8_t num2str_buf[8]    = {0};
-    uint8_t num_chr_append    =  0;
-    uint8_t idx = 0;
-    uint8_t jdx = 0;
+    uint8_t chosen_moisture = 0, chosen_pH = 0, chosen_fertility = 0 ;
+    uint8_t num2str_buf[8]  = {0};
+    uint8_t num_chr_append  = 0;
+    uint8_t idx = 0, jdx = 0;
 
     ESP_MEMCPY( buf, &app_json_header, app_json_header_len );
     buf += app_json_header_len;
@@ -170,7 +155,6 @@ static  void  vESPtestGenJSONmsg( byte *buf, word32 buff_len,  word32 *app_data_
 } // end of vESPtestGenJSONmsg 
 
 
-
 static void vESPtestMqttInitSubsTopics( void )
 {
     subs_topics[0].filter.data = (byte *)&("control/sprayer/workseconds");
@@ -185,9 +169,6 @@ static void vESPtestMqttInitSubsTopics( void )
     subs_topics[1].reason_code = 0;
     subs_topics[1].sub_id      = 0; 
 } // end of vESPtestMqttInitSubsTopics
-
-
-
 
 
 static void vESPtestMqttClientApp( espNetConnPtr netconn, espConn_t*  espconn,  mqttCtx_t *m_client )
@@ -271,9 +252,6 @@ static void vESPtestMqttClientApp( espNetConnPtr netconn, espConn_t*  espconn,  
 } // end of vESPtestMqttClientApp
 
 
-
-
-
 static void vESPtestMqttClientTask(void *params) 
 {
     uint8_t         devPresent ;
@@ -308,14 +286,8 @@ static void vESPtestMqttClientTask(void *params)
 } // end of vESPtestMqttClientTask
 
 
-
-
-
-static void vESPtestInitTask( void  *params )
-{
-    uint8_t   isPrivileged = 0x1;
-    uint8_t   waitUntilConnected = 0x1;
-    // initialize ESP AT parser
+static void vESPtestInitTask(void *params) {
+    uint8_t  isPrivileged = 0x1,  waitUntilConnected = 0x1;
     espRes_t  response =  eESPinit( eESPtestEvtCallBack );
     // initialize  MQTT connection object for this test.
     m_client = NULL;
@@ -337,25 +309,19 @@ static void vESPtestInitTask( void  *params )
     eESPsysThreadDelete( NULL );
 } // end of vESPtestInitTask
 
-
-
-
-void  vESPtestStartMqttClientTask( void )
+void  vCreateAllTestTasks(void)
 {
-    espRes_t response ;
     uint8_t isPrivileged = 0x1;
     // the ESP initialization thread takes the same priority as the 2 internal threads working 
     // in ESP AT software.
-    response = eESPsysThreadCreate( NULL, "espInitTask", vESPtestInitTask, NULL ,
-                                    TASK_MIN_STACK_SIZE, ESP_SYS_THREAD_PRIO ,  isPrivileged
-                                  );
+    espRes_t response = eESPsysThreadCreate(
+        NULL, "espInitTask", vESPtestInitTask, NULL,
+        TASK_MIN_STACK_SIZE, ESP_SYS_THREAD_PRIO ,  isPrivileged
+    );
     ESP_ASSERT( response == espOK );
-} // end of vESPtestStartMqttClientTask
-
+}
 
 #undef  TASK_MIN_STACK_SIZE      
 #undef  MQTT_CONN_TX_BUF_SIZE   
 #undef  MQTT_CONN_RX_BUF_SIZE   
 #undef  MQTT_CMD_TIMEOUT_MS   
-
-

@@ -1,4 +1,4 @@
-#include "tests/integration/integration_test_entry.h"
+#include "entry.h"
 
 /* Private variables ---------------------------------------------------------*/
 TIM_HandleTypeDef htim3;

@@ -1,5 +1,5 @@
 #include "esp/esp.h"
-#include "tests/integration/ESP_AT_parser/mqtt/mqtt_include.h"
+#include "demo_apps/mqtt/mqtt_include.h"
 
 // [Note]
 // The low-level implementation should depend on what knid of underlying hardware / operating system
@@ -7,14 +7,10 @@
 // with ESP8266 wifi device. 
 // For Linux / Windows user, you will need to implement your own socket application.
 
-
-
 // In some use cases, users might call this read function multiple times only for fetching few bytes of packet data.
 // so we need to reserve the packet data that hasn't been completed reading (from user applications)
 static espPbuf_t   *unfinish_rd_pktbuf      = NULL;
 static espPbuf_t   *unfinish_rd_pktbuf_head = NULL;
-
-
 
 
 word32  mqttPktLowLvlRead( struct __mqttCtx *mctx, byte *buf, word32 buf_len )
@@ -67,9 +63,6 @@ word32  mqttPktLowLvlRead( struct __mqttCtx *mctx, byte *buf, word32 buf_len )
 } // end of mqttPktLowLvlRead
 
 
-
-
-
 word32  mqttPktLowLvlWrite( struct __mqttCtx *mctx, byte *buf, word32 buf_len )
 {
     if((mctx == NULL) || (buf == NULL)) {
@@ -83,10 +76,3 @@ word32  mqttPktLowLvlWrite( struct __mqttCtx *mctx, byte *buf, word32 buf_len )
     response = eESPconnClientSend( espconn,  buf,  buf_len, NULL, NULL, ESP_AT_CMD_BLOCKING );
     return  ( response == espOK ? buf_len : 0);
 } // end of mqttPktLowLvlWrite
-
-
-
-
-
-
-

@@ -6,16 +6,12 @@ extern "C" {
 #endif
 
 #include "esp/esp.h"
-#include "tests/integration/ESP_AT_parser/mqtt/mqtt_include.h"
-
-
-// ----------- function declaration -----------
+#include "demo_apps/mqtt/mqtt_include.h"
 
 void  vESPtestStartMqttClientTask( void );
 
 // referenced by common.c
 espRes_t  eESPtestConnAP( uint8_t waitUntilConnected );
-
 
 #ifdef __cplusplus
 }

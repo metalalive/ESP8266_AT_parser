@@ -1,7 +1,5 @@
 #include "esp/esp.h"
-#include "tests/integration/ESP_AT_parser/mqtt/mqtt_include.h"
-
-
+#include "demo_apps/mqtt/mqtt_include.h"
 
 static  const mqttDataType mqttQueryPropDataType [] = 
 {
@@ -51,9 +49,7 @@ static  const mqttDataType mqttQueryPropDataType [] =
 }; // end of mqttGetPropLength
 
 
-
-word32 mqttEncodeVarBytes( byte *buf, word32  value )
-{
+word32 mqttEncodeVarBytes( byte *buf, word32  value ) {
     word32  len = 0;
     byte    enc_val = 0; // encoded part of value
     const   byte    continuation_bit = 0x80;
@@ -72,10 +68,7 @@ word32 mqttEncodeVarBytes( byte *buf, word32  value )
 } // end of mqttEncodeVarBytes
 
 
-
-
-word32 mqttDecodeVarBytes(const byte *buf, word32 *value )
-{
+word32 mqttDecodeVarBytes(const byte *buf, word32 *value ) {
     word32  val = 0;
     word16  idx = 0;
     byte    enc_val = 0; 
@@ -87,38 +80,26 @@ word32 mqttDecodeVarBytes(const byte *buf, word32 *value )
     } while((enc_val & continuation_bit) != 0x0);
     *value = val;
     return  idx;
-} // end of mqttDecodeVarBytes
+}
 
-
-
-
-word32 mqttEncodeWord16( byte *buf , word16 value )
-{
+word32 mqttEncodeWord16( byte *buf , word16 value ) {
     if(buf != NULL){
         buf[0] = value >> 8; 
         buf[1] = value &  0xff; 
     }
     // return number of bytes used to store the encoded value
     return  (word32)2; 
-} // end of mqttEncodeWord16
+}
 
-
-
-
-word32 mqttDecodeWord16( byte *buf , word16 *value )
-{
+word32 mqttDecodeWord16( byte *buf , word16 *value ) {
     if((buf != NULL) && (value != NULL)) {
         *value  =  buf[1]; 
         *value |=  buf[0] << 8 ;
     }
     return  (word32)2; 
-} // end of mqttDecodeWord16
+}
 
-
-
-
-word32 mqttEncodeWord32( byte *buf , word32  value )
-{
+word32 mqttEncodeWord32( byte *buf , word32  value ) {
     if(buf != NULL){
         buf[0] =  value >> 24; 
         buf[1] = (value >> 16) & 0xff; 
@@ -127,13 +108,9 @@ word32 mqttEncodeWord32( byte *buf , word32  value )
     }
     // return number of bytes used to store the encoded value
     return  (word32)4;
-} // end of mqttEncodeWord32
+}
 
-
-
-
-word32 mqttDecodeWord32( byte *buf , word32 *value )
-{
+word32 mqttDecodeWord32( byte *buf , word32 *value ) {
     if((buf != NULL) && (value != NULL)) {
         *value  = buf[3]; 
         *value |= buf[2] << 8  ;
@@ -141,13 +118,9 @@ word32 mqttDecodeWord32( byte *buf , word32 *value )
         *value |= buf[0] << 24 ;
     }
     return  (word32)4; 
-} // end of mqttDecodeWord32
+}
 
-
-
-
-word32 mqttEncodeStr( byte *buf, const char   *str, word16   strlen )
-{
+word32 mqttEncodeStr( byte *buf, const char   *str, word16   strlen ) {
     word32  len  = 0;
     len = mqttEncodeWord16( buf, strlen );
     if((buf != NULL) && (str != NULL)){
@@ -156,13 +129,9 @@ word32 mqttEncodeStr( byte *buf, const char   *str, word16   strlen )
     }
     len += strlen;
     return  len;
-} // end of mqttEncodeStr
+}
 
-
-
-
-word32 mqttDecodeStr( byte *buf, const char **pstr, word16 *pstrlen )
-{
+word32 mqttDecodeStr( byte *buf, const char **pstr, word16 *pstrlen ) {
     word32  len  = 0;
     if((buf != NULL) && (pstrlen != NULL) && (pstr != NULL)){
         len    = mqttDecodeWord16( buf, pstrlen );
@@ -170,11 +139,7 @@ word32 mqttDecodeStr( byte *buf, const char **pstr, word16 *pstrlen )
         len   += *pstrlen;
     }
     return  len;
-} // end of mqttDecodeStr
-
-
-
-
+}
 
 word32 mqttEncodeProps( byte *buf, mqttProp_t *props )
 {
@@ -225,9 +190,6 @@ word32 mqttEncodeProps( byte *buf, mqttProp_t *props )
 
     return  total_len;
 } // end of mqttEncodeProps
-
-
-
 
 
 word32 mqttDecodeProps( byte *buf, mqttProp_t **props , word32  props_len )
@@ -285,10 +247,6 @@ word32 mqttDecodeProps( byte *buf, mqttProp_t **props , word32  props_len )
 } // end of mqttDecodeProps
 
 
-
-    
-
-
 static word32 mqttEncodeFxHeader( byte *tx_buf, word32 tx_buf_len, word32 remain_len, 
                                   mqttCtrlPktType cmdtype, byte retain, byte qos, byte duplicate )
 {
@@ -303,7 +261,6 @@ static word32 mqttEncodeFxHeader( byte *tx_buf, word32 tx_buf_len, word32 remain
     len  = len + 1; // TODO: test this part
     return  len;
 } // end of  mqttEncodeFxHeader
-
 
 
 static word32 mqttDecodeFxHeader( byte *rx_buf, word32 rx_buf_len, word32 *remain_len, 
@@ -324,7 +281,6 @@ static word32 mqttDecodeFxHeader( byte *rx_buf, word32 rx_buf_len, word32 *remai
     if(remain_len != NULL) { *remain_len = _remain_len; }
     return  len;
 } // end of mqttDecodeFxHeader
-
 
 
 word32  mqttEncodePktConnect( byte *tx_buf, word32 tx_buf_len, struct __mqttConn *conn )
@@ -402,8 +358,6 @@ word32  mqttEncodePktConnect( byte *tx_buf, word32 tx_buf_len, struct __mqttConn
 } // end of mqttEncodePktConnect
 
 
-
-
 word32  mqttDecodePktConnack( byte *rx_buf, word32 rx_buf_len,  mqttPktHeadConnack_t *connack )
 {
     if((connack == NULL) || (rx_buf == NULL) || (rx_buf_len == 0)) { 
@@ -427,8 +381,6 @@ word32  mqttDecodePktConnack( byte *rx_buf, word32 rx_buf_len,  mqttPktHeadConna
     }
     return  (fx_head_len + remain_len);
 } // end of mqttDecodePktConnack
-
-
 
 
 word32  mqttEncodePktDisconn( byte *tx_buf, word32 tx_buf_len, mqttPktDisconn_t *disconn )
@@ -466,8 +418,6 @@ word32  mqttEncodePktDisconn( byte *tx_buf, word32 tx_buf_len, mqttPktDisconn_t 
     }
     return (fx_head_len + remain_len);
 } // end of mqttEncodePktDisconn
-
-
 
 
 word32  mqttEncodePktPublish( byte *tx_buf, word32 tx_buf_len, struct __mqttMsg  *msg )
@@ -533,9 +483,6 @@ word32  mqttEncodePktPublish( byte *tx_buf, word32 tx_buf_len, struct __mqttMsg 
 } // end of mqttEncodePktPublish
 
 
-
-
-
 word32  mqttDecodePktPublish( byte *rx_buf, word32 rx_buf_len, struct __mqttMsg *msg )
 {
     word32   fx_head_len  = 0;
@@ -578,8 +525,6 @@ word32  mqttDecodePktPublish( byte *rx_buf, word32 rx_buf_len, struct __mqttMsg 
     msg->buff_len     = msg->inbuf_len ;
     return (fx_head_len + var_head_len + payload_len);
 } // end of mqttDecodePktPublish
-
-
 
 
 word32  mqttEncodePktSubscribe( byte *tx_buf, word32 tx_buf_len, mqttPktSubs_t *subs )
@@ -630,8 +575,6 @@ word32  mqttEncodePktSubscribe( byte *tx_buf, word32 tx_buf_len, mqttPktSubs_t *
 } // end of mqttEncodePktSubscribe
 
 
-
-
 word32  mqttEncodePktUnsubscribe( byte *tx_buf, word32 tx_buf_len, mqttPktUnsubs_t *unsubs )
 {
     if((unsubs == NULL) || (tx_buf == NULL) || (tx_buf_len == 0)) { 
@@ -675,8 +618,6 @@ word32  mqttEncodePktUnsubscribe( byte *tx_buf, word32 tx_buf_len, mqttPktUnsubs
 } // end of mqttEncodePktUnsubscribe
 
 
-
-
 word32  mqttEncodePktPubResp( byte *tx_buf, word32 tx_buf_len, mqttPktPubResp_t *resp, mqttCtrlPktType cmdtype )
 {
     if((resp == NULL) || (tx_buf == NULL) || (tx_buf_len == 0)) { 
@@ -705,9 +646,6 @@ word32  mqttEncodePktPubResp( byte *tx_buf, word32 tx_buf_len, mqttPktPubResp_t 
     }
     return  (fx_head_len + remain_len);
 } // end of mqttEncodePktPubResp
-
-
-
 
 
 word32  mqttDecodePktPubResp( byte *rx_buf, word32 rx_buf_len, mqttPktPubResp_t *resp, mqttCtrlPktType cmdtype )
@@ -745,8 +683,6 @@ word32  mqttDecodePktPubResp( byte *rx_buf, word32 rx_buf_len, mqttPktPubResp_t 
 } // end of mqttDecodePktPubResp
 
 
-
-
 word32  mqttDecodePktSuback( byte *rx_buf, word32 rx_buf_len, mqttPktSuback_t *suback )
 {
     if((suback == NULL) || (rx_buf == NULL) || (rx_buf_len == 0)) { 
@@ -769,8 +705,6 @@ word32  mqttDecodePktSuback( byte *rx_buf, word32 rx_buf_len, mqttPktSuback_t *s
 } // end of mqttDecodePktSuback
 
 
-
-
 word32  mqttDecodePktUnsuback( byte *rx_buf, word32 rx_buf_len, mqttPktUnsuback_t *unsuback )
 {
     if((unsuback == NULL) || (rx_buf == NULL) || (rx_buf_len == 0)) { 
@@ -791,8 +725,6 @@ word32  mqttDecodePktUnsuback( byte *rx_buf, word32 rx_buf_len, mqttPktUnsuback_
     unsuback->return_codes = curr_buf_pos; 
     return  (fx_head_len + remain_len);
 } // end of mqttDecodePktUnsuback
-
-
 
 
 int  mqttPktRead( struct __mqttCtx *mctx, byte *buf, word32 buf_max_len, word32 *copied_len )
@@ -846,10 +778,6 @@ int  mqttPktRead( struct __mqttCtx *mctx, byte *buf, word32 buf_max_len, word32 
 } // end of mqttPktRead
 
 
-
-
-
-
 int  mqttPktWrite( struct __mqttCtx *mctx, byte *buf, word32 buf_len )
 {
     if((mctx == NULL) || (buf == NULL)) { 
@@ -864,9 +792,6 @@ int  mqttPktWrite( struct __mqttCtx *mctx, byte *buf, word32 buf_len )
     while( buf_len > 0 ); 
     return  MQTT_RETURN_SUCCESS;
 } // end of mqttPktWrite
-
-
-
 
 
 int mqttDecodePkt( struct __mqttCtx *mctx, byte *buf, word32 buf_len, void *p_decode, word16 *recv_pkt_id  )
@@ -948,6 +873,4 @@ int mqttDecodePkt( struct __mqttCtx *mctx, byte *buf, word32 buf_len, void *p_de
     } // end of switch-case statement
     return  MQTT_RETURN_SUCCESS;
 } // end of mqttDecodePkt
-
-
 

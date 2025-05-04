@@ -1,15 +1,11 @@
-#include "tests/integration/ESP_AT_parser/connect_ap_ping.h"
+#include "demo_apps/connect_ap_ping.h"
 
-#define  TASK_MIN_STACK_SIZE      (( unsigned portSHORT ) 0x7e)
+#define  TASK_MIN_STACK_SIZE  (( unsigned portSHORT ) 0x7e)
 
-
-
-static void vESPtestConnAPtask(void *params)
-{
+static void vESPtestConnAPtask(void *params) {
     espRes_t response = espOK ;
     const uint8_t  waitUntilConnected = 0x0;
-    for(;;)
-    {
+    for(;;) {
         // Set device is present 
         response =  eESPresetWithDelay( 1, NULL, NULL );
         if(response == espOK) {
@@ -18,31 +14,22 @@ static void vESPtestConnAPtask(void *params)
             // Check for station_manager.c to define preferred access points ESP should connect to
             eESPtestConnAP( waitUntilConnected );
             vESPsysDelay(20000);
-        }
-        // Set device is NOT present 
+        } // Set device is NOT present 
         eESPcloseDevice( );
         vESPsysDelay(5000);
     } // end of outer infinite loop
-} // end of vESPtestConnAPtask
+}
 
 
-
-
-static void vESPtestPingTask(void *params)
-{
+static void vESPtestPingTask(void *params) {
     uint32_t  pingresptime = 0;
-    for(;;)
-    {
+    for(;;) {
         pingresptime = 0;
         eESPping( "stackoverflow.com", sizeof("stackoverflow.com"), &pingresptime, 
                    NULL, NULL, ESP_AT_CMD_BLOCKING );
         vESPsysDelay( 1000 );
-    } // end of outer infinite loop
-} // end of vESPtestPingTask
-
-
-
-
+    }
+}
 
 static espRes_t vESPinitCallBack( espEvt_t*  evt )
 {
@@ -90,11 +77,7 @@ static espRes_t vESPinitCallBack( espEvt_t*  evt )
 } // end of vESPinitCallBack
 
 
-
-
-
-static void vESPtestInitTask(void *params)
-{
+static void vESPtestInitTask(void *params) {
     uint8_t     isPrivileged = 0x1;
     espRes_t    response     =  eESPinit( vESPinitCallBack );
     if( response == espOK ) {
@@ -109,20 +92,13 @@ static void vESPtestInitTask(void *params)
 } // end of vESPinitTask
 
 
-
-
-
-void  vESPtestStartPingTask(void)
-{
-    espRes_t response ;
+void  vCreateAllTestTasks(void) {
     uint8_t isPrivileged = 0x1;
     // the ESP initialization thread takes the smae priority as the 2 internal threads working 
     // in ESP AT software.
-    response = eESPsysThreadCreate( NULL, "espInitTask", vESPtestInitTask, NULL ,
-                                    TASK_MIN_STACK_SIZE, ESP_SYS_THREAD_PRIO ,  isPrivileged
-                                  );
+    espRes_t response = eESPsysThreadCreate(
+        NULL, "espInitTask", vESPtestInitTask, NULL ,
+        TASK_MIN_STACK_SIZE, ESP_SYS_THREAD_PRIO ,  isPrivileged
+    );
     ESP_ASSERT( response == espOK ); 
-} // end of vESPtestStartPingTask
-
-
-
+}

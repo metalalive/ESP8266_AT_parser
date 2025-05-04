@@ -1,6 +1,5 @@
 #include "esp/esp.h"
-#include "tests/integration/ESP_AT_parser/mqtt/mqtt_include.h"
-
+#include "demo_apps/mqtt/mqtt_include.h"
 
 static mqttProp_t clientPropStack[MQTT_MAX_NUM_PROPS] = {0};
 
@@ -36,10 +35,8 @@ int   mqttClientInit( mqttCtx_t **mctx, int cmd_timeout_ms, word32 tx_buf_len, w
 } // end of mqttClientInit
 
 
-
-int  mqttClientDeinit( mqttCtx_t *c )
-{
-    if( c == NULL ){ 
+int  mqttClientDeinit( mqttCtx_t *c ) {
+    if( c == NULL ){
         return MQTT_RETURN_ERROR_BAD_ARG;
     }
     ESP_MEMFREE( c->tx_buf );
@@ -48,10 +45,7 @@ int  mqttClientDeinit( mqttCtx_t *c )
     c->rx_buf = NULL;
     ESP_MEMFREE( c );
     return  MQTT_RETURN_SUCCESS;
-} // end of  mqttClientDeinit
-
-
-
+}
 
 int  mqttClientWaitPkt( mqttCtx_t *mctx, mqttCtrlPktType wait_cmdtype, word16 wait_packet_id, void* p_decode )
 {
@@ -87,9 +81,6 @@ int  mqttClientWaitPkt( mqttCtx_t *mctx, mqttCtrlPktType wait_cmdtype, word16 wa
 } // end of mqttClientWaitPkt
 
 
-
-
-
 mqttProp_t*  mqttPropertyCreate( mqttProp_t **head )
 { // TODO: mutex is required in multithreading case
     mqttProp_t*  curr_node = *head;
@@ -118,8 +109,6 @@ mqttProp_t*  mqttPropertyCreate( mqttProp_t **head )
 } // end of mqttPropertyCreate
 
 
-
-
 void   mqttPropertyDel( mqttProp_t *head )
 { // TODO: mutex is required in multithreading case
     mqttProp_t*  curr_node = head;
@@ -132,8 +121,6 @@ void   mqttPropertyDel( mqttProp_t *head )
         curr_node = next_node;
     }
 } // end of mqttPropertyDel
-
-
 
 
 int   mqttSendConnect( mqttCtx_t *mctx )
@@ -167,10 +154,7 @@ int   mqttSendConnect( mqttCtx_t *mctx )
 } // end of mqttSendConnect
 
 
-
-
-int   mqttSendDisconnect( mqttCtx_t *mctx )
-{
+int   mqttSendDisconnect( mqttCtx_t *mctx ) {
     byte    *tx_buf;
     word32   tx_buf_len;
     word32   pkt_total_len;
@@ -185,8 +169,6 @@ int   mqttSendDisconnect( mqttCtx_t *mctx )
     }
     return  mqttPktWrite( mctx, tx_buf, pkt_total_len );
 } // end of  mqttSendDisconnect
-
-
 
 
 int   mqttSendPublish( mqttCtx_t *mctx )
@@ -244,8 +226,6 @@ int   mqttSendPublish( mqttCtx_t *mctx )
 } // end of mqttSendPublish
 
 
-
-
 int  mqttSendPubResp( mqttCtx_t *mctx, mqttCtrlPktType  cmdtype )
 {
     int          status;
@@ -290,11 +270,7 @@ int  mqttSendPubResp( mqttCtx_t *mctx, mqttCtrlPktType  cmdtype )
 } // end of mqttSendPubResp
 
 
-
-
-
-int   mqttSendSubscribe( mqttCtx_t *mctx )
-{
+int   mqttSendSubscribe( mqttCtx_t *mctx ) {
     int          status;
     byte        *tx_buf;
     word32       tx_buf_len;
@@ -329,11 +305,7 @@ int   mqttSendSubscribe( mqttCtx_t *mctx )
 } // end of mqttSendSubscribe
 
 
-
-
-
-int   mqttSendUnsubscribe( mqttCtx_t *mctx )
-{
+int   mqttSendUnsubscribe( mqttCtx_t *mctx ) {
     int          status;
     byte        *tx_buf;
     word32       tx_buf_len;
@@ -366,10 +338,3 @@ int   mqttSendUnsubscribe( mqttCtx_t *mctx )
                                 (void *)unsuback );
     return status;
 } // end of mqttSendUnsubscribe
-
-
-
-
-
-
-
