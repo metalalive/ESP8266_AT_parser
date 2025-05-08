@@ -3,9 +3,7 @@
 
 extern espGlbl_t espGlobal;
 
-
-static void vESPenableATecho (uint8_t enable )
-{
+static void vESPenableATecho (uint8_t enable ) {
     espMsg_t *msg      = NULL;
     espCmd_t  cmd;  
     if( enable == 0 ) { cmd = ESP_CMD_ATE0; }
@@ -16,10 +14,7 @@ static void vESPenableATecho (uint8_t enable )
     eESPsendReqToMbox( msg, eESPinitATcmd );
 } // end of vESPenableATecho
 
-
-
-static  espRes_t  eESPgetCurrATversion( void )
-{
+static  espRes_t  eESPgetCurrATversion( void ) {
     espRes_t response = espERR ;
     espMsg_t *msg = NULL;
     msg = pxESPmsgCreate( ESP_CMD_GMR, NULL, NULL, ESP_AT_CMD_BLOCKING );
@@ -27,9 +22,7 @@ static  espRes_t  eESPgetCurrATversion( void )
     msg->block_time = 100;
     response = eESPsendReqToMbox( msg, eESPinitATcmd );
     return response;
-} // end of eESPgetCurrATversion
-
-
+}
 
 espRes_t    eESPrestore( const espApiCmdCbFn cb, void* const cb_arg )
 {
@@ -43,8 +36,6 @@ espRes_t    eESPrestore( const espApiCmdCbFn cb, void* const cb_arg )
     response = eESPresetWithDelay( 3, cb , cb_arg );
     return response;
 } // end of eESPrestore
-
-
 
 espRes_t    eESPresetWithDelay( uint32_t dly_ms, const espApiCmdCbFn cb , void* const cb_arg )
 {
@@ -87,7 +78,6 @@ espRes_t    eESPresetWithDelay( uint32_t dly_ms, const espApiCmdCbFn cb , void* 
 } // end of eESPresetWithDelay
 
 
-
 espRes_t    eESPsetConnPublishExtraMsg(espFnEn_t en)
 {
     espRes_t response = espOK ; 
@@ -114,7 +104,6 @@ espRes_t   eESPsetIPDextraMsg( espFnEn_t en )
 } // end of eESPsetIPDextraMsg
 
 
-
 espRes_t   eESPenterDeepSleep( uint32_t sleep_ms, const espApiCmdCbFn api_cb, void* const api_cb_arg, const uint32_t blocking )
 { 
 // in general, ESP-01 device does not support wake up from deep sleep mode.
@@ -131,10 +120,7 @@ espRes_t   eESPenterDeepSleep( uint32_t sleep_ms, const espApiCmdCbFn api_cb, vo
     response = eESPsendReqToMbox( msg, eESPinitATcmd );
     return  response;
 #endif // end of ESP_CFG_DEV_ESP01 == 1
-} // end of eESPenterDeepSleep
-
-
-
+}
 
 espRes_t  eESPcloseDevice( void )
 {
@@ -145,7 +131,7 @@ espRes_t  eESPcloseDevice( void )
         eESPcoreUnlock();
 #if (ESP_CFG_MODE_STATION != 0)
         // disconnect wifi if the ESP in station mode connected another AP.
-        eESPstaQuit( NULL, NULL, ESP_AT_CMD_BLOCKING );
+        response = eESPstaQuit( NULL, NULL, ESP_AT_CMD_BLOCKING );
 #endif // ESP_CFG_MODE_STATION  
         // TODO: 
         // * close all the established network connections in the ESP device.
@@ -156,8 +142,6 @@ espRes_t  eESPcloseDevice( void )
     return response;
 } // end of eESPcloseDevice
 
-
-
 espRes_t    eESPdeviceIsPresent( void )
 {
     uint8_t present = 0;
@@ -166,5 +150,3 @@ espRes_t    eESPdeviceIsPresent( void )
     eESPcoreUnlock();
     return ( present != 0 ? espOK : espERRNODEVICE );
 } // end of eESPdeviceIsPresent
-
-

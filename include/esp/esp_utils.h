@@ -70,6 +70,7 @@ extern "C" {
 #define ESP_CHR_DOT               "."
 #define ESP_ASCII_COLON           0x3A
 #define ESP_CHR_COLON             ":"
+#define ESP_ASCII_EQUAL           0x3D
 
 #define ESP_ASCII_CRLF_LEN         2
 

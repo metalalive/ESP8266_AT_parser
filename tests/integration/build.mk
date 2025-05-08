@@ -7,7 +7,6 @@ include  $(ITEST_FULLPATH)/src/hardware/stm32f446/build.mk
 
 ITEST_C_SOURCES = \
 	src/demo_apps/common.c      \
-	src/demo_apps/test_runner.c \
 	src/entry.c
 
 include  $(ITEST_FULLPATH)/src/demo_apps/$(APP_NAME).mk

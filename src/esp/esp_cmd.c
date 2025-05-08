@@ -3,8 +3,6 @@
 
 extern espGlbl_t espGlobal;
 
-
-
 static void  AT_APPEND_CHR( uint8_t **_des_p, const uint8_t _chr ) 
 {   
     if(ESP_ISVALIDASCII(_chr)) { 
@@ -22,8 +20,6 @@ static void  AT_APPEND_STR( uint8_t **_des_p, const uint8_t *_str, uint16_t _str
     }
 }
 
-
-
 static void  vESPappendIPtoStr( uint8_t **curr_chr_pp, const espIp_t* ip )
 {
     const uint8_t ip_num_cnt = 4;
@@ -32,16 +28,14 @@ static void  vESPappendIPtoStr( uint8_t **curr_chr_pp, const espIp_t* ip )
 
     AT_APPEND_CHR( curr_chr_pp, ESP_ASCII_DOUBLE_QUOTE ) ;
     for (idx=0; idx<ip_num_cnt; idx++) {
-	num_chr_append = uiESPcvtNumToStr( *curr_chr_pp, ip->ip[idx], ESP_DIGIT_BASE_DECIMAL );
+        num_chr_append = uiESPcvtNumToStr( *curr_chr_pp, ip->ip[idx], ESP_DIGIT_BASE_DECIMAL );
         *curr_chr_pp += num_chr_append;
         if(idx < (ip_num_cnt - 1)) {
             AT_APPEND_CHR( curr_chr_pp, ESP_ASCII_DOT ) ;
         }
     }
     AT_APPEND_CHR( curr_chr_pp, ESP_ASCII_DOUBLE_QUOTE ) ;
-} // end of vESPappendIPtoStr
-
-
+}
 
 
 static void  vESPappendMACtoStr( uint8_t *out, const espMac_t* mac_in )
@@ -51,14 +45,13 @@ static void  vESPappendMACtoStr( uint8_t *out, const espMac_t* mac_in )
     uint8_t   idx = 0;
 
     for (idx=0; idx<num_cnt; idx++) {
-	num_chr_append = uiESPcvtNumToStr( out, mac_in->mac[idx], ESP_DIGIT_BASE_HEX );
-        out           += num_chr_append;
+        num_chr_append = uiESPcvtNumToStr( out, mac_in->mac[idx], ESP_DIGIT_BASE_HEX );
+        out += num_chr_append;
         if(idx < (num_cnt - 1)) {
             AT_APPEND_CHR( &out, ESP_ASCII_COLON ) ;
         }
     }
-} // end of vESPappendMACtoStr
-
+}
 
 
 espRes_t    eESPinitATcmd( espMsg_t* msg )
@@ -152,8 +145,15 @@ espRes_t    eESPinitATcmd( espMsg_t* msg )
         case ESP_CMD_WIFI_CWQAP                  :
 	    AT_APPEND_STR( &cmd_str_p, (const uint8_t *)&("+CWQAP"), 6 );
             break;   
-        case ESP_CMD_WIFI_CWLAP                  :
-	    AT_APPEND_STR( &cmd_str_p, (const uint8_t *)&("+CWLAP"), 6 );
+        case ESP_CMD_WIFI_CWLAP:
+            AT_APPEND_STR( &cmd_str_p, (const uint8_t *)&("+CWLAP"), 6 );
+            if(msg->body.ap_list.ssid && msg->body.ap_list.ssid_len > 0) {
+                AT_APPEND_CHR( &cmd_str_p, ESP_ASCII_EQUAL );
+                AT_APPEND_CHR( &cmd_str_p, ESP_ASCII_DOUBLE_QUOTE );
+                AT_APPEND_STR( &cmd_str_p, (const uint8_t *)msg->body.ap_list.ssid,
+                              msg->body.ap_list.ssid_len );
+                AT_APPEND_CHR( &cmd_str_p, ESP_ASCII_DOUBLE_QUOTE );
+            }
             break;   
         case ESP_CMD_WIFI_CIPSTAMAC_GET          :  break;   
         case ESP_CMD_WIFI_CIPSTAMAC_SET          :  break;   
@@ -296,7 +296,6 @@ espRes_t    eESPinitATcmd( espMsg_t* msg )
     }
     return response;
 } // end of eESPinitATcmd
-
 
 
 espRes_t    eESPcmdStartSendData( espMsg_t* msg )

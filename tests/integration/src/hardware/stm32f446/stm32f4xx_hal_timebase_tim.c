@@ -1,131 +1,84 @@
-/* USER CODE BEGIN Header */
-/**
-  ******************************************************************************
-  * @file    stm32f4xx_hal_timebase_TIM.c 
-  * @brief   HAL time base based on the hardware TIM.
-  ******************************************************************************
-  ** This notice applies to any and all portions of this file
-  * that are not between comment pairs USER CODE BEGIN and
-  * USER CODE END. Other portions of this file, whether 
-  * inserted by the user or by software development tools
-  * are owned by their respective copyright owners.
-  *
-  * COPYRIGHT(c) 2019 STMicroelectronics
-  *
-  * Redistribution and use in source and binary forms, with or without modification,
-  * are permitted provided that the following conditions are met:
-  *   1. Redistributions of source code must retain the above copyright notice,
-  *      this list of conditions and the following disclaimer.
-  *   2. Redistributions in binary form must reproduce the above copyright notice,
-  *      this list of conditions and the following disclaimer in the documentation
-  *      and/or other materials provided with the distribution.
-  *   3. Neither the name of STMicroelectronics nor the names of its contributors
-  *      may be used to endorse or promote products derived from this software
-  *      without specific prior written permission.
-  *
-  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-  * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-  * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-  * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-  * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-  * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-  *
-  ******************************************************************************
-  */
-/* USER CODE END Header */
-
-/* Includes ------------------------------------------------------------------*/
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx_hal_tim.h"
+#include "FreeRTOS.h"
  
-/* Private typedef -----------------------------------------------------------*/
-/* Private define ------------------------------------------------------------*/
-/* Private macro -------------------------------------------------------------*/
-/* Private variables ---------------------------------------------------------*/
-TIM_HandleTypeDef        htim2; 
-/* Private function prototypes -----------------------------------------------*/
-/* Private functions ---------------------------------------------------------*/
+TIM_HandleTypeDef  htim2;
 
-/**
-  * @brief  This function configures the TIM2 as a time base source. 
-  *         The time source is configured  to have 1ms time base with a dedicated 
-  *         Tick interrupt priority. 
-  * @note   This function is called  automatically at the beginning of program after
-  *         reset by HAL_Init() or at any time when clock is configured, by HAL_RCC_ClockConfig(). 
-  * @param  TickPriority: Tick interrupt priority.
-  * @retval HAL status
-  */
-HAL_StatusTypeDef HAL_InitTick(uint32_t TickPriority)
-{
-  RCC_ClkInitTypeDef    clkconfig;
-  uint32_t              uwTimclock = 0;
-  uint32_t              uwPrescalerValue = 0;
-  uint32_t              pFLatency;
-  
-  /*Configure the TIM2 IRQ priority */
-  HAL_NVIC_SetPriority(TIM2_IRQn, TickPriority ,0); 
-  
-  /* Enable TIM2 clock */
-  __HAL_RCC_TIM2_CLK_ENABLE();
-  
-  /* Get clock configuration */
-  HAL_RCC_GetClockConfig(&clkconfig, &pFLatency);
-  
-  /* Compute TIM2 clock */
-  uwTimclock = HAL_RCC_GetPCLK1Freq();
-   
-  /* Compute the prescaler value to have TIM2 counter clock equal to 1MHz */
-  uwPrescalerValue = (uint32_t) ((uwTimclock / 1000000) - 1);
-  
-  /* Initialize TIM2 */
-  htim2.Instance = TIM2;
-  
-  /* Initialize TIMx peripheral as follow:
-  + Period = [(TIM2CLK/1000) - 1]. to have a (1/1000) s time base.
-  + Prescaler = (uwTimclock/1000000 - 1) to have a 1MHz counter clock.
-  + ClockDivision = 0
-  + Counter direction = Up
-  */
-  htim2.Init.Period = (1000000 / 1000) - 1;
-  htim2.Init.Prescaler = uwPrescalerValue;
-  htim2.Init.ClockDivision = 0;
-  htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-  if(HAL_TIM_Base_Init(&htim2) == HAL_OK)
-  {
-    /* Start the TIM time Base generation in interrupt mode */
-    return HAL_TIM_Base_Start_IT(&htim2);
+// In STM32 HAL,  `HAL_InitTick()` is invoked before system clock initialization ,
+// it is improper to overwrite the function for initializing other timers on STM32
+// board
+
+extern void Error_Handler(void);
+
+void SystemClock_Config(void) {
+  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+
+  /**Configure the main internal regulator output voltage */
+  __HAL_RCC_PWR_CLK_ENABLE();
+  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE3);
+  /**Initializes the CPU, AHB and APB busses clocks  */
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
+  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) {
+    Error_Handler();
   }
+  /**Initializes the CPU, AHB and APB busses clocks */
+  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
+                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSI;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
+  {
+    Error_Handler();
+  }
+}
+
+HAL_StatusTypeDef  TIM2_Init(uint32_t TickPriority) {
+    TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+    TIM_MasterConfigTypeDef sMasterConfig = {0};
+    RCC_ClkInitTypeDef    clkconfig;
+    HAL_StatusTypeDef     result = HAL_OK;
+    uint32_t   uwTimclock = 0, pFLatency = 0;
   
-  /* Return function status */
-  return HAL_ERROR;
+    HAL_RCC_GetClockConfig(&clkconfig, &pFLatency);
+    uwTimclock = HAL_RCC_GetPCLK1Freq();
+   
+    // in this test application, TIM2 period is the same as the interval
+    // equal to time duration between every 2 consecutive ticks. 
+    htim2.Instance = TIM2;
+    htim2.Init.Period = (uwTimclock / configTICK_RATE_HZ) - 1;
+    htim2.Init.Prescaler = 0;
+    htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+    htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
+    htim2.InterruptGrpPriority = TickPriority;
+    htim2.InterruptSubPriority = 0;
+    result = HAL_TIM_Base_Init(&htim2);
+    if(result != HAL_OK) {
+        return result;
+    }
+    sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+    result = HAL_TIM_ConfigClockSource(&htim2, &sClockSourceConfig);
+    if(result != HAL_OK) {
+        return result;
+    }
+    sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+    sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+    result = HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig);
+    if(result != HAL_OK) {
+        return result;
+    }
+    return HAL_TIM_Base_Start_IT(&htim2);
 }
 
-/**
-  * @brief  Suspend Tick increment.
-  * @note   Disable the tick increment by disabling TIM2 update interrupt.
-  * @param  None
-  * @retval None
-  */
-void HAL_SuspendTick(void)
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
-  /* Disable TIM2 update Interrupt */
-  __HAL_TIM_DISABLE_IT(&htim2, TIM_IT_UPDATE);                                                  
+  if (htim->Instance == TIM2) {
+    HAL_IncTick();
+  }
 }
-
-/**
-  * @brief  Resume Tick increment.
-  * @note   Enable the tick increment by Enabling TIM2 update interrupt.
-  * @param  None
-  * @retval None
-  */
-void HAL_ResumeTick(void)
-{
-  /* Enable TIM2 Update interrupt */
-  __HAL_TIM_ENABLE_IT(&htim2, TIM_IT_UPDATE);
-}
-
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

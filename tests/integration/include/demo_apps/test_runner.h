@@ -10,11 +10,6 @@ extern "C" {
 // ----------- function declaration -----------
 void vCreateAllTestTasks(void);
 
-void vIntegrationTestTimerISR1(void);
-
-void vIntegrationTestTimerISR2(void);
-
-BaseType_t vIntegrationTestRTOSMemManageHandler(void);
 
 #ifdef __cplusplus
 }

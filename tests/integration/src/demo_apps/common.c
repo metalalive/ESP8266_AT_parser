@@ -2,8 +2,6 @@
 
 #define  MAX_NUM_AP_FOUND    15
 
-
-
 typedef struct {
    const char* ssid ;
    const char* passwd ; 
@@ -11,11 +9,9 @@ typedef struct {
    uint8_t     passwd_len ; 
 } apEntry_t;
 
-
 // TODO : figure out why we connot create static array of struct in C
 static espAP_t    foundAPs[ MAX_NUM_AP_FOUND ];
 static PRIVILEGED_DATA apEntry_t  preferredAP = { "your_ssid", "your_passwd", 9, 11 }; 
-
 
 
 espRes_t  eESPtestConnAP( uint8_t waitUntilConnected )
@@ -30,8 +26,10 @@ espRes_t  eESPtestConnAP( uint8_t waitUntilConnected )
         // clear the APs the ESP device found previously
         num_ap_found = 0;
         ESP_MEMSET( &foundAPs, 0x00, sizeof(espAP_t) * MAX_NUM_AP_FOUND );
-        response = eESPstaListAP( NULL, 0, &foundAPs[0], ESP_ARRAYSIZE(foundAPs), &num_ap_found, 
-                                  NULL, NULL, ESP_AT_CMD_BLOCKING );
+        response = eESPstaListAP(
+            preferredAP.ssid, (uint16_t)preferredAP.ssid_len, &foundAPs[0],
+            ESP_ARRAYSIZE(foundAPs), &num_ap_found, NULL, NULL, ESP_AT_CMD_BLOCKING
+        );
         if((response == espOK) || (response == espOKIGNOREMORE)) {
             // Print all access points found by ESP 
             //// for (idx = 0; idx < num_ap_found; idx++) {

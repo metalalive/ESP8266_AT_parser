@@ -11,12 +11,20 @@ export ESP_PROJ_HOME = $(shell pwd)
 BUILD_DIR = $(ESP_PROJ_HOME)/build
 
 
-integration_test: Makefile  tests/integration/build.mk  $(RTOS_HW_BUILD_PATH)  $(TOOLCHAIN_BASEPATH)
-	make -C $(RTOS_HW_BUILD_PATH)  startbuild \
+integration_test:  tests/integration/build.mk  $(RTOS_HW_BUILD_PATH)  $(TOOLCHAIN_BASEPATH)
+	@make -C $(RTOS_HW_BUILD_PATH)  startbuild \
 		DEBUG=$(DEBUG)  BUILD_DIR=$(BUILD_DIR)  \
 		APPCFG_PATH=$(ESP_PROJ_HOME)/tests/integration  \
 		APP_NAME=$(APP_NAME) HW_PLATFORM=$(HW_PLATFORM) \
 		OS=$(OS) TOOLCHAIN_BASEPATH=$(TOOLCHAIN_BASEPATH)
+
+dbg_server: $(RTOS_HW_BUILD_PATH)
+	@make -C $(RTOS_HW_BUILD_PATH)  dbg_server
+
+dbg_client: $(RTOS_HW_BUILD_PATH)
+	@make -C $(RTOS_HW_BUILD_PATH)  dbg_client \
+		DBG_CUSTOM_SCRIPT_PATH=$(ESP_PROJ_HOME)/test-utility.gdb \
+		TOOLCHAIN_BASEPATH=$(TOOLCHAIN_BASEPATH)
 
 clean:
 	@rm -rf $(BUILD_DIR)

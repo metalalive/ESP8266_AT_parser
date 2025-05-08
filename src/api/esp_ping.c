@@ -19,7 +19,12 @@ espRes_t  eESPping(const char* host, uint16_t host_len, uint32_t* resptime, cons
     msg->body.tcpip_ping.host_len = host_len;
     msg->body.tcpip_ping.resptime = resptime;
     response = eESPsendReqToMbox( msg, eESPinitATcmd );
-    return response;
+    uint32_t actual_resp_time = *msg->body.tcpip_ping.resptime;
+    if(actual_resp_time == 0) {
+        return espERRCONNFAIL;
+    } else {
+        return response;
+    }
 } // end of eESPping
 
 

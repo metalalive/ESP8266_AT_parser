@@ -1,6 +1,10 @@
 #include "stm32f4xx_hal.h"
 #include "esp/esp.h"
 
+extern void SystemClock_Config(void);
+extern HAL_StatusTypeDef  TIM2_Init(uint32_t TickPriority);
+
+
 static   UART_HandleTypeDef haluart1; // for printf function
 static   UART_HandleTypeDef haluart3; // for ESP device
 static   DMA_HandleTypeDef  haldma_usart3_rx; // the DMA module used with UART1 (STM32F4xx board)
@@ -12,9 +16,6 @@ static    uint8_t   recv_data_buf[ ESP_RESP_RECV_BUF_SIZE ]; // get rough respon
 static  uint16_t  dma_buf_num_char_copied = 0;
 static  uint16_t  dma_buf_cpy_offset_next = 0;
 static  uint16_t  dma_buf_cpy_offset_curr = 0;
-
-
-
 
 // In this test, the underlying hardware platform is STM32F4xx board. 
 // we apply STM32 Hardware Abstraction Layer & implement the funcitons 
@@ -66,15 +67,9 @@ void HAL_UART_MspInit(UART_HandleTypeDef* huart)
         HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
         GPIO_InitStruct.Pin = GPIO_PIN_10;
-        GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-        GPIO_InitStruct.Pull = GPIO_PULLUP;
-        GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-        GPIO_InitStruct.Alternate = GPIO_AF7_USART3;
         HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
     }
 } // end of HAL_UART_MspInit
-
-
 
 
 // implementing the funcitons that are called in our ESP AT software. 
@@ -84,8 +79,6 @@ espRes_t  eESPlowLvlDevInit(void *params)
     __HAL_RCC_DMA1_CLK_ENABLE();
     HAL_NVIC_SetPriority( DMA1_Stream1_IRQn, (configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY + 1), 0 );
     HAL_NVIC_EnableIRQ( DMA1_Stream1_IRQn );
-    //// HAL_NVIC_SetPriority( DMA1_Stream5_IRQn, (configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY + 1), 0 );
-    //// HAL_NVIC_EnableIRQ( DMA1_Stream5_IRQn );
     // ---------- initialize UART for printf debugging use ---------- 
     haluart1.Instance = USART1;
     haluart1.Init.BaudRate = 115200;
@@ -98,9 +91,8 @@ espRes_t  eESPlowLvlDevInit(void *params)
     if (HAL_UART_Init(&haluart1) != HAL_OK) {
         return espERR;
     }
-    //  ---------- initialize UART for ESP device ---------- 
+    //  -------- initialize Tx / Rx of ESP device ---------- 
     haluart3.Instance = USART3;
-    //// haluart3.Instance = USART2;
     haluart3.Init.BaudRate = 115200;
     haluart3.Init.WordLength = UART_WORDLENGTH_8B;
     haluart3.Init.StopBits = UART_STOPBITS_1;
@@ -115,11 +107,8 @@ espRes_t  eESPlowLvlDevInit(void *params)
     __HAL_UART_ENABLE_IT( &haluart3 , UART_IT_IDLE );    
     HAL_NVIC_SetPriority( USART3_IRQn, (configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY + 1), 0 );
     HAL_NVIC_EnableIRQ( USART3_IRQn );
-    //// HAL_NVIC_SetPriority( USART2_IRQn, (configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY + 1), 0 );
-    //// HAL_NVIC_EnableIRQ( USART2_IRQn );
-    //  ---------- initialize DMA for Rx of ESP device. ---------- 
+    //  ------ initialize DMA for Rx of ESP device. ---------- 
     haldma_usart3_rx.Instance = DMA1_Stream1;
-    //// haldma_usart3_rx.Instance = DMA1_Stream5;
     haldma_usart3_rx.Init.Channel = DMA_CHANNEL_4;
     haldma_usart3_rx.Init.Direction = DMA_PERIPH_TO_MEMORY;
     haldma_usart3_rx.Init.PeriphInc = DMA_PINC_DISABLE;
@@ -133,20 +122,25 @@ espRes_t  eESPlowLvlDevInit(void *params)
         return espERR;
     }
     __HAL_LINKDMA(&haluart3, hdmarx, haldma_usart3_rx);
-
-    //  ---------- initialize GPIO pins  for ESP device ---------- 
+    
     GPIO_InitTypeDef GPIO_InitStruct = {0};
-    // GPIO Ports Clock Enable 
+    // ------ initialize GPIO0 pin of ESP device ------- 
+    __HAL_RCC_GPIOH_CLK_ENABLE();
+    GPIO_InitStruct.Pin = GPIO_PIN_0;
+    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+    GPIO_InitStruct.Pull = GPIO_PULLUP;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    HAL_GPIO_Init(GPIOH, &GPIO_InitStruct);
+    HAL_GPIO_WritePin( GPIOH, GPIO_PIN_0, GPIO_PIN_SET );
+
+    // ------ initialize RST pin of ESP device ------- 
     __HAL_RCC_GPIOB_CLK_ENABLE();
-    // Configure GPIO pin Output Level
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_9 | GPIO_PIN_4, GPIO_PIN_RESET);
-    // Configure GPIO pins : PB10 PB4 
-    GPIO_InitStruct.Pin = GPIO_PIN_9 | GPIO_PIN_4;
+    GPIO_InitStruct.Pin = GPIO_PIN_9;
     GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
+    HAL_GPIO_WritePin( GPIOB, GPIO_PIN_9, GPIO_PIN_RESET );
     return espOK;
 } // end of  eESPlowLvlDevInit
 
@@ -171,26 +165,15 @@ void USART3_IRQHandler( void )
     } 
 } // end of USART3_IRQHandler
 
-
-
-// DMA interrupt service routine 
-void DMA1_Stream1_IRQHandler(void)
-{
-  HAL_DMA_IRQHandler( &haldma_usart3_rx );
-} // end of DMA1_Stream1_IRQHandler
-
-
-
-
+void DMA1_Stream1_IRQHandler(void) {
+    HAL_DMA_IRQHandler( &haldma_usart3_rx );
+}
 
 // [TODO] 
 // calculate which half of the Rx buffer should be copied to ESP core function at here, (since the way to generate DMA/UART
 // interrupt for HT/TC event depends on hardware platform. executed by DMA Half Transmission (HT) event interrupt
 void HAL_UART_RxHalfCpltCallback(UART_HandleTypeDef *huart)
-{
-} // end of HAL_UART_RxHalfCpltCallback
-
-
+{}
 
 // executed by DMA Transmission completion (TC) event interrupt
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
@@ -201,15 +184,25 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
         eESPappendRecvRespISR( (huart->pRxBuffPtr + dma_buf_cpy_offset_curr), dma_buf_num_char_copied );
         dma_buf_cpy_offset_curr = 0;
     }
-} // end of HAL_UART_RxCpltCallback
+}
 
+void Error_Handler(void) {
+  for(;;);
+}
 
+void hw_layer_init(void) {
+    // Reset of all peripherals, Initializes the Flash
+    // interface and the Systick.
+    HAL_Init();
+    /* Configure the system clock */
+    SystemClock_Config();
+    HAL_StatusTypeDef result = TIM2_Init(configLIBRARY_LOWEST_INTERRUPT_PRIORITY);
+    if(result = HAL_OK) {
+        Error_Handler();
+    }
+}
 
-
-
-
-espRes_t   eESPlowLvlRecvStartFn()
-{
+espRes_t   eESPlowLvlRecvStartFn(void) {
     espRes_t  response = espOK;
     HAL_StatusTypeDef status_chk = HAL_ERROR;
     dma_buf_num_char_copied  = 0;
@@ -224,18 +217,12 @@ espRes_t   eESPlowLvlRecvStartFn()
         default           : response = espERR;         break;
     }
     return response;
-} // end of eESPlowLvlRecvStartFn
+}
 
-
-
-void    vESPlowLvlRecvStopFn( void )
-{
+void  vESPlowLvlRecvStopFn(void) {
     HAL_UART_DMAStop( &haluart3 );
     ESP_MEMSET( (void *)&recv_data_buf, 0x00, ESP_RESP_RECV_BUF_SIZE );
-} // end of vESPlowLvlRecvStopFn
-
-
-
+}
 
 // the low-level functions that will be called by ESP core functions
 espRes_t   eESPlowLvlSendFn( void* data, size_t len, uint32_t timeout )
@@ -251,11 +238,7 @@ espRes_t   eESPlowLvlSendFn( void* data, size_t len, uint32_t timeout )
         default           : response = espERR;         break;
     }
     return response;
-} // end of eESPlowLvlSendFn
-
-
-
-
+}
 
 
 // the low-level functions that will be called by ESP core functions
@@ -268,8 +251,4 @@ espRes_t   eESPlowLvlRstFn ( uint8_t state )
     return espOK;
 } // end of eESPlowLvlRstFn
 
-
-
-
 #undef   ESP_RESP_RECV_BUF_SIZE
-

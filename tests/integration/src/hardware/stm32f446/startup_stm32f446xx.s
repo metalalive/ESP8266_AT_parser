@@ -255,7 +255,46 @@ g_pfnVectors:
   .word     SPDIF_RX_IRQHandler               /* SPDIF RX                     */
   .word     FMPI2C1_Event_IRQHandler          /* FMPI2C 1 Event               */
   .word     FMPI2C1_Error_IRQHandler          /* FMPI2C 1 Error               */
-  
+ 
+.section  .text.HardFault_Handler
+.type  HardFault_Handler, %function
+HardFault_Handler:  
+    tst     lr, #0x4
+    ite     eq
+    mrseq   r0, msp
+    mrsne   r0, psp
+    push    {lr}
+    bl      vPortTryRecoverHardFault
+    mov     r1, r0
+    cmp     r1, #0
+    beq     Infinite_Loop
+    pop     {pc}
+.size  HardFault_Handler, .-HardFault_Handler
+
+.section   .text.SVC_Handler
+.type   SVC_Handler, %function
+SVC_Handler:
+    tst     lr, #0x4
+    ite     eq
+    mrseq   r0, msp
+    mrsne   r0, psp
+    push    {lr}
+    bl      vPortSVCHandler
+    pop     {pc}
+.size  SVC_Handler, .-SVC_Handler
+
+.section   .text.PendSV_Handler
+.type  PendSV_Handler, %function
+PendSV_Handler:
+    b    vPortPendSVHandler   
+.size  PendSV_Handler, .-PendSV_Handler
+
+.section   .text.SysTick_Handler
+.type  SysTick_Handler, %function
+SysTick_Handler:
+    b   vPortSysTickHandler
+.size  SysTick_Handler, .-SysTick_Handler
+
 /*******************************************************************************
 *
 * Provide weak aliases for each Exception handler to the Default_Handler. 
@@ -266,9 +305,6 @@ g_pfnVectors:
    .weak      NMI_Handler
    .thumb_set NMI_Handler,Default_Handler
   
-   .weak      HardFault_Handler
-   .thumb_set HardFault_Handler,Default_Handler
-  
    .weak      MemManage_Handler
    .thumb_set MemManage_Handler,Default_Handler
   
@@ -278,17 +314,8 @@ g_pfnVectors:
    .weak      UsageFault_Handler
    .thumb_set UsageFault_Handler,Default_Handler
 
-   .weak      SVC_Handler
-   .thumb_set SVC_Handler,Default_Handler
-
    .weak      DebugMon_Handler
    .thumb_set DebugMon_Handler,Default_Handler
-
-   .weak      PendSV_Handler
-   .thumb_set PendSV_Handler,Default_Handler
-
-   .weak      SysTick_Handler
-   .thumb_set SysTick_Handler,Default_Handler              
   
    .weak      WWDG_IRQHandler                   
    .thumb_set WWDG_IRQHandler,Default_Handler      

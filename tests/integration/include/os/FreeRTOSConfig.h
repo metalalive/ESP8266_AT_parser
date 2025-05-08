@@ -112,14 +112,15 @@
 #define configUSE_PORT_OPTIMISED_TASK_SELECTION  1
 // manually added for integration tests
 #define configUSE_RECURSIVE_MUTEXES              1
-#define configUSE_TICKLESS_IDLE                  1
-#define configUSE_COUNTING_SEMAPHORES            1
+#define configUSE_TICKLESS_IDLE                  0 // SysTick interrupt unable to wake ARM CPU
+#define configUSE_COUNTING_SEMAPHORES            0
 #define configUSE_TASK_NOTIFICATIONS             1
 //// #define configUSE_TIMERS                         1
 //// #define configTIMER_TASK_PRIORITY                0
 //// #define configTIMER_TASK_STACK_DEPTH             0x3e
 //// #define configTIMER_QUEUE_LENGTH                 4 
 //// #define configCHECK_FOR_STACK_OVERFLOW           1
+#define configUSE_TRACE_FACILITY                 1
 
 /* Co-routine definitions. */
 #define configUSE_CO_ROUTINES                    0
@@ -165,31 +166,12 @@ See http://www.FreeRTOS.org/RTOS-Cortex-M3-M4.html. */
 
 /* Normal assert() semantics without relying on the provision of an assert.h
 header file. */
-/* USER CODE BEGIN 1 */
 #define configASSERT( x ) if ((x) == 0) {taskDISABLE_INTERRUPTS(); for( ;; );} 
-/* USER CODE END 1 */
 
-// Definitions that map (for the FreeRTOS port) interrupt handlers to their CMSIS standard names. 
-// the entry to SVC execution handler routine
-#ifndef UNIT_TEST
-    #define vPortSVCHandler     SVC_Handler
-    // the entry to PendSV exception handler routine
-    #define vPortPendSVHandler  PendSV_Handler
-    // IMPORTANT: This define is commented when used with STM32Cube firmware, when timebase is systick,
-    //            to prevent overwriting SysTick_Handler defined within STM32Cube HAL 
-    #define vPortSysTickHandler  SysTick_Handler
-    // the entry to HardFault exception handler routine
-    #define vPortHardFaultHandler  HardFault_Handler
-#endif //// end of UNIT_TEST
-
-/* USER CODE BEGIN 2 */    
 /* Definitions needed when configGENERATE_RUN_TIME_STATS is on */
 #define portCONFIGURE_TIMER_FOR_RUN_TIME_STATS  vCfgTimerForRuntimeStats
 #define portGET_RUN_TIME_COUNTER_VALUE          ulGetRuntimeCounterVal    
-/* USER CODE END 2 */
 
-/* USER CODE BEGIN Defines */   	      
 /* Section where parameter definitions can be added (for instance, to override default ones in FreeRTOS.h) */
-/* USER CODE END Defines */ 
 
 #endif /* FREERTOS_CONFIG_H */

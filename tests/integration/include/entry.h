@@ -33,27 +33,10 @@ extern "C" {
 #include "stm32f4xx_hal.h"
 #include "demo_apps/test_runner.h"
 
-/* Private includes ----------------------------------------------------------*/
-/* USER CODE BEGIN Includes */
-/* USER CODE END Includes */
-/* Exported types ------------------------------------------------------------*/
-/* USER CODE BEGIN ET */
-/* USER CODE END ET */
-/* Exported constants --------------------------------------------------------*/
-/* USER CODE BEGIN EC */
-/* USER CODE END EC */
-/* Exported macro ------------------------------------------------------------*/
-/* USER CODE BEGIN EM */
-#define  vIntegrationTestISR1  TIM3_IRQHandler
-#define  vIntegrationTestISR2  TIM4_IRQHandler
 #define  vIntegrationTestMemManageHandler  MemManage_Handler
 /* USER CODE END EM */
 /* Exported functions prototypes ---------------------------------------------*/
 void Error_Handler(void);
-
-void vIntegrationTestISR1( void );
-
-void vIntegrationTestISR2( void );
 
 void vIntegrationTestMemManageHandler(void);
 

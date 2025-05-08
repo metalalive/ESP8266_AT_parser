@@ -4,18 +4,14 @@
 extern   espGlbl_t  espGlobal;
 
 
-
-
-void    vESPthreadATreqHandler ( void* const arg )
-{
+void    vESPthreadATreqHandler(void* const arg) {
     espRes_t    response = espOK; 
     espMsg_t*   msg;
     uint32_t    block_time = 0; 
     uint8_t     is_blocking = 0;
 
     eESPcoreLock();
-    for(;;)
-    {
+    for(;;) {
         msg = NULL;
         eESPcoreUnlock();
         response = eESPsysMboxGet( espGlobal.mbox_cmd_req, (void **)&msg, ESP_SYS_MAX_TIMEOUT );
@@ -63,18 +59,13 @@ void    vESPthreadATreqHandler ( void* const arg )
 } // end of vESPthreadATreqHandler
 
 
-
-
-
-void    vESPthreadATrespHandler ( void* const arg )
-{
+void  vESPthreadATrespHandler(void* const arg) {
     espRes_t    response = espOK; 
     espBuf_t   *recv_buf    = NULL;
     uint8_t     isEndOfATresp = 0;
 
     eESPcoreLock();
-    for(;;)
-    {
+    for(;;) {
         eESPcoreUnlock();  
         response = eESPsysMboxGet( espGlobal.mbox_cmd_resp, (void **)&recv_buf, ESP_SYS_MAX_TIMEOUT );
         eESPcoreLock();
@@ -98,7 +89,6 @@ void    vESPthreadATrespHandler ( void* const arg )
 } // end of vESPthreadATrespHandler
 
 
-
 espRes_t  eESPappendRecvRespISR(uint8_t* data, uint16_t data_len)
 {
     espRes_t    response  = espOK;
@@ -111,8 +101,4 @@ espRes_t  eESPappendRecvRespISR(uint8_t* data, uint16_t data_len)
     recv_buf->buff = piece_resp_ptr ; 
     response = eESPsysMboxPutISR( espGlobal.mbox_cmd_resp, (void *)recv_buf );
     return response;
-} // end of eESPappendRecvRespISR
-
-
-
- 
+} 
