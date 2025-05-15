@@ -7,10 +7,15 @@ extern "C" {
 
 // Domain name server
 
-espRes_t   eESPdnsGetHostByName( const char* host, espIp_t* const ip, const espApiCmdCbFn cb, void* const evt_arg, const uint32_t blocking );
+espRes_t eESPdnsGetHostByName(
+    const char *host, espIp_t *const ip, const espApiCmdCbFn cb, void *const evt_arg,
+    const uint32_t blocking
+);
 
-espRes_t   eESPdnsSetCfg( uint8_t en, const char* s1, const char* s2, uint8_t def, const espApiCmdCbFn cb, void* const evt_arg, const uint32_t blocking);
-
+espRes_t eESPdnsSetCfg(
+    uint8_t en, const char *s1, const char *s2, uint8_t def, const espApiCmdCbFn cb,
+    void *const evt_arg, const uint32_t blocking
+);
 
 #ifdef __cplusplus
 }

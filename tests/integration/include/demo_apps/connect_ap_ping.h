@@ -7,17 +7,13 @@ extern "C" {
 
 #include "esp/esp.h"
 
-
 // ----------- function declaration -----------
 
-void  vESPtestStartPingTask( void );
+void vESPtestStartPingTask(void);
 
-espRes_t  eESPtestConnAP( uint8_t waitUntilConnected );
-
-
+espRes_t eESPtestConnAP(uint8_t waitUntilConnected);
 
 #ifdef __cplusplus
 }
 #endif
 #endif // end of  __INTEGRATION_ESP_AT_SW_CONN_AP_PING_H
-

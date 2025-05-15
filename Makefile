@@ -5,6 +5,13 @@ DEBUG = 1
 
 export ESP_PROJ_HOME = $(shell pwd)
 
+REFMT_SRC_DIRS := ./include/ ./src  ./tests/integration/src/ ./tests/integration/include/
+
+REFMT_EXTENSIONS := c h
+
+REFMT_SRC_FILES := $(shell find $(REFMT_SRC_DIRS) -type f \( $(foreach ext,$(REFMT_EXTENSIONS),-name '*.$(ext)' -o ) -false \))
+
+
 #######################################
 # paths
 #######################################
@@ -25,6 +32,10 @@ dbg_client: $(RTOS_HW_BUILD_PATH)
 	@make -C $(RTOS_HW_BUILD_PATH)  dbg_client \
 		DBG_CUSTOM_SCRIPT_PATH=$(ESP_PROJ_HOME)/test-utility.gdb \
 		TOOLCHAIN_BASEPATH=$(TOOLCHAIN_BASEPATH)
+
+
+reformat:
+	@clang-format-18 -i --style=file  $(REFMT_SRC_FILES)
 
 clean:
 	@rm -rf $(BUILD_DIR)

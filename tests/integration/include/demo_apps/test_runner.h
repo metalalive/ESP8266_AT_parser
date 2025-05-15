@@ -10,7 +10,6 @@ extern "C" {
 // ----------- function declaration -----------
 void vCreateAllTestTasks(void);
 
-
 #ifdef __cplusplus
 }
 #endif

@@ -7,8 +7,8 @@ extern "C" {
 
 // Wireless Protected Setup function on ESP device
 
-espRes_t   eESPwpsCfg( uint8_t en, const espApiCmdCbFn cb, void* const evt_arg, const uint32_t blocking );
-
+espRes_t
+eESPwpsCfg(uint8_t en, const espApiCmdCbFn cb, void *const evt_arg, const uint32_t blocking);
 
 #ifdef __cplusplus
 }

@@ -7,17 +7,13 @@ extern "C" {
 
 #include "esp/esp.h"
 
-
 // ----------- function declaration -----------
 
-void  vESPtestStartHttpServerTask( void );
+void vESPtestStartHttpServerTask(void);
 
-
-espRes_t  eESPtestConnAP( uint8_t waitUntilConnected );
-
+espRes_t eESPtestConnAP(uint8_t waitUntilConnected);
 
 #ifdef __cplusplus
 }
 #endif
 #endif // end of   __INTEGRATION_ESP_AT_SW_HTTP_SERVER_H
-
