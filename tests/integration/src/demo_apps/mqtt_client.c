@@ -5,7 +5,14 @@
 #define MQTT_CONN_RX_BUF_SIZE 0x100
 #define MQTT_CMD_TIMEOUT_MS   25000
 
-#define TEST_NUM_MOCK_DATA 4
+#define TEST_NUM_MOCK_DATA          4
+#define ITEST_MQ_BROKER_HOSTNAME    "123.4.56.78"
+#define ITEST_MQ_BROKER_PORT        1883
+#define ITEST_MQ_BROKER_CLIENT_ID   "esp_pubsub_client"
+#define ITEST_MQ_BROKER_AUTH_UNAME  "your-broker-username"
+#define ITEST_MQ_BROKER_AUTH_PASSWD "your-broker-password"
+
+#define ITEST_MQ_TOPIC_PREFIX "/experiment/esp-wifi"
 
 static mqttCtx_t    *m_client;
 static espNetConnPtr clientnetconn;
@@ -155,45 +162,44 @@ static void vESPtestGenJSONmsg(byte *buf, word32 buff_len, word32 *app_data_len)
 } // end of vESPtestGenJSONmsg
 
 static void vESPtestMqttInitSubsTopics(void) {
-    subs_topics[0].filter.data = (byte *)&("control/sprayer/workseconds");
+    subs_topics[0].filter.data = (byte *)&(ITEST_MQ_TOPIC_PREFIX "/control/sprayer/worksecs");
     subs_topics[0].filter.len = ESP_STRLEN((const char *)subs_topics[0].filter.data);
     subs_topics[0].qos = MQTT_QOS_1;
     subs_topics[0].reason_code = 0;
     subs_topics[0].sub_id = 0;
 
-    subs_topics[1].filter.data = (byte *)&("sensor/moisture/threshold");
+    subs_topics[1].filter.data = (byte *)&(ITEST_MQ_TOPIC_PREFIX "/sensor/moisture/threshold");
     subs_topics[1].filter.len = ESP_STRLEN((const char *)subs_topics[1].filter.data);
     subs_topics[1].qos = MQTT_QOS_0;
     subs_topics[1].reason_code = 0;
     subs_topics[1].sub_id = 0;
 } // end of vESPtestMqttInitSubsTopics
 
-static void vESPtestMqttClientApp(espNetConnPtr netconn, espConn_t *espconn, mqttCtx_t *m_client) {
+static void vESPtestMqttClientApp(espNetConnPtr netconn, mqttCtx_t *m_client) {
 #define MQTT_APP_MSG_MAX_LEN 0x90
-    uint8_t idx = 0;
-    uint8_t max_num_publish_msg = 5;
+    int     result = MQTT_RETURN_SUCCESS;
+    uint8_t idx = 0, max_num_publish_msg = 5;
     // --- send CONNECT packet, with username/password for basic authentication
-    // ---
     mqttConn_t *mconn = &m_client->send_pkt.conn;
     m_client->ext_sysobjs[0] = (void *)netconn;
-    m_client->ext_sysobjs[1] = (void *)espconn;
     mconn->clean_session = 0;
     mconn->keep_alive_sec = MQTT_DEFAULT_KEEPALIVE_SEC;
     mconn->protocol_lvl = MQTT_CONN_PROTOCOL_LEVEL;
-    mconn->client_id.data = (byte *)&("my_client_name");
-    mconn->username.data = (byte *)&("testuser");
-    mconn->password.data = (byte *)&("guesspswd");
+    mconn->client_id.data = (byte *)&(ITEST_MQ_BROKER_CLIENT_ID);
+    mconn->username.data = (byte *)&(ITEST_MQ_BROKER_AUTH_UNAME);
+    mconn->password.data = (byte *)&(ITEST_MQ_BROKER_AUTH_PASSWD);
     mconn->client_id.len = ESP_STRLEN((const char *)mconn->client_id.data);
     mconn->username.len = ESP_STRLEN((const char *)mconn->username.data);
     mconn->password.len = ESP_STRLEN((const char *)mconn->password.data);
-    mqttSendConnect(m_client);
+    result = mqttSendConnect(m_client);
+    ESP_ASSERT(result == MQTT_RETURN_SUCCESS);
 
     // --- publish messages with specific topic, in this test, we expect
     //     another client which  can act as both of subsriber or publisher, the
     //     client expects to wait for message sent by this device, or vice
     //     versa.
     mqttMsg_t *pub_msg = &m_client->send_pkt.pub_msg;
-    pub_msg->topic.data = (byte *)&("get/soilQuality/today");
+    pub_msg->topic.data = (byte *)&(ITEST_MQ_TOPIC_PREFIX "/get/soilQuality/today");
     pub_msg->topic.len = ESP_STRLEN((const char *)pub_msg->topic.data);
     pub_msg->retain = 0; // we don't consider retain message in this test.
     // if QoS = 1 and we need to send duplicate PUBLISH packet, the duplicate
@@ -208,9 +214,10 @@ static void vESPtestMqttClientApp(espNetConnPtr netconn, espConn_t *espconn, mqt
         // in this test, we only consider to publish message with QoS = 0 or 1.
         pub_msg->qos = 0x1 & idx;
         vESPtestGenJSONmsg(pub_msg->buff, pub_msg->buff_len, &pub_msg->app_data_len);
-        mqttSendPublish(m_client);
+        result = mqttSendPublish(m_client);
+        ESP_ASSERT(result == MQTT_RETURN_SUCCESS);
         vESPsysDelay(1000);
-    } // end of loop
+    }
 
     // --- subscribe topic of interests
     vESPtestMqttInitSubsTopics();
@@ -219,14 +226,16 @@ static void vESPtestMqttClientApp(espNetConnPtr netconn, espConn_t *espconn, mqt
     subs->topic_cnt = 2;
     subs->topics = &subs_topics[0];
     subs->props = NULL;
-    mqttSendSubscribe(m_client);
+    result = mqttSendSubscribe(m_client);
+    ESP_ASSERT(result == MQTT_RETURN_SUCCESS);
 
     m_client->cmd_timeout_ms = ESP_SYS_MAX_TIMEOUT;
     // --- wait for the message this device subscribed earlier in this test
     for (idx = 0; idx < max_num_publish_msg; idx++) {
         mqttMsg_t *recv_msg = &m_client->recv_pkt.pub_msg;
         ESP_MEMSET((void *)recv_msg, 0x00, sizeof(mqttMsg_t));
-        mqttClientWaitPkt(m_client, MQTT_PACKET_TYPE_PUBLISH, 0, (void *)recv_msg);
+        result = mqttClientWaitPkt(m_client, MQTT_PACKET_TYPE_PUBLISH, 0, (void *)recv_msg);
+        ESP_ASSERT(result == MQTT_RETURN_SUCCESS);
     } // end of loop
     m_client->cmd_timeout_ms = MQTT_CMD_TIMEOUT_MS;
     vESPsysDelay(1000);
@@ -237,35 +246,37 @@ static void vESPtestMqttClientApp(espNetConnPtr netconn, espConn_t *espconn, mqt
     unsubs->topic_cnt = 2;
     unsubs->topics = &subs_topics[0];
     unsubs->props = NULL;
-    mqttSendUnsubscribe(m_client);
+    result = mqttSendUnsubscribe(m_client);
+    ESP_ASSERT(result == MQTT_RETURN_SUCCESS);
     vESPsysDelay(1000);
 
     // --- send DISCONNECT packet to broker ---
     m_client->send_pkt.disconn.reason_code = MQTT_REASON_NORMAL_DISCONNECTION;
     m_client->send_pkt.disconn.props = NULL;
-    mqttSendDisconnect(m_client);
+    result = mqttSendDisconnect(m_client);
+    ESP_ASSERT(result == MQTT_RETURN_SUCCESS);
 #undef MQTT_APP_MSG_MAX_LEN
 } // end of vESPtestMqttClientApp
 
 static void vESPtestMqttClientTask(void *params) {
-    uint8_t    devPresent;
-    espConn_t *conn = NULL;
-    const char hostname[] = "123.4.56.78";
+    const char hostname[] = ITEST_MQ_BROKER_HOSTNAME;
     uint16_t   host_len = ESP_STRLEN(hostname);
-    espPort_t  port = 1883;
+    espPort_t  port = ITEST_MQ_BROKER_PORT;
+    espConn_t *conn = pxESPgetNxtAvailConn();
+    ESP_ASSERT(conn != NULL);
+    conn->type = ESP_CONN_TYPE_TCP;
 
     // setup data structure required for this MQTT client
     clientnetconn = NULL;
-    clientnetconn = pxESPnetconnCreate(ESP_NETCONN_TYPE_TCP);
+    clientnetconn = pxESPnetconnCreate(conn);
     if (clientnetconn != NULL) {
         // establish TCP connection
-        conn = pxESPgetNxtAvailConn();
         eESPconnClientStart(
-            conn, ESP_CONN_TYPE_TCP, hostname, host_len, port, eESPtestMqttClientCallBack, NULL,
-            NULL, ESP_AT_CMD_BLOCKING
+            conn, conn->type, hostname, host_len, port, eESPtestMqttClientCallBack, NULL, NULL,
+            ESP_AT_CMD_BLOCKING
         );
         // start running MQTT client test
-        vESPtestMqttClientApp(clientnetconn, conn, m_client);
+        vESPtestMqttClientApp(clientnetconn, m_client);
         // close TCP connection
         eESPconnClientClose(conn, NULL, NULL, ESP_AT_CMD_BLOCKING);
         // de-initialize network connection object used in ESP parser.
@@ -284,23 +295,20 @@ static void vESPtestMqttClientTask(void *params) {
 static void vESPtestInitTask(void *params) {
     uint8_t  isPrivileged = 0x1, waitUntilConnected = 0x1;
     espRes_t response = eESPinit(eESPtestEvtCallBack);
+    ESP_ASSERT(response == espOK);
     // initialize  MQTT connection object for this test.
     m_client = NULL;
     mqttClientInit(&m_client, MQTT_CMD_TIMEOUT_MS, MQTT_CONN_TX_BUF_SIZE, MQTT_CONN_RX_BUF_SIZE);
     ESP_ASSERT(m_client != NULL);
-
-    if (response == espOK) {
-        // turn on station mode as default, connect to preferred AP.
-        eESPtestConnAP(waitUntilConnected);
-        // once connected to AP, create server thread
-        response = eESPsysThreadCreate(
-            NULL, "espTestMqttClient", vESPtestMqttClientTask, NULL, TASK_MIN_STACK_SIZE,
-            ESP_APPS_THREAD_PRIO, isPrivileged
-        );
-        ESP_ASSERT(response == espOK);
-    } else {
-        // failed to initialize ESP AT library
-    }
+    // turn on station mode as default, connect to preferred AP.
+    response = eESPtestConnAP(waitUntilConnected);
+    ESP_ASSERT(response == espOK);
+    // once connected to AP, create server thread
+    response = eESPsysThreadCreate(
+        NULL, "espTestMqttClient", vESPtestMqttClientTask, NULL, TASK_MIN_STACK_SIZE,
+        ESP_APPS_THREAD_PRIO, isPrivileged
+    );
+    ESP_ASSERT(response == espOK);
     eESPsysThreadDelete(NULL);
 } // end of vESPtestInitTask
 

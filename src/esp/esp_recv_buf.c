@@ -29,22 +29,21 @@ espRes_t eESPprocessPieceRecvResp(espBuf_t *recv_buf, uint8_t *isEndOfATresp) {
     uint32_t  idx = 0;
     uint8_t   curr_chr = 0;
 
-    for (idx = 0; idx < data_len; idx++) { // reassemble message byte by byte, it could be response
-                                           // character sequence of AT command, or IPD data.
-        if (ipdp->read == 0x0) {           // treat incoming bytes as response character
-                                           // sequence of AT command
+    // reassemble message byte by byte, it could be response character sequence of AT command, or
+    // IPD data.
+    for (idx = 0; idx < data_len; idx++) {
+        // treat incoming bytes as response character sequence of AT command
+        if (ipdp->read == 0x0) {
             curr_chr = curr_p[idx];
             // TODO: for AT command, currently we only support ASCII, will
             // support UTF-8 in future
             if (!ESP_ISVALIDASCII(curr_chr)) {
                 break;
             }
-            // currently ESP device is waiting for response of ongoing AT
-            // command.
+            // currently ESP device is waiting for response of ongoing AT command.
             vESPappendChrToRecvDataBuf(&recv_data_line_buf[0], &recv_data_line_buf_idx, curr_chr);
-            if ((prev_chr == ESP_ASCII_CR) &&
-                (curr_chr == ESP_ASCII_LF)) { // start analyzing current line of received
-                                              // response character sequence
+            if ((prev_chr == ESP_ASCII_CR) && (curr_chr == ESP_ASCII_LF)) {
+                // start analyzing current line of received response character sequence
                 vESPparseRecvATrespLine(
                     &recv_data_line_buf[0], recv_data_line_buf_idx, isEndOfATresp
                 );
@@ -67,8 +66,9 @@ espRes_t eESPprocessPieceRecvResp(espBuf_t *recv_buf, uint8_t *isEndOfATresp) {
                 recv_data_line_buf_idx = 0x0;
                 break;
             }
-        } else // ipdp->read != 0x0
-        {      // currently the ESP device is waiting for IPD data
+        } else {
+            // otherwise ipdp->read != 0x0
+            // currently the ESP device is waiting for IPD data
             uint32_t copied_len = data_len - idx;
             response = eESPparseIPDcopyData(&curr_p[idx], &copied_len);
             idx += copied_len - 1;

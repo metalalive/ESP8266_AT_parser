@@ -17,12 +17,12 @@ static void vESPtestConnAPtask(void *params) {
             // should connect to
             eESPtestConnAP(waitUntilConnected);
             vESPsysDelay(20000);
-        } // Set device is NOT present
-        eESPcloseDevice();
-        vESPsysDelay(5000);
-        // reset device for next iteration of connection test
-        response = eESPresetWithDelay(1, NULL, NULL);
-    } // end of outer infinite loop
+        }
+        eESPcloseDevice(); // make device NOT present
+        vESPsysDelay(4000);
+        // set device to `present` state again
+        response = eESPgetCurrATversion();
+    }
 }
 
 static void vESPtestPingTask(void *params) {

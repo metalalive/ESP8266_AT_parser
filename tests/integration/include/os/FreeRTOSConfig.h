@@ -168,12 +168,13 @@ See http://www.FreeRTOS.org/RTOS-Cortex-M3-M4.html. */
 
 /* Normal assert() semantics without relying on the provision of an assert.h
 header file. */
-#define configASSERT(x)                                                                            \
-    if ((x) == 0) {                                                                                \
-        taskDISABLE_INTERRUPTS();                                                                  \
-        for (;;)                                                                                   \
-            ;                                                                                      \
+// clang-format off
+#define configASSERT(x)           \
+    if ((x) == 0) {               \
+        taskDISABLE_INTERRUPTS(); \
+        for (;;);                 \
     }
+// clang-format on
 
 /* Definitions needed when configGENERATE_RUN_TIME_STATS is on */
 #define portCONFIGURE_TIMER_FOR_RUN_TIME_STATS vCfgTimerForRuntimeStats

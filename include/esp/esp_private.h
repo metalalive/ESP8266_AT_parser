@@ -243,7 +243,7 @@ typedef struct espMsg {
 
         /* Connection based commands */
         struct {
-            espConn_t   **conn; /*!< Pointer to pointer to save connection used */
+            espConn_t   **conn; // address to pointer to save connection used
             const char   *host; /*!< Host to use for connection */
             uint16_t      host_len;
             espPort_t     port;    /*!< Remote port used for connection */

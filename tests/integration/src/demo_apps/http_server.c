@@ -153,40 +153,44 @@ static void vESPtestHttpSimpleApp(espPbuf_t *pktbuf, httpTestMsg_t *http_msg_p) 
 static void vESPtestHttpServerTask(void *params) {
     const uint16_t max_req_cnt = 6;
     espRes_t       response;
-    uint8_t        devPresent;
-    espPbuf_t     *pktbuf;
+    espPbuf_t     *pktbuf = NULL;
     uint16_t       idx = 0;
+    uint8_t        devPresent;
 
     // setup data structure required for this simplified server
-    serverconn = pxESPnetconnCreate(ESP_NETCONN_TYPE_TCP);
-    if (serverconn != NULL) {
-        response = eESPstartServer(serverconn, 80, eESPtestiServerCallBack, 20);
-        // turn on server mode in ESP device
-        for (idx = 0; idx < max_req_cnt; idx++) { // call API function to wait for request
-                                                  // message sent from client.
-            pktbuf = NULL;
-            response = eESPnetconnGrabNextPkt(serverconn, &pktbuf, ESP_SYS_MAX_TIMEOUT);
-            if (response != espOK) {
-                continue;
-            }
-            // analyze rquest header at here, then generate HTTP response
-            vESPtestHttpSimpleApp(pktbuf, &http_msg);
-            //  send HTTP response by performing AT+CIPSEND immediately
-            // , in this test, passthrough mode is supposed to be turned off.
-            // Note that program shouldn't be delayed/halted by debugger in the
-            // middle of AT+CIPSEND.
-            eESPconnClientSend(
-                pktbuf->conn, http_msg.resp_msg, http_msg.resp_msg_len, NULL, NULL,
-                ESP_AT_CMD_BLOCKING
-            );
-            // free the space allocated to packet buffer.
-            vESPpktBufChainDelete(pktbuf);
-        } // end of outer for-loop
-        // turn off server mode
-        eESPstopServer(serverconn);
-        // delete server object
-        eESPnetconnDelete(serverconn);
+    espConn_t *conn = pxESPgetNxtAvailConn();
+    conn->type = ESP_CONN_TYPE_TCP;
+    serverconn = pxESPnetconnCreate(conn);
+    if (serverconn == NULL) {
+        goto done;
     }
+    response = eESPstartServer(serverconn, 80, eESPtestiServerCallBack, 20);
+    if (response != espOK) {
+        goto done;
+    }
+    // turn on server mode in ESP device
+    // call API function to wait for Request message sent from client.
+    for (idx = 0; idx < max_req_cnt; idx++) {
+        pktbuf = NULL;
+        response = eESPnetconnGrabNextPkt(serverconn, &pktbuf, ESP_SYS_MAX_TIMEOUT);
+        if (response != espOK) {
+            continue;
+        }
+        // analyze rquest header at here, then generate HTTP response
+        vESPtestHttpSimpleApp(pktbuf, &http_msg);
+        //  send HTTP response by performing AT+CIPSEND immediately
+        // , in this test, passthrough mode is supposed to be turned off.
+        // Note that program shouldn't be delayed/halted by debugger in the
+        // middle of AT+CIPSEND.
+        eESPconnClientSend(
+            pktbuf->conn, http_msg.resp_msg, http_msg.resp_msg_len, NULL, NULL, ESP_AT_CMD_BLOCKING
+        );
+        // free the space allocated to packet buffer.
+        vESPpktBufChainDelete(pktbuf);
+    } // end of outer for-loop
+    eESPstopServer(serverconn);    // turn off server mode
+    eESPnetconnDelete(serverconn); // delete server object
+done:
     // quit from AP
     eESPcloseDevice();
     // delete current (the server) thread
@@ -198,15 +202,14 @@ static void vESPtestInitTask(void *params) {
     espRes_t response = eESPinit(eESPtestEvtCallBack);
     if (response == espOK) {
         // turn on station mode as default, connect to preferred AP.
-        eESPtestConnAP(waitUntilConnected);
+        response = eESPtestConnAP(waitUntilConnected);
+        ESP_ASSERT(response == espOK);
         // once connected to AP, create server thread
         response = eESPsysThreadCreate(
             NULL, "espTestHttpServer", vESPtestHttpServerTask, NULL, (0x20 + TASK_MIN_STACK_SIZE),
             ESP_APPS_THREAD_PRIO, isPrivileged
         );
         ESP_ASSERT(response == espOK);
-    } else {
-        // failed to initialize ESP AT library
     }
     eESPsysThreadDelete(NULL);
 }

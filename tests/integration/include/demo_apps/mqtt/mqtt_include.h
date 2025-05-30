@@ -5,10 +5,12 @@
 extern "C" {
 #endif
 
-#include "demo_apps/mqtt/mqtt_client_conn.h"
-#include "demo_apps/mqtt/mqtt_packet.h"
+// clang-format off
 #include "demo_apps/mqtt/mqtt_types.h"
 #include "demo_apps/mqtt/mqtt_util.h"
+#include "demo_apps/mqtt/mqtt_packet.h"
+#include "demo_apps/mqtt/mqtt_client_conn.h"
+// clang-format on
 
 #ifdef __cplusplus
 }

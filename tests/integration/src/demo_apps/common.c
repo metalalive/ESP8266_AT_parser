@@ -10,16 +10,15 @@ typedef struct {
 } apEntry_t;
 
 // TODO : figure out why we connot create static array of struct in C
-static espAP_t                   foundAPs[MAX_NUM_AP_FOUND];
+static espAP_t foundAPs[MAX_NUM_AP_FOUND];
 static PRIVILEGED_DATA apEntry_t preferredAP = {"your_ssid", "your_passwd", 9, 11};
 
 espRes_t eESPtestConnAP(uint8_t waitUntilConnected) {
     espRes_t response = espOK;
-    uint16_t num_ap_found = 0;
+    uint16_t num_ap_found = 0, idx = 0;
     // do we cache this connection to internal flash memory of ESP device (if
     // any preferred AP is found)
-    uint8_t  tried_conn = 0;
-    uint16_t idx = 0;
+    uint8_t tried_conn = 0;
     do {
         if ((response = eESPstaHasIP()) == espOK)
             break;

@@ -215,10 +215,9 @@ uint8_t ucESPconnGetID(espConn_t *conn) {
 } // end of ucESPconnGetID
 
 espConn_t *pxESPgetNxtAvailConn(void) {
-    uint8_t    idx = 0;
     espDev_t  *devp = &espGlobal.dev;
-    espConn_t *c = NULL;
-    espConn_t *out = NULL;
+    espConn_t *c = NULL, *out = NULL;
+    uint8_t    idx = 0;
     for (idx = 0; idx < ESP_CFG_MAX_CONNS; idx++) {
         c = &devp->conns[idx];
         if (c->status.flg.active == ESP_CONN_CLOSED) {
@@ -253,8 +252,8 @@ espRes_t eESPconnClientStart(
         return response;
     }
     conn_in->type = type;
-    // NOTE: there will be network latency while performing this AT command, so
-    //       we use block time as delay time even applications call this API in
+    // NOTE: there will be network latency while performing this AT command,
+    //       block time is applied as delay time even applications call this API in
     //       non-blocking mode.
     msg->block_time = ESP_CFG_CMD_BLOCK_TIME_CIPSTART;
     msg->body.conn_start.conn = &conn_in;
@@ -373,7 +372,7 @@ eESPstartServer(espNetConnPtr serverconn, espPort_t port, espEvtCbFn evt_cb, uin
     if (response == espERRARGS) {
         return response;
     }
-    eESPsetServerTimeout(serverconn, timeout, NULL, NULL, ESP_AT_CMD_BLOCKING);
+    response = eESPsetServerTimeout(serverconn, timeout, NULL, NULL, ESP_AT_CMD_BLOCKING);
     return response;
 } // end of eESPstartServer
 

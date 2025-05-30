@@ -117,7 +117,8 @@ espRes_t eESPlowLvlDevInit(void *params) {
     __HAL_LINKDMA(&haluart3, hdmarx, haldma_usart3_rx);
 
     GPIO_InitTypeDef GPIO_InitStruct = {0};
-    // ------ initialize GPIO0 pin of ESP device -------
+    // `PH0` on STM32 board is always pulled HIGH and connected
+    // to `CH_PD` and `GPIO0` pin of ESP device
     __HAL_RCC_GPIOH_CLK_ENABLE();
     GPIO_InitStruct.Pin = GPIO_PIN_0;
     GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;

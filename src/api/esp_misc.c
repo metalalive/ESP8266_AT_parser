@@ -53,18 +53,9 @@ espRes_t eESPresetWithDelay(uint32_t dly_ms, const espApiCmdCbFn cb, void *const
     if (dly_ms == 0) {
         return espERRARGS;
     }
-#ifdef ESP_CFG_PLATFORM_REINIT_ON_RST
-    // enable low-level UART/GPIO hardware function
-    eESPlowLvlDevInit(NULL);
-    // initialize (UART Rx) receiving function everytime when we'd like to reset
-    // ESP device, then the ESP device / host microcontroller can receive
-    // AT-command response or IPD data from other clients.
+    // stop (UART Rx) receiving function before toggling hardware reset pin
+    // to avoid receiving unnecessary characters from ESP device during reset
     vESPlowLvlRecvStopFn();
-    response = eESPlowLvlRecvStartFn();
-    if (response != espOK) {
-        return response;
-    }
-#endif // end of ESP_CFG_PLATFORM_REINIT_ON_RST
     // start resetting ESP device & feed default configurations
     msg = pxESPmsgCreate(ESP_CMD_RESET, cb, cb_arg, ESP_AT_CMD_BLOCKING);
     if (msg == NULL) {
@@ -74,6 +65,13 @@ espRes_t eESPresetWithDelay(uint32_t dly_ms, const espApiCmdCbFn cb, void *const
     msg->body.reset.delay = dly_ms;
     response = eESPsendReqToMbox(msg, eESPinitATcmd);
     if (response != espOKNOCMDREQ && response != espOK) {
+        return response;
+    }
+    // restart (UART Rx) receiving function after ESP device reset is done,
+    // then the ESP device / host microcontroller can receive
+    // AT-command response or IPD data from other clients.
+    response = eESPlowLvlRecvStartFn();
+    if (response != espOK) {
         return response;
     }
     // automatically run essential AT-command sequences to initialize ESP

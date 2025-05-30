@@ -120,21 +120,12 @@ espRes_t eESPinit(espEvtCbFn cb) {
         espGlobal.ll.reset_fn = eESPlowLvlRstFn;
 #else
         espGlobal.ll.reset_fn = NULL;
-#endif // end of ESP_CFG_RST_PIN
-       // enable low-level UART/GPIO hardware function regardless of the following
-       // define parameter
-        eESPlowLvlDevInit(NULL);
-#ifndef ESP_CFG_PLATFORM_REINIT_ON_RST
-        // initialize (UART Rx) receiving function everytime when we'd like to
-        // reset ESP device, then the ESP device / host microcontroller can receive
-        // AT-command response or IPD data from other clients.
-        vESPlowLvlRecvStopFn();
-        response = eESPlowLvlRecvStartFn();
+#endif
+        // enable low-level UART/GPIO hardware function
+        response = eESPlowLvlDevInit(NULL);
         if (response != espOK) {
             init_fail++;
-        } else
-#endif // end of ESP_CFG_PLATFORM_REINIT_ON_RST
-        {
+        } else {
             // set initialized flag
             espGlobal.status.flg.initialized = 1;
             espGlobal.evt.type = ESP_EVT_INIT_FINISH;

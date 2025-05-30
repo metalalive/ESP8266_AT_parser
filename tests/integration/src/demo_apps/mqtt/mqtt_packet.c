@@ -750,10 +750,9 @@ int mqttPktRead(struct __mqttCtx *mctx, byte *buf, word32 buf_max_len, word32 *c
     if ((mctx == NULL) || (buf == NULL) || (copied_len == NULL)) {
         return MQTT_RETURN_ERROR_BAD_ARG;
     }
-    word32                 remain_len = 0;
-    word32                 tmp = 0;
-    word16                 header_len = 0;
-    word16                 idx = 0;
+    word32 remain_len = 0, tmp = 0;
+    word16 header_len = 0, idx = 0;
+
     const byte             continuation_bit = 0x80;
     const mqttPktFxHead_t *header = (mqttPktFxHead_t *)buf;
 

@@ -16,8 +16,7 @@ static espPbuf_t *unfinish_rd_pktbuf_head = NULL;
 word32 mqttPktLowLvlRead(struct __mqttCtx *mctx, byte *buf, word32 buf_len) {
     espNetConnPtr espconn = NULL;
     espRes_t      response;
-    byte         *curr_src_p;
-    byte         *curr_dst_p;
+    byte         *curr_src_p = NULL, *curr_dst_p = NULL;
     size_t        rd_ptr;
     size_t        copied_len_total = 0; // total length of copied data
     size_t        copied_len_iter = 0;  // length of copied data in each iteration
@@ -68,11 +67,14 @@ word32 mqttPktLowLvlWrite(struct __mqttCtx *mctx, byte *buf, word32 buf_len) {
     if ((mctx == NULL) || (buf == NULL)) {
         return 0;
     }
-    espConn_t *espconn = (espConn_t *)mctx->ext_sysobjs[1];
-    espRes_t   response;
+    espNetConnPtr esp_netconn = (espNetConnPtr)mctx->ext_sysobjs[0];
+    if (esp_netconn == NULL) {
+        return 0;
+    }
+    espConn_t *espconn = pxESPgetConnHandleObj(esp_netconn);
     if (espconn == NULL) {
         return 0;
     }
-    response = eESPconnClientSend(espconn, buf, buf_len, NULL, NULL, ESP_AT_CMD_BLOCKING);
+    espRes_t response = eESPconnClientSend(espconn, buf, buf_len, NULL, NULL, ESP_AT_CMD_BLOCKING);
     return (response == espOK ? buf_len : 0);
 } // end of mqttPktLowLvlWrite
