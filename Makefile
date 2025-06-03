@@ -44,44 +44,6 @@ clean:
 # help documentation
 #######################################
 help:
-	@echo "                                                      ";
-	@echo " ---------------- Help Documentation -----------------";
-	@echo "                                                      ";
-	@echo " Options for building image, running, and debugging   ";
-	@echo "                                                      ";
-
-	@echo " * make INTEGRATION_TEST=yes TESTNAME=<test_name> OS_NAME=<os_name>  PLATFORM=<hw_platform_name> ";
-	@echo "   Build image to run specified integration tests.    ";
-	@echo "   where <test_name> can be 'ping', 'http_server', or ";
-	@echo "   'mqtt_client'                                      ";
-	@echo "                                                      ";
-	@echo "   <os_name> : ";
-	@echo "   so far we only integrate FreeRTOS to the ESP parser";
-	@echo "   please refer to src/system/esp_system_freertos.c   ";
-	@echo "   in order to port the ESP AT parser within your OS. ";
-	@echo "                                                      ";
-	@echo "   <hw_platform_name> : ";
-	@echo "   so far this ESP parser is verified in STM32F4xx board, ";
-	@echo "   in other words, ARM Cortex-M4 MCU platform, the default";
-	@echo "   value is \"STM32F4\", but anyone is welcome to contribute  ";
-	@echo "   to this repository with other hardware platforms that ";
-	@echo "   haven't been implemented. ";
-	@echo "                                                      ";
-	@echo " * make dbg_server OPENOCD_HOME=/PATH/TO/YOUR_OPENOCD ";
-	@echo "   launch debug server, we use OpenOCD (v0.10.0) here ";
-	@echo "   . Note that superuser permission would be required ";
-	@echo "   when running openOCD, the command differs & depends";
-	@echo "   on your working Operating System.                  ";
-	@echo "                                                      ";
-	@echo " * make dbg_client                                    ";
-	@echo "   launch GDB client to load image, set breakpoints,  ";
-	@echo "   watchpoints for execution. We use gdb-multiarch    ";
-	@echo "   (v7.7.1 or later) at here.                         ";
-	@echo "                                                      ";
-	@echo " * make clean                                         ";
-	@echo "   clean up the built image                           ";
-	@echo "                                                      ";
-	@echo "                                                      ";
-
+	@cat ./docs/build-help-doc
 
 # *** EOF ***
