@@ -1,0 +1,13 @@
+BasedOnStyle: LLVM
+IndentWidth: 4
+UseTab: Never
+
+ColumnLimit: 100
+SkipMacroDefinitionBody: false
+AlignConsecutiveMacros: Consecutive
+AlignConsecutiveBitFields: Consecutive
+AlignConsecutiveDeclarations: Consecutive
+BinPackArguments: true
+AllowAllArgumentsOnNextLine: true
+AlignAfterOpenBracket: BlockIndent
+

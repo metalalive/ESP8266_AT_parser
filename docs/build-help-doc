@@ -1,0 +1,84 @@
+
+The Makefile build script supports following commands :
+
+-----
+NAME
+    integration_test - Run integration tests
+
+SYNOPSIS
+    make integration_test [OPTIONS]
+
+DESCRIPTION
+    Builds and runs integration tests for the ESP8266 firmware.
+
+OPTIONS:
+    DEBUG=1                 Enable debug mode. Example: `make integration_test DEBUG=1`
+    VERBOSE=1               Enable verbose output. Example: `make integration_test VERBOSE=1`
+    HW_PLATFORM=platform    Specify the hardware platform. Example: `make integration_test HW_PLATFORM=stm32f446`
+    OS=os                   Specify the operating system. Example: `make integration_test OS=freertos-v10`
+    TOOLCHAIN_BASEPATH=path Specify the path to the toolchain. Example:
+                            `make integration_test TOOLCHAIN_BASEPATH=/opt/toolchains/gcc-arm-none-eabi`
+    APP_NAME=name           Specify the name of the integration test application. Example:
+                            `make integration_test APP_NAME=connect_ap_ping`
+    RTOS_HW_BUILD_PATH=path Specify the path to local clone of the git repository `metalalive/RealTimeOS-Playground`
+                            which handles image build for target embedded hardware platform. Example:
+                            `make integration_test RTOS_HW_BUILD_PATH=/another/path/to/rtos_hw_build`
+
+-----
+NAME
+    dbg_server - Start the debugging server
+
+SYNOPSIS
+    make dbg_server [OPTIONS]
+
+DESCRIPTION
+    Starts the OpenOCD debugging server for GDB.
+
+OPTIONS:
+    RTOS_HW_BUILD_PATH=path  See description above
+
+-----
+NAME
+    dbg_client - Start the GDB client debugger
+
+SYNOPSIS
+    make dbg_client [OPTIONS]
+
+DESCRIPTION
+    Starts GDB client debugger.
+
+OPTIONS:
+    RTOS_HW_BUILD_PATH=path  See description above
+    OOLCHAIN_BASEPATH=path   See description above
+
+-----
+NAME
+    reformat - Reformat code
+
+SYNOPSIS
+    make reformat
+
+DESCRIPTION
+    Reformats the code using clang-format.  This target has no options.
+
+
+-----
+NAME
+    clean - Clean build artifacts
+
+SYNOPSIS
+    make clean
+
+DESCRIPTION
+    Removes all built objects and binaries. This target has no options.
+
+-----
+NAME
+    help - Display this help message
+
+SYNOPSIS
+    make help
+
+DESCRIPTION
+    Displays this help message. This target has no options.
+
