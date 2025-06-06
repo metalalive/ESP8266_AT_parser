@@ -1,11 +1,12 @@
-
 RTOS_HW_BUILD_PATH =
 
 DEBUG = 1
 
 export ESP_PROJ_HOME = $(shell pwd)
 
-REFMT_SRC_DIRS := ./include/ ./src  ./tests/integration/src/ ./tests/integration/include/
+UTEST_UNITY_PATH =
+
+REFMT_SRC_DIRS := ./include/ ./src  ./tests/unit/ ./tests/integration/src/ ./tests/integration/include/
 
 REFMT_EXTENSIONS := c h
 
@@ -17,6 +18,15 @@ REFMT_SRC_FILES := $(shell find $(REFMT_SRC_DIRS) -type f \( $(foreach ext,$(REF
 #######################################
 BUILD_DIR = $(ESP_PROJ_HOME)/build
 
+
+#######################################
+# targets
+#######################################
+unit_test:
+	@make -C ./tests/unit -f build.mk \
+		UTEST_UNITY_PATH="$(UTEST_UNITY_PATH)" \
+		ESP_PROJ_HOME="$(ESP_PROJ_HOME)" \
+		DEBUG=$(DEBUG)  BUILD_DIR="$(BUILD_DIR)"
 
 integration_test:  tests/integration/build.mk  $(RTOS_HW_BUILD_PATH)  $(TOOLCHAIN_BASEPATH)
 	@make -C $(RTOS_HW_BUILD_PATH)  startbuild \

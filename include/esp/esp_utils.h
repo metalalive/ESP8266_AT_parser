@@ -33,7 +33,8 @@ extern "C" {
 
 #define ESP_CHARTONUM(x) ((x) - '0')
 
-#define ESP_NUMTOCHAR(x) ((x) + '0')
+// currently only support decimal and hex form
+#define ESP_NUMTOCHAR(x) ((x) <= 9 ? ((x) + '0') : ((x) - 10 + 'a'))
 
 #define ESP_CHARISHEXNUM(x)                                                                        \
     (((x) >= '0' && (x) <= '9') || ((x) >= 'a' && (x) <= 'f') || ((x) >= 'A' && (x) <= 'F'))
@@ -79,7 +80,7 @@ int iESPparseFirstNumFromStr(uint8_t **out_chr_pp, espDigitBase_t base_option);
 
 uint32_t uiESPcvtNumToStr(uint8_t *out_chr_p, int num, espDigitBase_t base_option);
 
-uint16_t uESPparseStrUntilToken(char *_des, const char *_src, uint16_t _des_len, uint8_t token);
+short uESPparseStrUntilToken(char *des, const char *src, uint16_t des_len, uint8_t token);
 
 #ifdef __cplusplus
 }

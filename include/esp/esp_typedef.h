@@ -331,7 +331,7 @@ typedef void (*espMemFreeStructCbFn)(void *p);
 typedef espRes_t (*espLLvlSendFn)(void *data, size_t len, uint32_t timeout);
 
 // function prototype which reset ESP device.
-typedef uint8_t (*espLLvlRstFn)(uint8_t state);
+typedef espRes_t (*espLLvlRstFn)(uint8_t state);
 
 //  Low level hardware-specific functions
 typedef struct {

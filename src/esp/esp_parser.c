@@ -82,9 +82,8 @@ static void vESPparseCIFSR(uint8_t **curr_chr_pp, espMsg_t *msg) {
 
 static espRes_t eESPparseFoundAP(uint8_t **curr_chr_pp, espMsg_t *msg) {
     espRes_t response = espOK;
-    uint16_t idx;
-    uint16_t max_num;
-    uint16_t num_chrs_copied;
+    uint16_t idx, max_num;
+    short    num_chrs_copied;
     espAP_t *aps = NULL;
 
     idx = *(msg->body.ap_list.num_ap_found);
@@ -101,11 +100,13 @@ static espRes_t eESPparseFoundAP(uint8_t **curr_chr_pp, espMsg_t *msg) {
         num_chrs_copied = uESPparseStrUntilToken(
             &aps->ssid[0], (const char *)*curr_chr_pp, ESP_CFG_MAX_SSID_LEN, ESP_ASCII_DOUBLE_QUOTE
         );
+        ESP_ASSERT(num_chrs_copied >= 0);
         *curr_chr_pp += 1; // skip double quote
     } else {
         num_chrs_copied = uESPparseStrUntilToken(
             &aps->ssid[0], (const char *)*curr_chr_pp, ESP_CFG_MAX_SSID_LEN, ESP_ASCII_DOT
         );
+        ESP_ASSERT(num_chrs_copied >= 0);
     }
     *curr_chr_pp += num_chrs_copied;
     // check whether the currently found AP is what we are looking for ?
@@ -161,8 +162,8 @@ static espRes_t eESPparseFoundAP(uint8_t **curr_chr_pp, espMsg_t *msg) {
 } // end of eESPparseFoundAP
 
 static void vESPparseJoinedAP(uint8_t **curr_chr_pp, espMsg_t *msg) {
-    uint16_t        num_chrs_copied;
-    espStaInfoAP_t *info;
+    short           num_chrs_copied = 0;
+    espStaInfoAP_t *info = NULL;
 
     info = msg->body.sta_info_ap.info;
     *curr_chr_pp = (uint8_t *)strstr((const char *)*curr_chr_pp, "+CWJAP_CUR:") + 11;
@@ -171,11 +172,13 @@ static void vESPparseJoinedAP(uint8_t **curr_chr_pp, espMsg_t *msg) {
         num_chrs_copied = uESPparseStrUntilToken(
             &info->ssid[0], (const char *)*curr_chr_pp, ESP_CFG_MAX_SSID_LEN, ESP_ASCII_DOUBLE_QUOTE
         );
+        ESP_ASSERT(num_chrs_copied >= 0);
         *curr_chr_pp += 1; // skip double quote
     } else {
         num_chrs_copied = uESPparseStrUntilToken(
             &info->ssid[0], (const char *)*curr_chr_pp, ESP_CFG_MAX_SSID_LEN, ESP_ASCII_DOT
         );
+        ESP_ASSERT(num_chrs_copied >= 0);
     }
     *curr_chr_pp += num_chrs_copied;
     *curr_chr_pp += 1; // skip dot char,

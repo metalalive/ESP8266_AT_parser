@@ -13,14 +13,15 @@ extern "C" {
 
 // default system port implementation
 #ifndef ESP_CFG_SYS_PORT
-#define ESP_CFG_SYS_PORT ESP_SYS_PORT_FREERTOS
+#define ESP_CFG_SYS_PORT ESP_SYS_PORT_USER
 #endif // end of ESP_CFG_SYS_PORT
 
 #if (ESP_CFG_SYS_PORT == ESP_SYS_PORT_FREERTOS)
 #include "system/esp_system_freertos.h"
 #elif (ESP_CFG_SYS_PORT == ESP_SYS_PORT_USER)
-#include "system/esp_system_user.h"
-#endif // end of ESP_CFG_SYS_PORT
+// system-specific types / functions declaration should be provided
+// elsewhere in application program
+#endif
 
 typedef enum {
     ESP_SYS_TASK_SCHEDULER_NOT_STARTED, // scheduler hasn't been started, none

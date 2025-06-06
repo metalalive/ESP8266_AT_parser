@@ -127,7 +127,7 @@ espRes_t eESPenterDeepSleep(
 ) {
 // in general, ESP-01 device does not support wake up from deep sleep mode.
 // unless you manually solder GPIO16 (XPD_DCDC pin on the chip) to the RST pin
-#if defined(ESP_CFG_DEV_ESP01)
+#if (ESP_CFG_DEV_ESP01)
     return espERR;
 #else
     espRes_t  response = espOK;
