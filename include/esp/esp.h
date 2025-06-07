@@ -136,9 +136,9 @@ espRes_t eESPconnClientSend(
     const uint32_t blocking
 );
 
-uint8_t ucESPconnGetID(espConn_t *conn);
+uint8_t ucESPconnGetID(espConn_t *, struct espGlbl_s *);
 
-espConn_t *pxESPgetNxtAvailConn(void);
+espConn_t *pxESPgetNxtAvailConn(struct espGlbl_s *);
 
 // used for updating connection status o ESP device.
 void     vESPparseRecvATrespLine(uint8_t *data_line_buf, uint16_t buf_idx, uint8_t *isEndOfResp);

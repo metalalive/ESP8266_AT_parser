@@ -9,9 +9,11 @@
 extern "C" {
 #endif
 
-// early declaration
+// early declaration , for all functions that need the type
+// symbol without knowing the detail
 struct espConn;
 struct espPbuf;
+struct espGlbl_s;
 
 // ------------------------ structure, data type declaration
 // ------------------------------ result / status transferred among core

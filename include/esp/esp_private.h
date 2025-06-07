@@ -14,6 +14,10 @@ extern "C" {
 
 #define GET_CURR_CMD(_msg) ((espCmd_t)(((_msg != NULL) ? (_msg)->cmd : ESP_CMD_IDLE)))
 
+// early declaration
+// for all functions that need the type symbol without knowing the detail
+struct espGlbl_s;
+
 // lists available commands implemented in this ESP AT library.
 typedef enum {
     ESP_CMD_IDLE = 0, /*!< IDLE mode */
@@ -131,15 +135,15 @@ typedef struct espMsg {
        commands, this ESP AT software runs malloc() and free(), to create
        separate msg structure for each AT command.
         */
-    espSysSem_t sem;                 /*!< Semaphore used only for this message */
-    uint8_t     is_blocking;         /*!< Status if command is blocking */
-    uint32_t    block_time;          /*!< Maximal blocking time in units of milliseconds.
-                                        Use 0 to for non-blocking call */
-    espRes_t res;                    /*!< Result of message operation */
-    espRes_t (*fn)(struct espMsg *); /*!< callback function to process packet, generate and
-                                        send the AT command string */
-    espApiCmdCbFn api_cb;            /*!< Command callback API function */
-    void         *api_cb_arg;        /*!< Command callback API callback parameter */
+    espSysSem_t sem;         /*!< Semaphore used only for this message */
+    uint8_t     is_blocking; /*!< Status if command is blocking */
+    uint32_t    block_time;  /*!< Maximal blocking time in units of milliseconds.
+                                Use 0 to for non-blocking call */
+    espRes_t res;            /*!< Result of message operation */
+    /*!< callback function to process packet, generate and send the AT command */
+    espRes_t (*fn)(struct espMsg *, struct espGlbl_s *);
+    espApiCmdCbFn api_cb;     /*!< Command callback API function */
+    void         *api_cb_arg; /*!< Command callback API callback parameter */
 
     union {
         struct {
@@ -365,12 +369,12 @@ typedef struct {
 #endif                /* ESP_CFG_MODE_STATION  */
 #if (ESP_CFG_MODE_ACCESS_POINT != 0)
     espNetAttr_t ap; /*!< Access point IP and MAC addressed */
-#endif               /* ESP_CFG_MODE_ACCESS_POINT  */
+#endif               /* ESP_CFG_ACCESS_POINT  */
 } espDev_t;
 
 // data structure for collecting state which can be globally accessed in this
 // ESP AT library.
-typedef struct {
+struct espGlbl_s {
     espSysSem_t sem_th_sync;              /*!< Synchronization semaphore between the
                                              command-handling threads */
     espSysMbox_t mbox_cmd_req;            /*!< buffer AT-command requests sent from API
@@ -398,7 +402,9 @@ typedef struct {
                                         connected to host device */
         } flg;                       /*!< Flags structure */
     } status;                        /*!< Status structure */
-} espGlbl_t;
+}; // end of struct espGlbl_s
+
+typedef struct espGlbl_s espGlbl_t;
 
 // get ESP glabol data structure.
 espGlbl_t *pxESPgetGlobalData(void);
@@ -410,19 +416,19 @@ void vESPmsgDelete(espMsg_t *msg);
 
 // internal functions that handle message between APIs and low-level hardware
 // operations
-espRes_t eESPsendReqToMbox(espMsg_t *msg, espRes_t (*initATcmdFn)(espMsg_t *));
+espRes_t eESPsendReqToMbox(espMsg_t *msg, espRes_t (*initATcmdFn)(espMsg_t *, espGlbl_t *));
 
 espRes_t eESPrecvReqFromMbox(espMsg_t **msg, uint32_t max_block_time);
 
 // the final step in the thread  vESPthreadATreqHandler() to generate send AT
 // command string, then call low-level hardware-specific function to send the
 // command string to ESP device
-espRes_t eESPinitATcmd(espMsg_t *msg);
+espRes_t eESPinitATcmd(espMsg_t *, espGlbl_t *);
 
 // for few AT commands, host CPU must send extra data after sending out AT
 // command to ESP device (e.g. AT+CIPSEND) and before getting final response,
 // this functions will be used in such cases.
-espRes_t eESPcmdStartSendData(espMsg_t *msg);
+espRes_t eESPcmdStartSendData(espMsg_t *msg, struct espGlbl_s *gbl); // Modified signature
 
 // run the registered event callback function for some API functions
 void vESPapiRunEvtCallbacks(espMsg_t *msg);

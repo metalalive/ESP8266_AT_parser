@@ -201,7 +201,7 @@ void vESPrunEvtCallbacks(espEvt_t *evtp) {
     } // end of for-loop
 } // end of vESPrunEvtCallbacks
 
-espRes_t eESPsendReqToMbox(espMsg_t *msg, espRes_t (*initATcmdFn)(espMsg_t *)) {
+espRes_t eESPsendReqToMbox(espMsg_t *msg, espRes_t (*initATcmdFn)(espMsg_t *, espGlbl_t *)) {
     espRes_t response = espOK;
     if (msg == NULL || initATcmdFn == NULL) {
         return espERRARGS;

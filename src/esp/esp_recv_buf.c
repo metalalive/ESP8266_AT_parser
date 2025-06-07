@@ -19,6 +19,8 @@ static void vESPappendChrToRecvDataBuf(uint8_t *data_buf_p, uint16_t *buf_idx_p,
         *(data_buf_p + idx) = chr;
         *buf_idx_p = idx + 1;
     }
+    // FIXME, always keep last char of the data-libe buffer to zero,
+    // to avoid any out-of-bound char pattern search
 } // end of vESPappendChrToRecvDataBuf
 
 espRes_t eESPprocessPieceRecvResp(espBuf_t *recv_buf, uint8_t *isEndOfATresp) {
@@ -60,9 +62,8 @@ espRes_t eESPprocessPieceRecvResp(espBuf_t *recv_buf, uint8_t *isEndOfATresp) {
                 // IPD data.
                 recv_data_line_buf_idx = 0x0;
             } else if ((prev_chr == '>') && (curr_chr == ' ') &&
-                       (eESPcmdStartSendData(espGlobal.msg) == espOK
-                       )) { // if current command is AT+CIPSEND & we
-                            // received the characters '> '
+                       (eESPcmdStartSendData(espGlobal.msg, &espGlobal) == espOK)) {
+                // if current command is AT+CIPSEND & we received the characters '> '
                 recv_data_line_buf_idx = 0x0;
                 break;
             }

@@ -26,7 +26,7 @@ void vESPthreadATreqHandler(void *const arg) {
         }
         // generating AT command string
         if (response == espOK) {
-            response = (msg->fn != NULL) ? msg->fn(msg) : espERR;
+            response = (msg->fn != NULL) ? msg->fn(msg, &espGlobal) : espERR;
         }
         // once AT command string was sent, this thread has to wait for response
         // handling thread getting its job done by taking internal semaphore.

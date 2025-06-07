@@ -14,6 +14,8 @@
 
 #define ITEST_MQ_TOPIC_PREFIX "/experiment/esp-wifi"
 
+extern espGlbl_t espGlobal;
+
 static mqttCtx_t    *m_client;
 static espNetConnPtr clientnetconn;
 
@@ -262,7 +264,7 @@ static void vESPtestMqttClientTask(void *params) {
     const char hostname[] = ITEST_MQ_BROKER_HOSTNAME;
     uint16_t   host_len = ESP_STRLEN(hostname);
     espPort_t  port = ITEST_MQ_BROKER_PORT;
-    espConn_t *conn = pxESPgetNxtAvailConn();
+    espConn_t *conn = pxESPgetNxtAvailConn(&espGlobal);
     ESP_ASSERT(conn != NULL);
     conn->type = ESP_CONN_TYPE_TCP;
 

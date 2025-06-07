@@ -7,6 +7,7 @@ extern "C" {
 
 #include "demo_apps/mqtt/mqtt_include.h"
 #include "esp/esp.h"
+#include "esp/esp_private.h"
 
 void vESPtestStartMqttClientTask(void);
 
