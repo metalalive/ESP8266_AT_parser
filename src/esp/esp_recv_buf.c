@@ -47,7 +47,7 @@ espRes_t eESPprocessPieceRecvResp(espBuf_t *recv_buf, uint8_t *isEndOfATresp) {
             if ((prev_chr == ESP_ASCII_CR) && (curr_chr == ESP_ASCII_LF)) {
                 // start analyzing current line of received response character sequence
                 vESPparseRecvATrespLine(
-                    &recv_data_line_buf[0], recv_data_line_buf_idx, isEndOfATresp
+                    &espGlobal, &recv_data_line_buf[0], recv_data_line_buf_idx, isEndOfATresp
                 );
                 eESPparseNetConnStatus(&recv_data_line_buf[0]);
                 recv_data_line_buf_idx = 0x0;

@@ -141,7 +141,9 @@ uint8_t ucESPconnGetID(espConn_t *, struct espGlbl_s *);
 espConn_t *pxESPgetNxtAvailConn(struct espGlbl_s *);
 
 // used for updating connection status o ESP device.
-void     vESPparseRecvATrespLine(uint8_t *data_line_buf, uint16_t buf_idx, uint8_t *isEndOfResp);
+void vESPparseRecvATrespLine(
+    struct espGlbl_s *, uint8_t *data_line_buf, uint16_t buf_idx, uint8_t *isEndOfResp
+);
 espRes_t eESPparseNetConnStatus(uint8_t *data_line_buf);
 
 // used for extracting IPD data (incoming packet data) from ESP device
