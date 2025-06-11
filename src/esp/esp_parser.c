@@ -106,7 +106,9 @@ static espRes_t eESPparseFoundAP(uint8_t **curr_chr_pp, espMsg_t *msg) {
         num_chrs_copied = uESPparseStrUntilToken(
             &aps->ssid[0], (const char *)*curr_chr_pp, ESP_CFG_MAX_SSID_LEN, ESP_ASCII_DOT
         );
-        ESP_ASSERT(num_chrs_copied >= 0);
+        if (num_chrs_copied < 0) {
+            return espERRMEM;
+        } // TODO, consider error variant specific for data corruption
     }
     *curr_chr_pp += num_chrs_copied;
     // check whether the currently found AP is what we are looking for ?
@@ -357,7 +359,9 @@ void vESPparseRecvATrespLine(
         break;
 #if (ESP_CFG_MODE_STATION != 0)
     case ESP_CMD_WIFI_CWLAP:
-        msg->res = eESPparseFoundAP(&curr_chr_p, msg);
+        if (*isEndOfATresp == 0) {
+            msg->res = eESPparseFoundAP(&curr_chr_p, msg);
+        }
         break;
     case ESP_CMD_WIFI_CWJAP_GET:
         if (is_ok == 0) {
@@ -391,6 +395,11 @@ void vESPparseRecvATrespLine(
             vESPparseTCPserverEn(gbl, msg);
         }
         break;
+    case ESP_CMD_TCPIP_CIPSTO:
+    case ESP_CMD_TCPIP_CIPSTART:
+    case ESP_CMD_TCPIP_CIPCLOSE:
+    case ESP_CMD_SYSMSG:
+        break;
     case ESP_CMD_WIFI_CWLIF:
         break;
 #if (ESP_CFG_PING != 0)
@@ -420,24 +429,61 @@ void vESPparseRecvATrespLine(
     } // end of switch-case-statement
 } // end of vESPparseRecvATrespLine
 
+static espRes_t eESPparseConnExtension(espConn_t *c, uint8_t *curr_chr_p) {
+    char  proto_label_raw[4] = {0};
+    char *quote_begin = strchr((const char *)curr_chr_p, ESP_ASCII_DOUBLE_QUOTE);
+    if (!quote_begin) {
+        return espERRMEM;
+    } // TODO, consider specific error for data corruption
+    curr_chr_p = quote_begin + 1;
+    short tok_result = uESPparseStrUntilToken(
+        proto_label_raw, (const char *)curr_chr_p, 4, ESP_ASCII_DOUBLE_QUOTE
+    );
+    if (tok_result < 0) {
+        return espERRMEM;
+    }
+    if (!strncmp(proto_label_raw, "TCP", 3)) {
+        c->type = ESP_CONN_TYPE_TCP;
+    } else if (!strncmp(proto_label_raw, "UDP", 3)) {
+        c->type = ESP_CONN_TYPE_UDP;
+    } else if (!strncmp(proto_label_raw, "SSL", 3)) {
+        c->type = ESP_CONN_TYPE_SSL;
+    } else {
+        return espERRMEM;
+    }
+    uint8_t conn4server = (uint8_t)iESPparseFirstNumFromStr(&curr_chr_p, ESP_DIGIT_BASE_DECIMAL);
+    c->status.flg.client = (conn4server ? 0 : 1);
+    vESPparseIPfromStr(&curr_chr_p, &c->remote_ip);
+    c->remote_port = (espPort_t)iESPparseFirstNumFromStr(&curr_chr_p, ESP_DIGIT_BASE_DECIMAL);
+    c->local_port = (espPort_t)iESPparseFirstNumFromStr(&curr_chr_p, ESP_DIGIT_BASE_DECIMAL);
+    return espOK;
+} // end of eESPparseConnExtension
+
 // current ESP8266 device supports up to 5 active connections at the same time,
 // also in this ESP AT software, multiple connection mode is always enabled,
 // so we can simply assume that ESP device only uses recv_data_line_buf[0] to
 // represent the link ID used by ESP devive.
-espRes_t eESPparseNetConnStatus(uint8_t *data_line_buf) {
-    uint8_t   *curr_chr_p = data_line_buf;
-    espConn_t *c = NULL;
-    uint8_t    link_id = 0;
-    uint8_t    is_connect = (strncmp((const char *)&curr_chr_p[1], ",CONNECT", 8) == 0) ? 1 : 0;
-    uint8_t    is_close = (strncmp((const char *)&curr_chr_p[1], ",CLOSED", 7) == 0) ? 1 : 0;
-    uint8_t    is_connect_ext =
-        (strncmp((const char *)&curr_chr_p[0], "+LINK_CONN:", 11) == 0) ? 1 : 0;
+espRes_t eESPparseNetConnStatus(espGlbl_t *glb, uint8_t *data_line_buf) {
+#define CONN_EXT_MSG_PREFIX    "+LINK_CONN:"
+#define CONN_EXT_MSG_PREFIX_SZ sizeof(CONN_EXT_MSG_PREFIX) - 1
+    uint8_t *curr_chr_p = data_line_buf, link_id = 0;
+    uint8_t  is_connect = (strncmp((const char *)&curr_chr_p[1], ",CONNECT", 8) == 0) ? 1 : 0;
+    uint8_t  is_close = (strncmp((const char *)&curr_chr_p[1], ",CLOSED", 7) == 0) ? 1 : 0;
+    uint8_t  is_connect_ext =
+        (strncmp((const char *)&curr_chr_p[0], CONN_EXT_MSG_PREFIX, CONN_EXT_MSG_PREFIX_SZ) == 0)
+             ? 1
+             : 0;
 
     if (is_connect == 0 && is_close == 0 && is_connect_ext == 0) {
         return espSKIP;
     }
-    if (is_connect_ext != 0) {
-        curr_chr_p += 11;
+    if (is_connect_ext) {
+        curr_chr_p += CONN_EXT_MSG_PREFIX_SZ;
+        uint8_t establish_fail =
+            (uint8_t)iESPparseFirstNumFromStr(&curr_chr_p, ESP_DIGIT_BASE_DECIMAL);
+        if (establish_fail) {
+            return espERRCONNFAIL;
+        } // "+LINK_CONN:0,0,\"TCP\",1,\"192.168.2.145\",58072,80\r\n23,0,4,4,7,1)\r\n"
         link_id = (uint8_t)iESPparseFirstNumFromStr(&curr_chr_p, ESP_DIGIT_BASE_DECIMAL);
     } else {
         link_id = ESP_CHARTONUM(curr_chr_p[0]);
@@ -445,29 +491,39 @@ espRes_t eESPparseNetConnStatus(uint8_t *data_line_buf) {
     if (link_id >= ESP_CFG_MAX_CONNS) {
         return espERR;
     }
-    c = &espGlobal.dev.conns[link_id];
-    if (is_connect != 0) {
+    espConn_t *c = &glb->dev.conns[link_id];
+    if (is_connect || is_connect_ext) {
         c->status.flg.active = ESP_CONN_ESTABLISHED;
         // check whether the new active connection acts as client (e.g.
         // AT+CIPSTART, AT+CIPSEND) or a server (e.g. AT+CIPSERVER) on ESP
         // device's side, then parse callback function
-        espMsg_t *msg = espGlobal.msg;
-        // TODO: test following statement
-        if (msg != NULL && GET_CURR_CMD(msg) == ESP_CMD_TCPIP_CIPSTART) {
-            c->status.flg.client = 1;
+        espMsg_t *msg = glb->msg;
+        if (is_connect_ext) {
+            espRes_t result = eESPparseConnExtension(c, curr_chr_p);
+            if (result != espOK) {
+                return result;
+            }
+        } else if (is_connect) {
+            if (msg != NULL && GET_CURR_CMD(msg) == ESP_CMD_TCPIP_CIPSTART) {
+                c->status.flg.client = 1;
+            }
         }
-        if (c->status.flg.client == 0) { // the new connection acts as server
-            c->cb = espGlobal.evt_server;
-        } else { // the new connection acts as client,
-            c->cb = msg->body.conn_start.cb;
+        glb->dev.active_conns |= (1 << link_id);
+        if (c->status.flg.client) { // the new connection acts as client
+            if (msg) {
+                c->cb = msg->body.conn_start.cb;
+            }
+        } else { // the new connection acts as server
+            c->cb = glb->evt_server;
         }
-    } else if (is_connect_ext != 0) {
-        // TODO: implement this part
     } else if (is_close != 0) {
         // reset values of previous network connection (also clear active flag)
         ESP_MEMSET(c, 0x00, sizeof(espConn_t));
+        glb->dev.active_conns &= ~(1 << link_id);
     }
     return espOK;
+#undef CONN_EXT_MSG_PREFIX
+#undef CONN_EXT_MSG_PREFIX_SZ
 } // end of  eESPparseNetConnStatus
 
 espRes_t eESPparseIPDsetup(uint8_t *metadata) {

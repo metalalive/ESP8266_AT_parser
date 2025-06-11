@@ -161,10 +161,10 @@ typedef enum {
 
 // List of possible connection types
 typedef enum {
-    ESP_CONN_TYPE_TCP, // Connection type is TCP
-    ESP_CONN_TYPE_UDP, // Connection type is UDP
-    ESP_CONN_TYPE_SSL, // connection type is SSL, should be deprecated since it
-                       // was proven insecure.
+    ESP_CONN_TYPE_UNKNOWN = 0,
+    ESP_CONN_TYPE_TCP,
+    ESP_CONN_TYPE_UDP,
+    ESP_CONN_TYPE_SSL,
 } espConnType_t;
 
 // forward declaration
@@ -404,6 +404,7 @@ typedef struct espConn {
                                     // server mode
             uint8_t data_received;  // Status whether first data were received on
                                     // connection
+            // TODO, add new `field` that represents in-use state
         } flg;
     } status;
 } espConn_t;

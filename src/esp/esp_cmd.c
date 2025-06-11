@@ -106,7 +106,8 @@ espRes_t eESPinitATcmd(espMsg_t *msg, espGlbl_t *gbl) {
         break;
     case ESP_CMD_SYSMSG:
         AT_APPEND_STR(&cmd_str_p, (const uint8_t *)&("+SYSMSG_CUR="), 12);
-        AT_APPEND_CHR(&cmd_str_p, (msg->body.sysargs.ext_info_netconn == ESP_ENABLE ? '1' : '0'));
+        // bit 1 indicates message of establishing network transmission
+        AT_APPEND_CHR(&cmd_str_p, (msg->body.sysargs.ext_info_netconn == ESP_ENABLE ? '2' : '0'));
         break;
     case ESP_CMD_WIFI_CWLAPOPT:
         break;

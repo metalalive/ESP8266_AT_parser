@@ -2,20 +2,22 @@
 #include "esp/esp_private.h"
 #include "unity.h"
 #include "unity_fixture.h"
-#include <string.h> // For strlen, memset
+#include <string.h>
 
 TEST_GROUP(ATcmdRespParser);
+TEST_GROUP(ATnetConnStatusParser);
 
 TEST_SETUP(ATcmdRespParser) {}
-
 TEST_TEAR_DOWN(ATcmdRespParser) {}
+
+TEST_SETUP(ATnetConnStatusParser) {}
+TEST_TEAR_DOWN(ATnetConnStatusParser) {}
 
 TEST(ATcmdRespParser, GMRversion) {
     espMsg_t  test_msg = {.cmd = ESP_CMD_GMR, .res = espOK};
     espGlbl_t gbl = {.msg = &test_msg};
-    uint8_t   data_line_buf[128] = {0};
+    uint8_t   data_line_buf[128] = {0}, isEndOfATresp = 0;
     uint16_t  buf_idx = 0;
-    uint8_t   isEndOfATresp = 0;
 
     // Sub Case 1: Parsing AT version line
     // Expected format: "AT version:X.Y.Z(date time)"
@@ -665,6 +667,159 @@ TEST(ATcmdRespParser, UnknownCommandType) {
     }
 }
 
+TEST(ATnetConnStatusParser, ConnEstablished) {
+    espMsg_t  test_msg = {.cmd = ESP_CMD_TCPIP_CIPSTART, .res = espOK};
+    espGlbl_t gbl = {.msg = &test_msg, .dev = {0}};
+
+    uint8_t  data_line_buf[128] = {0};
+    espRes_t parse_res;
+
+    // Sub Case 1: Parsing "3,CONNECT" for connection ID 3
+    const char *connect_line_3 = "3,CONNECT" ESP_CHR_CR ESP_CHR_LF;
+    strcpy((char *)data_line_buf, connect_line_3);
+    parse_res = eESPparseNetConnStatus(&gbl, data_line_buf);
+
+    TEST_ASSERT_EQUAL(espOK, parse_res);
+    TEST_ASSERT_EQUAL(ESP_CONN_ESTABLISHED, gbl.dev.conns[3].status.flg.active);
+    TEST_ASSERT_EQUAL(ESP_CONN_TYPE_UNKNOWN, gbl.dev.conns[3].type);
+    TEST_ASSERT_EQUAL_UINT16(0, gbl.dev.conns[3].remote_port);
+    TEST_ASSERT_EQUAL_UINT16(0, gbl.dev.conns[3].local_port);
+    TEST_ASSERT_EQUAL_UINT16(1, gbl.dev.conns[3].status.flg.client);
+    // Only connection 3 should be active in the bitmask
+    TEST_ASSERT_EQUAL_UINT8((1 << 3), gbl.dev.active_conns);
+
+    // Sub Case 2: Parsing "0,CONNECT" for connection ID 0
+    // Reset buffer and flags for the next test
+    gbl.msg = NULL;
+    memset(data_line_buf, 0, sizeof(data_line_buf));
+    const char *connect_line_0 = "0,CONNECT" ESP_CHR_CR ESP_CHR_LF;
+    strcpy((char *)data_line_buf, connect_line_0);
+    parse_res = eESPparseNetConnStatus(&gbl, data_line_buf);
+
+    TEST_ASSERT_EQUAL(espOK, parse_res);
+    TEST_ASSERT_EQUAL(ESP_CONN_ESTABLISHED, gbl.dev.conns[0].status.flg.active);
+    TEST_ASSERT_EQUAL(ESP_CONN_TYPE_UNKNOWN, gbl.dev.conns[0].type);
+    TEST_ASSERT_EQUAL_UINT16(0, gbl.dev.conns[0].remote_port);
+    TEST_ASSERT_EQUAL_UINT16(0, gbl.dev.conns[0].local_port);
+    TEST_ASSERT_EQUAL_UINT16(0, gbl.dev.conns[0].status.flg.client);
+    // Connections 0 and 3 should now be active
+    TEST_ASSERT_EQUAL_UINT8((1 << 3) | (1 << 0), gbl.dev.active_conns);
+}
+
+TEST(ATnetConnStatusParser, ConnEstablishedExtMsg) {
+    espMsg_t  test_msg = {.cmd = ESP_CMD_IDLE, .res = espOK};
+    espGlbl_t gbl = {.msg = &test_msg, .dev = {0}};
+
+    uint8_t  data_line_buf[128] = {0};
+    espRes_t parse_res;
+
+    // Sub Case 1: Successful TCP client connection (link_id 0)
+    // +LINK_CONN:0,0,"TCP",0,"192.168.1.100",80,1024
+    // establish_fail=0, link_id=0, type="TCP", conn4server=0 (client), remote_ip, remote_port,
+    // local_port
+    const char *conn_ext_line_0 = "+LINK_CONN:0,0,\"TCP\",0,\"192.168.1.100\""
+                                  ",80,1024" ESP_CHR_CR ESP_CHR_LF;
+    strcpy((char *)data_line_buf, conn_ext_line_0);
+    parse_res = eESPparseNetConnStatus(&gbl, data_line_buf);
+
+    TEST_ASSERT_EQUAL(espOK, parse_res);
+    TEST_ASSERT_EQUAL(ESP_CONN_ESTABLISHED, gbl.dev.conns[0].status.flg.active);
+    TEST_ASSERT_EQUAL(ESP_CONN_TYPE_TCP, gbl.dev.conns[0].type);
+    TEST_ASSERT_EQUAL_UINT8(192, gbl.dev.conns[0].remote_ip.ip[0]);
+    TEST_ASSERT_EQUAL_UINT8(168, gbl.dev.conns[0].remote_ip.ip[1]);
+    TEST_ASSERT_EQUAL_UINT8(1, gbl.dev.conns[0].remote_ip.ip[2]);
+    TEST_ASSERT_EQUAL_UINT8(100, gbl.dev.conns[0].remote_ip.ip[3]);
+    TEST_ASSERT_EQUAL_UINT16(80, gbl.dev.conns[0].remote_port);
+    TEST_ASSERT_EQUAL_UINT16(1024, gbl.dev.conns[0].local_port);
+    // conn4server=0 means client
+    TEST_ASSERT_EQUAL_UINT8(1, gbl.dev.conns[0].status.flg.client);
+    TEST_ASSERT_EQUAL_UINT8((1 << 0), gbl.dev.active_conns);
+
+    // Sub Case 2: Successful UDP server connection (link_id 1)
+    // +LINK_CONN:0,1,"UDP",1,"10.59.0.5",1234,5678
+    // establish_fail=0, link_id=1, type="UDP", conn4server=1 (server), remote_ip, remote_port,
+    // local_port
+    memset(data_line_buf, 0, sizeof(data_line_buf)); // Clear buffer for next test
+    const char *conn_ext_line_1 = "+LINK_CONN:0,1,\"UDP\",1,\"10.59.0.5\""
+                                  ",1234,5678" ESP_CHR_CR ESP_CHR_LF;
+    strcpy((char *)data_line_buf, conn_ext_line_1);
+    parse_res = eESPparseNetConnStatus(&gbl, data_line_buf);
+
+    TEST_ASSERT_EQUAL(espOK, parse_res);
+    TEST_ASSERT_EQUAL(ESP_CONN_ESTABLISHED, gbl.dev.conns[1].status.flg.active);
+    TEST_ASSERT_EQUAL(ESP_CONN_TYPE_UDP, gbl.dev.conns[1].type);
+    TEST_ASSERT_EQUAL_UINT8(10, gbl.dev.conns[1].remote_ip.ip[0]);
+    TEST_ASSERT_EQUAL_UINT8(59, gbl.dev.conns[1].remote_ip.ip[1]);
+    TEST_ASSERT_EQUAL_UINT8(0, gbl.dev.conns[1].remote_ip.ip[2]);
+    TEST_ASSERT_EQUAL_UINT8(5, gbl.dev.conns[1].remote_ip.ip[3]);
+    TEST_ASSERT_EQUAL_UINT16(1234, gbl.dev.conns[1].remote_port);
+    TEST_ASSERT_EQUAL_UINT16(5678, gbl.dev.conns[1].local_port);
+    // conn4server=1 means server
+    TEST_ASSERT_EQUAL_UINT8(0, gbl.dev.conns[1].status.flg.client);
+    TEST_ASSERT_EQUAL_UINT8((1 << 0) | (1 << 1), gbl.dev.active_conns);
+
+    // Sub Case 3: Connection establishment failure (link_id 2)
+    // +LINK_CONN:1,2,"TCP",0,"0.0.0.0",0,0
+    // establish_fail=1, link_id=2, type="TCP", conn4server=0 (client), remote_ip, remote_port,
+    // local_port
+    memset(data_line_buf, 0, sizeof(data_line_buf));
+    const char *conn_ext_fail_line = "+LINK_CONN:1,2,\"TCP\",0,\"0.0.0.0\""
+                                     ",0,0" ESP_CHR_CR ESP_CHR_LF;
+    strcpy((char *)data_line_buf, conn_ext_fail_line);
+    parse_res = eESPparseNetConnStatus(&gbl, data_line_buf);
+
+    TEST_ASSERT_EQUAL(espERRCONNFAIL, parse_res);
+    TEST_ASSERT_EQUAL(ESP_CONN_CLOSED, gbl.dev.conns[2].status.flg.active);
+    // Active connections should remain unchanged
+    TEST_ASSERT_EQUAL_UINT8((1 << 0) | (1 << 1), gbl.dev.active_conns);
+}
+
+TEST(ATnetConnStatusParser, ConnClosed) {
+    espGlbl_t  gbl = {0};
+    uint8_t    data_line_buf[128] = {0}, link_id_to_close = 4;
+    espRes_t   parse_res;
+    espConn_t *mock_conn = &gbl.dev.conns[link_id_to_close]; // Refactored line
+
+    // Pre-condition: Set up a connection as active and with some dummy data
+    // This simulates an existing connection that is about to be closed.
+    mock_conn->status.flg.active = ESP_CONN_ESTABLISHED;
+    mock_conn->status.flg.client = 1;
+    mock_conn->type = ESP_CONN_TYPE_TCP;
+    mock_conn->remote_port = 1234;
+    mock_conn->local_port = 5678;
+    mock_conn->remote_ip.ip[0] = 192;
+    mock_conn->remote_ip.ip[1] = 168;
+    mock_conn->remote_ip.ip[2] = 1;
+    mock_conn->remote_ip.ip[3] = 10;
+    gbl.dev.active_conns |= (1 << link_id_to_close); // Mark as active in bitmask
+
+    // Verify pre-conditions
+    TEST_ASSERT_EQUAL(ESP_CONN_ESTABLISHED, mock_conn->status.flg.active);
+    TEST_ASSERT_EQUAL_UINT8((1 << link_id_to_close), gbl.dev.active_conns);
+    TEST_ASSERT_EQUAL(ESP_CONN_TYPE_TCP, mock_conn->type);
+    TEST_ASSERT_EQUAL_UINT16(1234, mock_conn->remote_port);
+
+    // Test Case: Parsing "4,CLOSED" for connection ID 5
+    const char *closed_line = "4,CLOSED" ESP_CHR_CR ESP_CHR_LF;
+    strcpy((char *)data_line_buf, closed_line);
+    parse_res = eESPparseNetConnStatus(&gbl, data_line_buf);
+
+    TEST_ASSERT_EQUAL(espOK, parse_res); // Function should return espOK on successful parsing
+    TEST_ASSERT_EQUAL(ESP_CONN_CLOSED, mock_conn->status.flg.active);
+    TEST_ASSERT_EQUAL_UINT8(0, mock_conn->status.flg.client);
+    // Connection 5 should be removed from active bitmask
+    TEST_ASSERT_EQUAL_UINT8(0, gbl.dev.active_conns);
+    // Verify that the connection structure has been zeroed out
+    // (or at least key fields are reset to their default/initial state)
+    TEST_ASSERT_EQUAL(ESP_CONN_TYPE_UNKNOWN, mock_conn->type);
+    TEST_ASSERT_EQUAL_UINT16(0, mock_conn->remote_port);
+    TEST_ASSERT_EQUAL_UINT16(0, mock_conn->local_port);
+    TEST_ASSERT_EQUAL_UINT8(0, mock_conn->remote_ip.ip[0]);
+    TEST_ASSERT_EQUAL_UINT8(0, mock_conn->remote_ip.ip[1]);
+    TEST_ASSERT_EQUAL_UINT8(0, mock_conn->remote_ip.ip[2]);
+    TEST_ASSERT_EQUAL_UINT8(0, mock_conn->remote_ip.ip[3]);
+}
+
 TEST_GROUP_RUNNER(EspRespParser) {
     RUN_TEST_CASE(ATcmdRespParser, GMRversion);
     RUN_TEST_CASE(ATcmdRespParser, CWLAP);
@@ -676,4 +831,7 @@ TEST_GROUP_RUNNER(EspRespParser) {
     RUN_TEST_CASE(ATcmdRespParser, CIPSEND);
     RUN_TEST_CASE(ATcmdRespParser, GenericErrorResponse);
     RUN_TEST_CASE(ATcmdRespParser, UnknownCommandType);
+    RUN_TEST_CASE(ATnetConnStatusParser, ConnEstablished);
+    RUN_TEST_CASE(ATnetConnStatusParser, ConnEstablishedExtMsg);
+    RUN_TEST_CASE(ATnetConnStatusParser, ConnClosed);
 }

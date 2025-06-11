@@ -374,13 +374,13 @@ eESPstartServer(espNetConnPtr serverconn, espPort_t port, espEvtCbFn evt_cb, uin
     }
     response = eESPsetServerTimeout(serverconn, timeout, NULL, NULL, ESP_AT_CMD_BLOCKING);
     return response;
-} // end of eESPstartServer
+}
 
 espRes_t eESPstopServer(espNetConnPtr serverconn) {
     espRes_t response = espOK;
     response = eESPsetServer(serverconn, ESP_DISABLE, 0, NULL, NULL, NULL, ESP_AT_CMD_BLOCKING);
     return response;
-} // end of eESPstopServer
+}
 
 espRes_t eESPnetconnRecvPkt(espNetConnPtr nc, espPbuf_t *pbuf) {
     espNetConn_t *nconn = (espNetConn_t *)nc;
