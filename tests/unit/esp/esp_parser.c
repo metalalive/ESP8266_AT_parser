@@ -6,12 +6,16 @@
 
 TEST_GROUP(ATcmdRespParser);
 TEST_GROUP(ATnetConnStatusParser);
+TEST_GROUP(ATnetDataParser);
 
 TEST_SETUP(ATcmdRespParser) {}
 TEST_TEAR_DOWN(ATcmdRespParser) {}
 
 TEST_SETUP(ATnetConnStatusParser) {}
 TEST_TEAR_DOWN(ATnetConnStatusParser) {}
+
+TEST_SETUP(ATnetDataParser) {}
+TEST_TEAR_DOWN(ATnetDataParser) {}
 
 TEST(ATcmdRespParser, GMRversion) {
     espMsg_t  test_msg = {.cmd = ESP_CMD_GMR, .res = espOK};
@@ -820,6 +824,108 @@ TEST(ATnetConnStatusParser, ConnClosed) {
     TEST_ASSERT_EQUAL_UINT8(0, mock_conn->remote_ip.ip[3]);
 }
 
+TEST(ATnetDataParser, IPDsetupOk) {
+    espGlbl_t  gbl = {.dev = {0}};
+    espIPD_t  *ipd_chosen = NULL;
+    espRes_t   parse_res;
+    uint8_t    link_id = 1;
+    espConn_t *chosen_conn = &gbl.dev.conns[link_id];
+
+    gbl.status.flg.mux_conn = ESP_TCP_MULTIPLE_CONNECTION;
+
+#define TOTAL_PAYLOAD_LEN 300
+#define SEGMENT_LEN       (TOTAL_PAYLOAD_LEN / 3)
+    uint8_t full_payload[TOTAL_PAYLOAD_LEN];
+    for (size_t i = 0; i < TOTAL_PAYLOAD_LEN; ++i) {
+        full_payload[i] = (uint8_t)('A' + (i % 26));
+    }
+
+    char ipd_metadata_line[128];
+    sprintf(ipd_metadata_line, "+IPD,%u,%u,192.168.1.100,8080:", link_id, TOTAL_PAYLOAD_LEN);
+
+    uint8_t *metadata_ptr = (uint8_t *)ipd_metadata_line;
+    parse_res = eESPparseIPDsetup(&gbl, metadata_ptr, &ipd_chosen);
+
+    TEST_ASSERT_EQUAL(espOK, parse_res);
+    TEST_ASSERT_NOT_NULL(ipd_chosen);
+    TEST_ASSERT_EQUAL_UINT32(TOTAL_PAYLOAD_LEN, ipd_chosen->tot_len);
+    TEST_ASSERT_EQUAL_UINT32(TOTAL_PAYLOAD_LEN, ipd_chosen->rem_len);
+    TEST_ASSERT_EQUAL_UINT8(1, ipd_chosen->read);
+    TEST_ASSERT_EQUAL_PTR(&chosen_conn->ipd, ipd_chosen);
+    TEST_ASSERT_EQUAL_PTR(chosen_conn, ipd_chosen->conn);
+    TEST_ASSERT_EQUAL_UINT8(1, chosen_conn->status.flg.data_received);
+
+    TEST_ASSERT_EQUAL_UINT8(192, chosen_conn->remote_ip.ip[0]);
+    TEST_ASSERT_EQUAL_UINT8(168, chosen_conn->remote_ip.ip[1]);
+    TEST_ASSERT_EQUAL_UINT8(1, chosen_conn->remote_ip.ip[2]);
+    TEST_ASSERT_EQUAL_UINT8(100, chosen_conn->remote_ip.ip[3]);
+    TEST_ASSERT_EQUAL_UINT16(8080, chosen_conn->remote_port);
+
+    uint8_t *segment1_data = full_payload;
+    uint32_t segment1_len_arg = SEGMENT_LEN;
+    parse_res = eESPparseIPDcopyData(ipd_chosen, segment1_data, &segment1_len_arg);
+
+    TEST_ASSERT_EQUAL(espINPROG, parse_res);
+    TEST_ASSERT_EQUAL_UINT32(TOTAL_PAYLOAD_LEN - SEGMENT_LEN, ipd_chosen->rem_len);
+    TEST_ASSERT_NOT_NULL(ipd_chosen->pbuf_head);
+    TEST_ASSERT_EQUAL_UINT8(1, ipd_chosen->pbuf_head->chain_len);
+    TEST_ASSERT_EQUAL_UINT32(SEGMENT_LEN, ipd_chosen->pbuf_head->payload_len);
+    TEST_ASSERT_EQUAL_UINT32(SEGMENT_LEN, segment1_len_arg);
+
+    uint8_t *segment2_data = full_payload + SEGMENT_LEN;
+    uint32_t segment2_len_arg = SEGMENT_LEN;
+    parse_res = eESPparseIPDcopyData(ipd_chosen, segment2_data, &segment2_len_arg);
+
+    TEST_ASSERT_EQUAL(espINPROG, parse_res);
+    TEST_ASSERT_EQUAL_UINT32(TOTAL_PAYLOAD_LEN - (2 * SEGMENT_LEN), ipd_chosen->rem_len);
+    TEST_ASSERT_NOT_NULL(ipd_chosen->pbuf_head->next);
+    TEST_ASSERT_EQUAL_UINT8(2, ipd_chosen->pbuf_head->chain_len);
+    TEST_ASSERT_EQUAL_UINT32(SEGMENT_LEN, ipd_chosen->pbuf_head->next->payload_len);
+    TEST_ASSERT_EQUAL_UINT32(SEGMENT_LEN, segment2_len_arg);
+
+    uint8_t *segment3_data = full_payload + (2 * SEGMENT_LEN);
+    uint32_t segment3_len_arg = SEGMENT_LEN;
+    parse_res = eESPparseIPDcopyData(ipd_chosen, segment3_data, &segment3_len_arg);
+
+    TEST_ASSERT_EQUAL(espOK, parse_res);
+    TEST_ASSERT_EQUAL_UINT32(0, ipd_chosen->rem_len);
+    TEST_ASSERT_NOT_NULL(ipd_chosen->pbuf_head->next->next);
+    TEST_ASSERT_EQUAL_UINT8(3, ipd_chosen->pbuf_head->chain_len);
+    TEST_ASSERT_EQUAL_UINT32(SEGMENT_LEN, ipd_chosen->pbuf_head->next->next->payload_len);
+    TEST_ASSERT_EQUAL_UINT32(SEGMENT_LEN, segment3_len_arg);
+    TEST_ASSERT_EQUAL_PTR(ipd_chosen->pbuf_head, ipd_chosen->conn->pbuf);
+
+    uint8_t received_payload[TOTAL_PAYLOAD_LEN];
+    memset(received_payload, 0, TOTAL_PAYLOAD_LEN);
+    espPbuf_t *current_pbuf = ipd_chosen->pbuf_head;
+    size_t     current_offset = 0;
+
+    while (current_pbuf != NULL) {
+        TEST_ASSERT_LESS_OR_EQUAL(TOTAL_PAYLOAD_LEN - current_offset, current_pbuf->payload_len);
+        memcpy(received_payload + current_offset, current_pbuf->payload, current_pbuf->payload_len);
+        current_offset += current_pbuf->payload_len;
+        current_pbuf = current_pbuf->next;
+    }
+    TEST_ASSERT_EQUAL_UINT32(TOTAL_PAYLOAD_LEN, current_offset);
+
+    TEST_ASSERT_EQUAL_HEX8_ARRAY(full_payload, received_payload, TOTAL_PAYLOAD_LEN);
+
+    vESPpktBufChainDelete(ipd_chosen->conn->pbuf);
+    ipd_chosen->conn->pbuf = NULL;
+    TEST_ASSERT_NULL(chosen_conn->pbuf);
+
+    parse_res = eESPparseIPDreset(ipd_chosen);
+    TEST_ASSERT_EQUAL(espOK, parse_res);
+    TEST_ASSERT_EQUAL_UINT8(0, ipd_chosen->read);
+    TEST_ASSERT_EQUAL_UINT8(0, chosen_conn->status.flg.data_received);
+    TEST_ASSERT_EQUAL_UINT32(0, ipd_chosen->tot_len);
+    TEST_ASSERT_EQUAL_UINT32(0, ipd_chosen->rem_len);
+    TEST_ASSERT_NULL(ipd_chosen->conn);
+    TEST_ASSERT_NULL(ipd_chosen->pbuf_head);
+#undef TOTAL_PAYLOAD_LEN
+#undef SEGMENT_LEN
+}
+
 TEST_GROUP_RUNNER(EspRespParser) {
     RUN_TEST_CASE(ATcmdRespParser, GMRversion);
     RUN_TEST_CASE(ATcmdRespParser, CWLAP);
@@ -834,4 +940,5 @@ TEST_GROUP_RUNNER(EspRespParser) {
     RUN_TEST_CASE(ATnetConnStatusParser, ConnEstablished);
     RUN_TEST_CASE(ATnetConnStatusParser, ConnEstablishedExtMsg);
     RUN_TEST_CASE(ATnetConnStatusParser, ConnClosed);
+    RUN_TEST_CASE(ATnetDataParser, IPDsetupOk);
 }

@@ -6,6 +6,8 @@
 
 extern espGlbl_t espGlobal;
 
+static espIPD_t *last_active_ipd = NULL;
+
 #define ESP_RESP_RECV_LINE_BUF_SIZE 0x180
 // [TODO] refactor this part.
 static uint8_t prev_chr = 0;
@@ -25,17 +27,15 @@ static void vESPappendChrToRecvDataBuf(uint8_t *data_buf_p, uint16_t *buf_idx_p,
 
 espRes_t eESPprocessPieceRecvResp(espBuf_t *recv_buf, uint8_t *isEndOfATresp) {
     espRes_t  response = espOK;
-    uint8_t  *curr_p = recv_buf->buff;
-    espIPD_t *ipdp = &espGlobal.dev.ipd;
-    uint32_t  data_len = (uint32_t)recv_buf->size;
-    uint32_t  idx = 0;
-    uint8_t   curr_chr = 0;
+    espIPD_t *ipdp = last_active_ipd;
+    uint8_t  *curr_p = recv_buf->buff, curr_chr = 0;
+    uint32_t  data_len = (uint32_t)recv_buf->size, idx = 0;
 
     // reassemble message byte by byte, it could be response character sequence of AT command, or
     // IPD data.
     for (idx = 0; idx < data_len; idx++) {
         // treat incoming bytes as response character sequence of AT command
-        if (ipdp->read == 0x0) {
+        if (!ipdp) { // ipdp->read == 0x0
             curr_chr = curr_p[idx];
             // TODO: for AT command, currently we only support ASCII, will
             // support UTF-8 in future
@@ -57,7 +57,7 @@ espRes_t eESPprocessPieceRecvResp(espBuf_t *recv_buf, uint8_t *isEndOfATresp) {
                             4
                         ) == 0) &&
                        (recv_data_line_buf_idx > 5)) { // setup for handling received IPD string.
-                eESPparseIPDsetup(&recv_data_line_buf[0]);
+                eESPparseIPDsetup(&espGlobal, &recv_data_line_buf[0], &ipdp);
                 // again clear the index of received line buffer, for storing
                 // IPD data.
                 recv_data_line_buf_idx = 0x0;
@@ -71,23 +71,27 @@ espRes_t eESPprocessPieceRecvResp(espBuf_t *recv_buf, uint8_t *isEndOfATresp) {
             // otherwise ipdp->read != 0x0
             // currently the ESP device is waiting for IPD data
             uint32_t copied_len = data_len - idx;
-            response = eESPparseIPDcopyData(&curr_p[idx], &copied_len);
+            response = eESPparseIPDcopyData(ipdp, &curr_p[idx], &copied_len);
             idx += copied_len - 1;
             if (response == espOK) {
                 // run callback function to notify user application that the IPD
                 // data is ready.
                 vESPconnRunEvtCallback(ipdp->conn, ESP_EVT_CONN_RECV);
                 // clean up IPD data, packet buffer chain.
-                eESPparseIPDreset();
+                eESPparseIPDreset(ipdp);
+                ipdp = NULL;
                 curr_chr = curr_p[idx];
             }
             recv_data_line_buf_idx = 0x0;
         }
         prev_chr = curr_chr;
-        // TODO: recheck whether received IPD data & received AT-command
-        // response will come & interleave in ESP device.
     } // end of for-loop
-
+    // TODO / FIXME :
+    // - recheck whether received IPD data & received AT-command
+    //   response will come & interleave in ESP device.
+    // - recheck whether IPD data of several established connections
+    //   are concurrently received & interleaved in ESP device.
+    last_active_ipd = ipdp;
     return response;
 } // end of eESPprocessPieceRecvResp
 

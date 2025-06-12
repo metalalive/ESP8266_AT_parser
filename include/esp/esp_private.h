@@ -109,18 +109,6 @@ typedef enum {
                                   statement */
 } espCmd_t;
 
-// Incoming network data read structure
-typedef struct {
-    uint8_t read;         /*!< Set to non-zero when we recognize received string (from
-                             Rx of ESP device) as IPD data */
-    uint32_t   tot_len;   /*!< Total length of packet */
-    uint32_t   rem_len;   /*!< Remaining bytes to read in current +IPD statement */
-    espConn_t *conn;      /*!< Pointer to connection, TODO: figure out its usage */
-    espIp_t    ip;        /*!< Remote IP address on from IPD data */
-    espPort_t  port;      /*!< Remote port on IPD data */
-    espPbuf_t *pbuf_head; /*!< Pointer to buffer for collecting receiving data */
-} espIPD_t;
-
 // data structure used as item of message queue,  shared between threads
 // processing AT command.
 typedef struct espMsg {
@@ -352,18 +340,18 @@ typedef struct espEvtCbFnLstItem {
 
 // ESP device status structure
 typedef struct {
-    espDevName_t name;                  /*!< ESP device name */
-    espFwVer_t   version_at;            /*!< Version of AT command software on ESP device */
-    espFwVer_t   version_sdk;           /*!< Version of SDK used to build AT software */
-    uint32_t     active_conns;          /*!< Bit field of currently active connections,
-                                             [TODO]: for old version of ESP device e.g. ESP-01,
-                                           32-bit variable should be           enough to represent exiting
-                                           TCP connections, in case user has more           than 32
-                                           connections, single variable is not enough */
-    uint32_t active_conns_last;         /*!< The same as previous but status before last
-                                           check */
-    espIPD_t  ipd;                      /*!< Connection incoming data structure */
-    espConn_t conns[ESP_CFG_MAX_CONNS]; /*!< Array of all connection structures */
+    espDevName_t name;          /*!< ESP device name */
+    espFwVer_t   version_at;    /*!< Version of AT command software on ESP device */
+    espFwVer_t   version_sdk;   /*!< Version of SDK used to build AT software */
+    uint32_t     active_conns;  /*!< Bit field of currently active connections,
+                                     [TODO]: for old version of ESP device e.g. ESP-01,
+                                   32-bit variable should be           enough to represent exiting
+                                   TCP connections, in case user has more           than 32
+                                   connections, single variable is not enough */
+    uint32_t active_conns_last; /*!< The same as previous but status before last
+                                   check */
+    // Array of all connection structures
+    espConn_t conns[ESP_CFG_MAX_CONNS];
 #if (ESP_CFG_MODE_STATION != 0)
     espNetAttr_t sta; /*!< Station IP and MAC addressed */
 #endif                /* ESP_CFG_MODE_STATION  */

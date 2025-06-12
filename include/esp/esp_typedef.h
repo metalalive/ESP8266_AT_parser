@@ -368,8 +368,6 @@ typedef struct espPbuf {
     struct espPbuf *next;        /*!< Next pbuf in chain list */
     size_t          payload_len; /*!< Length of payload */
     size_t          rd_ptr;
-    espIp_t         ip;        /*!< Remote address for received IPD data */
-    espPort_t       port;      /*!< Remote port for received IPD data */
     struct espConn *conn;      //   indicate the connection object associated with packet buffer
     uint8_t         chain_len; /*!< Total length of pbuf chain */
     uint8_t        *payload;   /*!< Pointer to payload memory */
@@ -381,21 +379,35 @@ typedef struct espBuf {
     size_t   size;
 } espBuf_t;
 
+// inbound data received from peer
+typedef struct {
+    struct espConn *conn;      // associated connection,
+    espPbuf_t      *pbuf_head; /*!< buffer for collecting receiving data */
+    uint32_t        tot_len;   /*!< Total length of packet */
+    uint32_t        rem_len;   /*!< Remaining bytes to read in current +IPD statement */
+    /*!< Set to non-zero when we recognize received string (from
+                             Rx of ESP device) as IPD data */
+    uint8_t read;
+} espIPD_t;
+
 // connection structure
 typedef struct espConn {
-    uint16_t      num_recv_pkt; // number of received packets
-    uint16_t      num_sent_pkt; // number of packets sent
-    espConnType_t type;         // Connection type
-    espIp_t       remote_ip;    // Remote IP address
-    espPort_t     remote_port;  // Remote port number
-    espPort_t     local_port;   // Local IP address
-    espEvtCbFn    cb;           // Callback function for connection
-    void         *arg;          // User custom argument
-    uint8_t       val_id;       // Validation ID number. It is increased each time a new
-                                // connection is established. It protects sending data to
-                                // wrong connection in case we have data in send queue, and
-                                // connection was closed and active again in between.
-    espPbuf_t *pbuf;            // Linear buffer structure
+    espConnType_t type; // Connection type
+    espEvtCbFn    cb;   // Callback function for connection
+    void         *arg;  // User custom argument
+    espIPD_t      ipd;  // inbound data received from peer
+    // Validation ID number. It is increased each time a new
+    // connection is established. It protects sending data to
+    // wrong connection in case we have data in send queue, and
+    // connection was closed and active again in between.
+    uint8_t    val_id;
+    espPbuf_t *pbuf; // Linear buffer structure
+
+    uint16_t  num_recv_pkt; // number of received packets
+    uint16_t  num_sent_pkt; // number of packets sent
+    espIp_t   remote_ip;    // Remote IP address
+    espPort_t remote_port;  // Remote port number
+    espPort_t local_port;   // Local IP address
 
     union {
         struct {

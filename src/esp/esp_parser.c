@@ -1,8 +1,6 @@
 #include "esp/esp.h"
 #include "esp/esp_private.h"
 
-extern espGlbl_t espGlobal;
-
 static espRes_t eESPparseVersion(uint8_t **curr_chr_pp, espFwVer_t *ver) {
     ver->major = iESPparseFirstNumFromStr(curr_chr_pp, ESP_DIGIT_BASE_DECIMAL);
     ver->minor = iESPparseFirstNumFromStr(curr_chr_pp, ESP_DIGIT_BASE_DECIMAL);
@@ -398,6 +396,7 @@ void vESPparseRecvATrespLine(
     case ESP_CMD_TCPIP_CIPSTO:
     case ESP_CMD_TCPIP_CIPSTART:
     case ESP_CMD_TCPIP_CIPCLOSE:
+    case ESP_CMD_TCPIP_CIPDINFO:
     case ESP_CMD_SYSMSG:
         break;
     case ESP_CMD_WIFI_CWLIF:
@@ -526,47 +525,44 @@ espRes_t eESPparseNetConnStatus(espGlbl_t *glb, uint8_t *data_line_buf) {
 #undef CONN_EXT_MSG_PREFIX_SZ
 } // end of  eESPparseNetConnStatus
 
-espRes_t eESPparseIPDsetup(uint8_t *metadata) {
-    uint8_t    link_id = 0;
-    uint32_t   len = 0;
-    espIPD_t  *ipdp = &espGlobal.dev.ipd;
-    espConn_t *c = NULL;
-
-    if (ipdp->read == 1) {
-        return espBUSY;
-    }
-    if (espGlobal.status.flg.mux_conn == ESP_TCP_MULTIPLE_CONNECTION) {
+espRes_t eESPparseIPDsetup(espGlbl_t *glb, uint8_t *metadata, espIPD_t **ipd_chosen) {
+    uint8_t link_id = 0;
+    if (glb->status.flg.mux_conn == ESP_TCP_MULTIPLE_CONNECTION) {
         link_id = (uint8_t)iESPparseFirstNumFromStr(&metadata, ESP_DIGIT_BASE_DECIMAL);
         if (link_id >= ESP_CFG_MAX_CONNS) {
             return espERR;
         }
     }
-    // looking for available espConn_t object, in order to store
-    c = &espGlobal.dev.conns[link_id];
+    espConn_t *c = &glb->dev.conns[link_id];
+    espIPD_t  *ipdp = &c->ipd;
+    if (ipdp->read == 1) {
+        return espBUSY;
+    }
     c->status.flg.data_received = 1;
-    // get total length of current IPD data
-    len = (uint32_t)iESPparseFirstNumFromStr(&metadata, ESP_DIGIT_BASE_DECIMAL);
-    // get IP address / port number of remote sender
-    vESPparseIPfromStr(&metadata, &(c->remote_ip));
-    c->remote_port = (espPort_t)iESPparseFirstNumFromStr(&metadata, ESP_DIGIT_BASE_DECIMAL);
-    ESP_MEMCPY(&(ipdp->ip), &(c->remote_ip), sizeof(espIp_t));
-    ipdp->port = c->remote_port;
+    uint32_t len = (uint32_t)iESPparseFirstNumFromStr(&metadata, ESP_DIGIT_BASE_DECIMAL);
+    // retrieve and save IP address / port number of remote sender
+    // , this works if CIPDINFO is set to 1
+    uint8_t ip_zeros[4] = {0};
+    if (strncmp(ip_zeros, c->remote_ip.ip, 4) == 0) {
+        vESPparseIPfromStr(&metadata, &c->remote_ip);
+    }
+    if (c->remote_port == 0) {
+        c->remote_port = (espPort_t)iESPparseFirstNumFromStr(&metadata, ESP_DIGIT_BASE_DECIMAL);
+    }
     ipdp->tot_len = len;
     ipdp->rem_len = len;
     ipdp->conn = c;
     ipdp->pbuf_head = NULL;
     ipdp->read = 1;
+    *ipd_chosen = ipdp;
     return espOK;
 } // end of eESPparseIPDsetup
 
-espRes_t eESPparseIPDcopyData(const uint8_t *data, uint32_t *data_len) {
+espRes_t eESPparseIPDcopyData(espIPD_t *ipdp, const uint8_t *data, uint32_t *data_len) {
     espRes_t   response = espINPROG;
-    espIPD_t  *ipdp = &espGlobal.dev.ipd;
-    uint32_t   remain_len = ipdp->rem_len;
-    uint32_t   copy_len = 0;
+    uint32_t   remain_len = ipdp->rem_len, copy_len = 0;
     uint8_t    chain_cnt = 0;
-    espPbuf_t *prev_p = NULL;
-    espPbuf_t *curr_p = NULL;
+    espPbuf_t *prev_p = NULL, *curr_p = NULL;
     // loop through all packet buffer & find out the last one
     curr_p = ipdp->pbuf_head;
     while (curr_p != NULL) {
@@ -577,10 +573,7 @@ espRes_t eESPparseIPDcopyData(const uint8_t *data, uint32_t *data_len) {
     // create new packet buffer to hold IPD
     copy_len = ESP_MIN(*data_len, remain_len);
     curr_p = (espPbuf_t *)pxESPpktBufCreate(copy_len);
-    // then copy IP address, port number, and associated connection object to
-    // this packet buffer item
-    ESP_MEMCPY(&(curr_p->ip), &(ipdp->ip), sizeof(espIp_t));
-    curr_p->port = ipdp->port;
+    // copy associated connection object to this packet buffer item
     curr_p->conn = ipdp->conn;
     // append the new packet buffer to the last of the chain
     if (prev_p != NULL) {
@@ -604,8 +597,8 @@ espRes_t eESPparseIPDcopyData(const uint8_t *data, uint32_t *data_len) {
     return response;
 } // end of eESPparseIPDcopyData
 
-espRes_t eESPparseIPDreset(void) {
-    espIPD_t *ipdp = &espGlobal.dev.ipd;
+espRes_t eESPparseIPDreset(espIPD_t *ipdp) {
+    ipdp->conn->status.flg.data_received = 0;
     ESP_MEMSET(ipdp, 0x00, sizeof(espIPD_t));
     ////ipdp->read  = 0;
     return espOK;

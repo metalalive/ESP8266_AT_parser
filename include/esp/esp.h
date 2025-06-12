@@ -147,9 +147,9 @@ void vESPparseRecvATrespLine(
 espRes_t eESPparseNetConnStatus(struct espGlbl_s *, uint8_t *data_line_buf);
 
 // used for extracting IPD data (incoming packet data) from ESP device
-espRes_t eESPparseIPDsetup(uint8_t *metadata);
-espRes_t eESPparseIPDcopyData(const uint8_t *data, uint32_t *data_len);
-espRes_t eESPparseIPDreset(void);
+espRes_t eESPparseIPDsetup(struct espGlbl_s *, uint8_t *metadata, espIPD_t **);
+espRes_t eESPparseIPDcopyData(espIPD_t *, const uint8_t *data, uint32_t *data_len);
+espRes_t eESPparseIPDreset(espIPD_t *);
 
 espPbuf_t *pxESPpktBufCreate(size_t len);
 espRes_t   eESPpktBufCopy(espPbuf_t *des_p, void *src_p, size_t len);
