@@ -1,176 +1,161 @@
+#include "system/esp_system_mock.h"
 #include "esp/esp.h"
+#include "system/esp_sys.h"
 #include <stddef.h> // For size_t
 
-// Dummy implementation for eESPsysInit
-espRes_t eESPsysInit(void) { return espOK; }
+// --- Global Mock Control Variables ---
+// These variables are declared in the header and defined here.
+ut_sys_mock_returns_t ut_sys_mock_returns = {
+    .eESPsysInit_ret = espOK,
+    .eESPsysDeInit_ret = espOK,
+    .eESPlowLvlDevInit_ret = espOK,
+    .eESPlowLvlDevDeInit_ret = espOK,
+    .eESPlowLvlSendFn_ret = espOK,
+    .eESPlowLvlRecvStartFn_ret = espOK,
+    .eESPlowLvlRstFn_ret = espOK,
+    .uESPsysCurrTime_ret = 0,
+    .eESPsysProtect_ret = espOK,
+    .eESPsysUnprotect_ret = espOK,
+    .xESPsysMtxCreate_ret = NULL,
+    .eESPsysMtxLock_ret = espOK,
+    .eESPsysMtxUnlock_ret = espOK,
+    .xESPsysSemCreate_ret = NULL,
+    .eESPsysSemWait_ret = espOK,
+    .eESPsysSemRelease_ret = espOK,
+    .xESPsysMboxCreate_ret = NULL,
+    .eESPsysMboxPut_ret = espOK,
+    .eESPsysMboxGet_ret = espOK,
+    .eESPsysMboxGet_msg = NULL,
+    .eESPsysMboxPutISR_ret = espOK,
+    .eESPsysThreadCreate_ret = espOK,
+    .eESPsysThreadDelete_ret = espOK,
+    .eESPsysGetTskSchedulerState_ret = ESP_SYS_TASK_SCHEDULER_NOT_STARTED,
+    .eESPsysTskSchedulerStart_ret = espOK,
+    .eESPsysTskSchedulerStop_ret = espOK,
+    .eESPsysThreadYield_ret = espOK,
+};
 
-// Dummy implementation for eESPsysDeInit
-espRes_t eESPsysDeInit(void) { return espOK; }
+// --- Mock Implementations ---
 
-// Dummy implementation for eESPlowLvlDevInit
+espRes_t eESPsysInit(void) { return ut_sys_mock_returns.eESPsysInit_ret; }
+
+espRes_t eESPsysDeInit(void) { return ut_sys_mock_returns.eESPsysDeInit_ret; }
+
 espRes_t eESPlowLvlDevInit(void *params) {
-    (void)params; // Suppress unused parameter warning
-    return espOK;
+    (void)params;
+    return ut_sys_mock_returns.eESPlowLvlDevInit_ret;
 }
 
-// Dummy implementation for eESPlowLvlDevDeInit
 espRes_t eESPlowLvlDevDeInit(void *params) {
-    (void)params; // Suppress unused parameter warning
-    return espOK;
+    (void)params;
+    return ut_sys_mock_returns.eESPlowLvlDevDeInit_ret;
 }
 
-// Dummy implementation for eESPlowLvlSendFn
 espRes_t eESPlowLvlSendFn(void *data, size_t len, uint32_t timeout) {
-    (void)data;    // Suppress unused parameter warning
-    (void)len;     // Suppress unused parameter warning
-    (void)timeout; // Suppress unused parameter warning
-    return espOK;
+    (void)data;
+    (void)len;
+    (void)timeout;
+    return ut_sys_mock_returns.eESPlowLvlSendFn_ret;
 }
 
-// Dummy implementation for eESPlowLvlRecvStartFn
-espRes_t eESPlowLvlRecvStartFn(void) { return espOK; }
+espRes_t eESPlowLvlRecvStartFn(void) { return ut_sys_mock_returns.eESPlowLvlRecvStartFn_ret; }
 
-// Dummy implementation for vESPlowLvlRecvStopFn
-void vESPlowLvlRecvStopFn(void) {
-    // No operation
-}
+void vESPlowLvlRecvStopFn(void) {}
 
-// Dummy implementation for eESPlowLvlRstFn
 espRes_t eESPlowLvlRstFn(uint8_t state) {
-    (void)state; // Suppress unused parameter warning
-    return espOK;
+    (void)state;
+    return ut_sys_mock_returns.eESPlowLvlRstFn_ret;
 }
 
-// Dummy implementation for uESPsysCurrTime
-uint32_t uESPsysCurrTime(void) {
-    return 0; // Return a dummy time
-}
+uint32_t uESPsysCurrTime(void) { return ut_sys_mock_returns.uESPsysCurrTime_ret; }
 
-// Dummy implementation for eESPsysProtect
-espRes_t eESPsysProtect(void) { return espOK; }
+espRes_t eESPsysProtect(void) { return ut_sys_mock_returns.eESPsysProtect_ret; }
 
-// Dummy implementation for eESPsysUnprotect
-espRes_t eESPsysUnprotect(void) { return espOK; }
+espRes_t eESPsysUnprotect(void) { return ut_sys_mock_returns.eESPsysUnprotect_ret; }
 
-// Dummy implementation for xESPsysMtxCreate
-espSysMtx_t xESPsysMtxCreate(void) {
-    return NULL; // Return a dummy mutex handle
-}
+espSysMtx_t xESPsysMtxCreate(void) { return ut_sys_mock_returns.xESPsysMtxCreate_ret; }
 
-// Dummy implementation for vESPsysMtxDelete
-void vESPsysMtxDelete(espSysMtx_t *mtx) {
-    (void)mtx; // Suppress unused parameter warning
-    // No operation
-}
+void vESPsysMtxDelete(espSysMtx_t *mtx) { (void)mtx; }
 
-// Dummy implementation for eESPsysMtxLock
 espRes_t eESPsysMtxLock(espSysMtx_t *mtx) {
-    (void)mtx; // Suppress unused parameter warning
-    return espOK;
+    (void)mtx;
+    return ut_sys_mock_returns.eESPsysMtxLock_ret;
 }
 
-// Dummy implementation for eESPsysMtxUnlock
 espRes_t eESPsysMtxUnlock(espSysMtx_t *mtx) {
-    (void)mtx; // Suppress unused parameter warning
-    return espOK;
+    (void)mtx;
+    return ut_sys_mock_returns.eESPsysMtxUnlock_ret;
 }
 
-// Dummy implementation for xESPsysSemCreate
-espSysSem_t xESPsysSemCreate(void) {
-    return NULL; // Return a dummy semaphore handle
-}
+espSysSem_t xESPsysSemCreate(void) { return ut_sys_mock_returns.xESPsysSemCreate_ret; }
 
-// Dummy implementation for vESPsysSemDelete
-void vESPsysSemDelete(espSysSem_t sem) {
-    (void)sem; // Suppress unused parameter warning
-    // No operation
-}
+void vESPsysSemDelete(espSysSem_t sem) { (void)sem; }
 
-// Dummy implementation for eESPsysSemWait
 espRes_t eESPsysSemWait(espSysSem_t sem, uint32_t block_time) {
-    (void)sem;        // Suppress unused parameter warning
-    (void)block_time; // Suppress unused parameter warning
-    return espOK;
+    (void)sem;
+    (void)block_time;
+    return ut_sys_mock_returns.eESPsysSemWait_ret;
 }
 
-// Dummy implementation for eESPsysSemRelease
 espRes_t eESPsysSemRelease(espSysSem_t sem) {
-    (void)sem; // Suppress unused parameter warning
-    return espOK;
+    (void)sem;
+    return ut_sys_mock_returns.eESPsysSemRelease_ret;
 }
 
-// Dummy implementation for xESPsysMboxCreate
 espSysMbox_t xESPsysMboxCreate(size_t length) {
-    (void)length; // Suppress unused parameter warning
-    return NULL;  // Return a dummy mailbox handle
+    (void)length;
+    return ut_sys_mock_returns.xESPsysMboxCreate_ret;
 }
 
-// Dummy implementation for vESPsysMboxDelete
-void vESPsysMboxDelete(espSysMbox_t *mb) {
-    (void)mb; // Suppress unused parameter warning
-    // No operation
-}
+void vESPsysMboxDelete(espSysMbox_t *mb) { (void)mb; }
 
-// Dummy implementation for eESPsysMboxPut
 espRes_t eESPsysMboxPut(espSysMbox_t mb, void *msg, uint32_t block_time) {
-    (void)mb;         // Suppress unused parameter warning
-    (void)msg;        // Suppress unused parameter warning
-    (void)block_time; // Suppress unused parameter warning
-    return espOK;
+    (void)mb;
+    (void)msg;
+    (void)block_time;
+    return ut_sys_mock_returns.eESPsysMboxPut_ret;
 }
 
-// Dummy implementation for eESPsysMboxGet
 espRes_t eESPsysMboxGet(espSysMbox_t mb, void **msg, uint32_t block_time) {
-    (void)mb;         // Suppress unused parameter warning
-    (void)msg;        // Suppress unused parameter warning
-    (void)block_time; // Suppress unused parameter warning
-    return espOK;
+    (void)mb;
+    (void)block_time;
+    *msg = ut_sys_mock_returns.eESPsysMboxGet_msg;
+    return ut_sys_mock_returns.eESPsysMboxGet_ret;
 }
 
-// Dummy implementation for eESPsysMboxPutISR
 espRes_t eESPsysMboxPutISR(espSysMbox_t mb, void *msg) {
-    (void)mb;  // Suppress unused parameter warning
-    (void)msg; // Suppress unused parameter warning
-    return espOK;
+    (void)mb;
+    (void)msg;
+    return ut_sys_mock_returns.eESPsysMboxPutISR_ret;
 }
 
-// Dummy implementation for eESPsysThreadCreate
 espRes_t eESPsysThreadCreate(
     espSysThread_t *t, const char *name, espSysThreFunc thread_fn, void *const arg,
     size_t stack_size, espSysThreadPrio_t prio, uint8_t isPrivileged
 ) {
-    (void)t;            // Suppress unused parameter warning
-    (void)name;         // Suppress unused parameter warning
-    (void)thread_fn;    // Suppress unused parameter warning
-    (void)arg;          // Suppress unused parameter warning
-    (void)stack_size;   // Suppress unused parameter warning
-    (void)prio;         // Suppress unused parameter warning
-    (void)isPrivileged; // Suppress unused parameter warning
-    return espOK;
+    (void)t;
+    (void)name;
+    (void)thread_fn;
+    (void)arg;
+    (void)stack_size;
+    (void)prio;
+    (void)isPrivileged;
+    return ut_sys_mock_returns.eESPsysThreadCreate_ret;
 }
 
-// Dummy implementation for eESPsysThreadDelete
 espRes_t eESPsysThreadDelete(espSysThread_t *t) {
-    (void)t; // Suppress unused parameter warning
-    return espOK;
+    (void)t;
+    return ut_sys_mock_returns.eESPsysThreadDelete_ret;
 }
 
-// Dummy implementation for eESPsysGetTskSchedulerState
 espTskSchrState_t eESPsysGetTskSchedulerState(void) {
-    return ESP_SYS_TASK_SCHEDULER_NOT_STARTED; // Return a dummy state
+    return ut_sys_mock_returns.eESPsysGetTskSchedulerState_ret;
 }
 
-// Dummy implementation for eESPsysTskSchedulerStart
-espRes_t eESPsysTskSchedulerStart(void) { return espOK; }
+espRes_t eESPsysTskSchedulerStart(void) { return ut_sys_mock_returns.eESPsysTskSchedulerStart_ret; }
 
-// Dummy implementation for eESPsysTskSchedulerStop
-espRes_t eESPsysTskSchedulerStop(void) { return espOK; }
+espRes_t eESPsysTskSchedulerStop(void) { return ut_sys_mock_returns.eESPsysTskSchedulerStop_ret; }
 
-// Dummy implementation for eESPsysThreadYield
-espRes_t eESPsysThreadYield(void) { return espOK; }
+espRes_t eESPsysThreadYield(void) { return ut_sys_mock_returns.eESPsysThreadYield_ret; }
 
-// Dummy implementation for vESPsysDelay
-void vESPsysDelay(const uint32_t ms) {
-    (void)ms; // Suppress unused parameter warning
-    // No operation
-}
+void vESPsysDelay(const uint32_t ms) { (void)ms; }

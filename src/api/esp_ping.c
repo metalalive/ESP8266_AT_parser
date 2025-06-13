@@ -2,8 +2,6 @@
 #include "esp/esp_private.h"
 #if (ESP_CFG_PING != 0)
 
-extern espGlbl_t espGlobal;
-
 // TODO: test this function with newer ESP SDK firmware
 espRes_t eESPping(
     const char *host, uint16_t host_len, uint32_t *resptime, const espApiCmdCbFn cb,

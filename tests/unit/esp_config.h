@@ -13,6 +13,7 @@ extern "C" {
 #define ESP_CFG_RST_PIN
 
 // mock system-specific struct type
+#include "unity_memory.h" // for replacing `malloc` / `free` function
 #include <assert.h>
 #include <stdint.h>
 
@@ -34,6 +35,14 @@ typedef uint32_t       espSysThreadPrio_t;
 #define ESP_SYS_TICK_RATE_HZ      1234
 
 #define ESP_ASSERT(cond) assert(cond)
+
+#ifndef ESP_MALLOC
+#define ESP_MALLOC(sizebytes) unity_malloc((size_t)(sizebytes))
+#endif
+
+#ifndef ESP_MEMFREE
+#define ESP_MEMFREE(mptr) unity_free((void *)(mptr))
+#endif
 
 #ifdef __cplusplus
 }

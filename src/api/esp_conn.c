@@ -114,7 +114,7 @@ espNetConnPtr pxESPnetconnCreate(espConn_t *conn_in) {
     }
     nc = ESP_MALLOC(sizeof(espNetConn_t));
     if (nc != NULL) {
-        nc->type = conn_in->type;
+        nc->type = (espNetConnType_t)conn_in->type;
         nc->conn = conn_in;
         nc->mbox_recv = xESPsysMboxCreate(ESP_CFG_NETCONN_RECV_Q_LEN);
         if (nc->mbox_recv == NULL) {

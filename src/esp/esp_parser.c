@@ -434,7 +434,7 @@ static espRes_t eESPparseConnExtension(espConn_t *c, uint8_t *curr_chr_p) {
     if (!quote_begin) {
         return espERRMEM;
     } // TODO, consider specific error for data corruption
-    curr_chr_p = quote_begin + 1;
+    curr_chr_p = (uint8_t *)quote_begin + 1;
     short tok_result = uESPparseStrUntilToken(
         proto_label_raw, (const char *)curr_chr_p, 4, ESP_ASCII_DOUBLE_QUOTE
     );
@@ -543,7 +543,7 @@ espRes_t eESPparseIPDsetup(espGlbl_t *glb, uint8_t *metadata, espIPD_t **ipd_cho
     // retrieve and save IP address / port number of remote sender
     // , this works if CIPDINFO is set to 1
     uint8_t ip_zeros[4] = {0};
-    if (strncmp(ip_zeros, c->remote_ip.ip, 4) == 0) {
+    if (strncmp((const char *)ip_zeros, (const char *)c->remote_ip.ip, 4) == 0) {
         vESPparseIPfromStr(&metadata, &c->remote_ip);
     }
     if (c->remote_port == 0) {

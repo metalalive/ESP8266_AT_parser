@@ -380,6 +380,9 @@ struct espGlbl_s {
     espDev_t   dev;                       /*!< All device modules. */
     uint16_t   locked_cnt;                /*!< Count number of times (recursive) stack is
                                              currently locked */
+    struct {
+        uint8_t (*recv_resp_proc)(struct espGlbl_s *, espBuf_t *);
+    } ops;
     union {
         struct {
             espMultiConn_t mux_conn; // indicate whether current setting is
@@ -419,7 +422,7 @@ espRes_t eESPinitATcmd(espMsg_t *, espGlbl_t *);
 espRes_t eESPcmdStartSendData(espMsg_t *msg, struct espGlbl_s *gbl); // Modified signature
 
 // run the registered event callback function for some API functions
-void vESPapiRunEvtCallbacks(espMsg_t *msg);
+void vESPapiRunEvtCallbacks(espMsg_t *, espEvt_t *);
 
 #ifdef __cplusplus
 }

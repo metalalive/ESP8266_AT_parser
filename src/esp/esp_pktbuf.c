@@ -1,8 +1,6 @@
 #include "esp/esp.h"
 #include "esp/esp_private.h"
 
-extern espGlbl_t espGlobal;
-
 espPbuf_t *pxESPpktBufCreate(size_t len) {
     espPbuf_t *buf_p = NULL;
     uint8_t   *payload = NULL;

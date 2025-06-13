@@ -2,8 +2,6 @@
 #include "esp/esp_private.h"
 #if (ESP_CFG_MODE_ACCESS_POINT != 0)
 
-extern espGlbl_t espGlobal;
-
 espRes_t eESPapGetIP(
     espIp_t *ip, espIp_t *gw, espIp_t *nm, const espApiCmdCbFn cb, void *const cb_arg,
     const uint32_t blocking
