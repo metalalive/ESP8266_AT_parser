@@ -31,9 +31,10 @@ jobs:
       id: cache-unity
       uses: actions/cache@v4
       with:
-        path: /local/path/to/unity-clone
-        # Key based on OS and Unity's repository URL to invalidate if the source changes
-        key: ${{ runner.os }}-unity-${{ hashFiles('https://github.com/ThrowTheSwitch/Unity/') }}
+        # Cache path is now relative to GITHUB_WORKSPACE, which is the repository root
+        path: unity-clone
+        # Key based on OS and a version string, as hashFiles on a URL is not valid
+        key: ${{ runner.os }}-unity-v1
         restore-keys: |
           ${{ runner.os }}-unity-
 
@@ -41,9 +42,10 @@ jobs:
       # This step only runs if the cache was not hit
       if: steps.cache-unity.outputs.cache-hit != 'true'
       run: |
-        mkdir -p /local/path/to/unity-clone
-        git clone --depth 1 https://github.com/ThrowTheSwitch/Unity/ /local/path/to/unity-clone
+        mkdir -p unity-clone
+        git clone --depth 1 https://github.com/ThrowTheSwitch/Unity/ unity-clone
 
     - name: Run Unit Tests
-      run: make unit_test UTEST_UNITY_PATH=/local/path/to/unity-clone
+      run: |
+        make unit_test UTEST_UNITY_PATH=${{ github.workspace }}/unity-clone VERBOSE=1
 
