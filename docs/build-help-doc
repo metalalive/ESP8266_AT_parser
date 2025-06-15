@@ -3,6 +3,23 @@ The Makefile build script supports following commands :
 
 -----
 NAME
+    unit_test - Run unit tests
+
+SYNOPSIS
+    make unit_test [OPTIONS]
+
+DESCRIPTION
+    Builds and runs unit tests for the ESP8266 firmware using the Unity test framework.
+
+OPTIONS:
+    UTEST_UNITY_PATH=path   Specify the path to the Unity test framework project home.
+                            For detail please check Unity Github repository :
+                                https://github.com/ThrowTheSwitch/Unity/
+                            Example:
+                                `make unit_test UTEST_UNITY_PATH=/path/to/unity/project-home`
+
+-----
+NAME
     integration_test - Run integration tests
 
 SYNOPSIS

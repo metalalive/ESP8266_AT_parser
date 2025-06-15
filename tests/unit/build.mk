@@ -39,6 +39,7 @@ UNIT_TEST_OBJS := $(UNIT_TEST_OBJS_ESPLIB) $(UNIT_TEST_OBJS_APP) $(UNIT_TEST_OBJ
 
 # Define the name of the final unit test executable
 UNIT_TEST_EXEC := $(BUILD_DIR)/unit_test_runner
+MEMCHK_UTEST_PREFIX := valgrind --leak-check=full --show-error-list=yes   --show-leak-kinds=definite
 
 # Host compiler and flags for unit tests
 CC := gcc
@@ -52,7 +53,7 @@ LDFLAGS_UNIT_TEST := -lm # Link with math library, common for C projects
 # targets
 #######################################
 run_unit_test: $(UNIT_TEST_OBJ_DIR) $(UNITY_OBJ_SUBDIR) $(UNIT_TEST_EXEC)
-	@$(UNIT_TEST_EXEC) -v
+	@$(MEMCHK_UTEST_PREFIX) $(UNIT_TEST_EXEC) -v
 
 # Rule to link the final unit test executable
 $(UNIT_TEST_EXEC): $(UNIT_TEST_OBJS)
