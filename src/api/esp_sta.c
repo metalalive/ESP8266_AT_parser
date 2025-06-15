@@ -6,11 +6,11 @@ extern espGlbl_t espGlobal;
 
 espRes_t eESPstaHasIP(void) {
     espRes_t response = espOK;
-    eESPcoreLock();
+    eESPcoreLock(&espGlobal);
     if (espGlobal.dev.sta.has_ip == 0) {
         response = espERRNOIP;
     }
-    eESPcoreUnlock();
+    eESPcoreUnlock(&espGlobal);
     return response;
 } // end of eESPstaHasIP
 

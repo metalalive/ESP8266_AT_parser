@@ -14,6 +14,10 @@ extern "C" {
 
 #define GET_CURR_CMD(_msg) ((espCmd_t)(((_msg != NULL) ? (_msg)->cmd : ESP_CMD_IDLE)))
 
+// early declaration
+// for all functions that need the type symbol without knowing the detail
+struct espGlbl_s;
+
 // lists available commands implemented in this ESP AT library.
 typedef enum {
     ESP_CMD_IDLE = 0, /*!< IDLE mode */
@@ -105,18 +109,6 @@ typedef enum {
                                   statement */
 } espCmd_t;
 
-// Incoming network data read structure
-typedef struct {
-    uint8_t read;         /*!< Set to non-zero when we recognize received string (from
-                             Rx of ESP device) as IPD data */
-    uint32_t   tot_len;   /*!< Total length of packet */
-    uint32_t   rem_len;   /*!< Remaining bytes to read in current +IPD statement */
-    espConn_t *conn;      /*!< Pointer to connection, TODO: figure out its usage */
-    espIp_t    ip;        /*!< Remote IP address on from IPD data */
-    espPort_t  port;      /*!< Remote port on IPD data */
-    espPbuf_t *pbuf_head; /*!< Pointer to buffer for collecting receiving data */
-} espIPD_t;
-
 // data structure used as item of message queue,  shared between threads
 // processing AT command.
 typedef struct espMsg {
@@ -131,15 +123,15 @@ typedef struct espMsg {
        commands, this ESP AT software runs malloc() and free(), to create
        separate msg structure for each AT command.
         */
-    espSysSem_t sem;                 /*!< Semaphore used only for this message */
-    uint8_t     is_blocking;         /*!< Status if command is blocking */
-    uint32_t    block_time;          /*!< Maximal blocking time in units of milliseconds.
-                                        Use 0 to for non-blocking call */
-    espRes_t res;                    /*!< Result of message operation */
-    espRes_t (*fn)(struct espMsg *); /*!< callback function to process packet, generate and
-                                        send the AT command string */
-    espApiCmdCbFn api_cb;            /*!< Command callback API function */
-    void         *api_cb_arg;        /*!< Command callback API callback parameter */
+    espSysSem_t sem;         /*!< Semaphore used only for this message */
+    uint8_t     is_blocking; /*!< Status if command is blocking */
+    uint32_t    block_time;  /*!< Maximal blocking time in units of milliseconds.
+                                Use 0 to for non-blocking call */
+    espRes_t res;            /*!< Result of message operation */
+    /*!< callback function to process packet, generate and send the AT command */
+    espRes_t (*fn)(struct espMsg *, struct espGlbl_s *);
+    espApiCmdCbFn api_cb;     /*!< Command callback API function */
+    void         *api_cb_arg; /*!< Command callback API callback parameter */
 
     union {
         struct {
@@ -348,29 +340,29 @@ typedef struct espEvtCbFnLstItem {
 
 // ESP device status structure
 typedef struct {
-    espDevName_t name;                  /*!< ESP device name */
-    espFwVer_t   version_at;            /*!< Version of AT command software on ESP device */
-    espFwVer_t   version_sdk;           /*!< Version of SDK used to build AT software */
-    uint32_t     active_conns;          /*!< Bit field of currently active connections,
-                                             [TODO]: for old version of ESP device e.g. ESP-01,
-                                           32-bit variable should be           enough to represent exiting
-                                           TCP connections, in case user has more           than 32
-                                           connections, single variable is not enough */
-    uint32_t active_conns_last;         /*!< The same as previous but status before last
-                                           check */
-    espIPD_t  ipd;                      /*!< Connection incoming data structure */
-    espConn_t conns[ESP_CFG_MAX_CONNS]; /*!< Array of all connection structures */
+    espDevName_t name;          /*!< ESP device name */
+    espFwVer_t   version_at;    /*!< Version of AT command software on ESP device */
+    espFwVer_t   version_sdk;   /*!< Version of SDK used to build AT software */
+    uint32_t     active_conns;  /*!< Bit field of currently active connections,
+                                     [TODO]: for old version of ESP device e.g. ESP-01,
+                                   32-bit variable should be           enough to represent exiting
+                                   TCP connections, in case user has more           than 32
+                                   connections, single variable is not enough */
+    uint32_t active_conns_last; /*!< The same as previous but status before last
+                                   check */
+    // Array of all connection structures
+    espConn_t conns[ESP_CFG_MAX_CONNS];
 #if (ESP_CFG_MODE_STATION != 0)
     espNetAttr_t sta; /*!< Station IP and MAC addressed */
 #endif                /* ESP_CFG_MODE_STATION  */
 #if (ESP_CFG_MODE_ACCESS_POINT != 0)
     espNetAttr_t ap; /*!< Access point IP and MAC addressed */
-#endif               /* ESP_CFG_MODE_ACCESS_POINT  */
+#endif               /* ESP_CFG_ACCESS_POINT  */
 } espDev_t;
 
 // data structure for collecting state which can be globally accessed in this
 // ESP AT library.
-typedef struct {
+struct espGlbl_s {
     espSysSem_t sem_th_sync;              /*!< Synchronization semaphore between the
                                              command-handling threads */
     espSysMbox_t mbox_cmd_req;            /*!< buffer AT-command requests sent from API
@@ -388,6 +380,9 @@ typedef struct {
     espDev_t   dev;                       /*!< All device modules. */
     uint16_t   locked_cnt;                /*!< Count number of times (recursive) stack is
                                              currently locked */
+    struct {
+        uint8_t (*recv_resp_proc)(struct espGlbl_s *, espBuf_t *);
+    } ops;
     union {
         struct {
             espMultiConn_t mux_conn; // indicate whether current setting is
@@ -398,7 +393,9 @@ typedef struct {
                                         connected to host device */
         } flg;                       /*!< Flags structure */
     } status;                        /*!< Status structure */
-} espGlbl_t;
+}; // end of struct espGlbl_s
+
+typedef struct espGlbl_s espGlbl_t;
 
 // get ESP glabol data structure.
 espGlbl_t *pxESPgetGlobalData(void);
@@ -410,22 +407,22 @@ void vESPmsgDelete(espMsg_t *msg);
 
 // internal functions that handle message between APIs and low-level hardware
 // operations
-espRes_t eESPsendReqToMbox(espMsg_t *msg, espRes_t (*initATcmdFn)(espMsg_t *));
+espRes_t eESPsendReqToMbox(espMsg_t *msg, espRes_t (*initATcmdFn)(espMsg_t *, espGlbl_t *));
 
 espRes_t eESPrecvReqFromMbox(espMsg_t **msg, uint32_t max_block_time);
 
 // the final step in the thread  vESPthreadATreqHandler() to generate send AT
 // command string, then call low-level hardware-specific function to send the
 // command string to ESP device
-espRes_t eESPinitATcmd(espMsg_t *msg);
+espRes_t eESPinitATcmd(espMsg_t *, espGlbl_t *);
 
 // for few AT commands, host CPU must send extra data after sending out AT
 // command to ESP device (e.g. AT+CIPSEND) and before getting final response,
 // this functions will be used in such cases.
-espRes_t eESPcmdStartSendData(espMsg_t *msg);
+espRes_t eESPcmdStartSendData(espMsg_t *msg, struct espGlbl_s *gbl); // Modified signature
 
 // run the registered event callback function for some API functions
-void vESPapiRunEvtCallbacks(espMsg_t *msg);
+void vESPapiRunEvtCallbacks(espMsg_t *, espEvt_t *);
 
 #ifdef __cplusplus
 }

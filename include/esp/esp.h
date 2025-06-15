@@ -44,8 +44,8 @@ espRes_t eESPsetMultiTCPconn(
 
 // lock / unlock the entire ESP AT software & underlying system, avoid them from
 // data corruption.
-espRes_t eESPcoreLock(void);
-espRes_t eESPcoreUnlock(void);
+espRes_t eESPcoreLock(struct espGlbl_s *glb);
+espRes_t eESPcoreUnlock(struct espGlbl_s *glb);
 
 espRes_t eESPevtRegister(espEvtCbFn cb);
 espRes_t eESPevtUnregister(espEvtCbFn cb);
@@ -65,6 +65,10 @@ espRes_t eESPprocessRecvDataFromDev(const void *data, size_t len);
 //   then translate to AT-format string, send it to ESP device.
 void vESPthreadATreqHandler(void *const arg);
 
+// one iteration of the AT-command request / response / network data handling process
+espRes_t eESPthreadATreqIteration(struct espGlbl_s *);
+espRes_t eESPthreadATrespIteration(struct espGlbl_s *);
+
 // * another thread, created by this AT software, dedicates to receiving raw
 // data, the response string of the AT command,
 //   , then translate the response string to data structure used in this ESP AT
@@ -79,7 +83,7 @@ espRes_t eESPappendRecvRespISR(uint8_t *data, uint16_t data_len);
 // process the received response raw string, analyze/extract them, then feed to
 // the body of message structure, for the message (the AT command request) ESP
 // AT software is processing.
-espRes_t eESPprocessPieceRecvResp(espBuf_t *recv_buf, uint8_t *isFinalPieceResp);
+uint8_t eESPprocessPieceRecvResp(struct espGlbl_s *gbl, espBuf_t *recv_buf);
 
 // get local IP/Mac address
 espRes_t eESPgetLocalIPmac(
@@ -136,18 +140,20 @@ espRes_t eESPconnClientSend(
     const uint32_t blocking
 );
 
-uint8_t ucESPconnGetID(espConn_t *conn);
+uint8_t ucESPconnGetID(espConn_t *, struct espGlbl_s *);
 
-espConn_t *pxESPgetNxtAvailConn(void);
+espConn_t *pxESPgetNxtAvailConn(struct espGlbl_s *);
 
 // used for updating connection status o ESP device.
-void     vESPparseRecvATrespLine(uint8_t *data_line_buf, uint16_t buf_idx, uint8_t *isEndOfResp);
-espRes_t eESPparseNetConnStatus(uint8_t *data_line_buf);
+void vESPparseRecvATrespLine(
+    struct espGlbl_s *, uint8_t *data_line_buf, uint16_t buf_idx, uint8_t *isEndOfResp
+);
+espRes_t eESPparseNetConnStatus(struct espGlbl_s *, uint8_t *data_line_buf);
 
 // used for extracting IPD data (incoming packet data) from ESP device
-espRes_t eESPparseIPDsetup(uint8_t *metadata);
-espRes_t eESPparseIPDcopyData(const uint8_t *data, uint32_t *data_len);
-espRes_t eESPparseIPDreset(void);
+espRes_t eESPparseIPDsetup(struct espGlbl_s *, uint8_t *metadata, espIPD_t **);
+espRes_t eESPparseIPDcopyData(espIPD_t *, const uint8_t *data, uint32_t *data_len);
+espRes_t eESPparseIPDreset(espIPD_t *);
 
 espPbuf_t *pxESPpktBufCreate(size_t len);
 espRes_t   eESPpktBufCopy(espPbuf_t *des_p, void *src_p, size_t len);

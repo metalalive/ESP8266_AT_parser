@@ -1,8 +1,6 @@
 #include "esp/esp.h"
 #include "esp/esp_private.h"
 
-extern espGlbl_t espGlobal;
-
 static espRes_t eESPparseVersion(uint8_t **curr_chr_pp, espFwVer_t *ver) {
     ver->major = iESPparseFirstNumFromStr(curr_chr_pp, ESP_DIGIT_BASE_DECIMAL);
     ver->minor = iESPparseFirstNumFromStr(curr_chr_pp, ESP_DIGIT_BASE_DECIMAL);
@@ -82,9 +80,8 @@ static void vESPparseCIFSR(uint8_t **curr_chr_pp, espMsg_t *msg) {
 
 static espRes_t eESPparseFoundAP(uint8_t **curr_chr_pp, espMsg_t *msg) {
     espRes_t response = espOK;
-    uint16_t idx;
-    uint16_t max_num;
-    uint16_t num_chrs_copied;
+    uint16_t idx, max_num;
+    short    num_chrs_copied;
     espAP_t *aps = NULL;
 
     idx = *(msg->body.ap_list.num_ap_found);
@@ -101,11 +98,15 @@ static espRes_t eESPparseFoundAP(uint8_t **curr_chr_pp, espMsg_t *msg) {
         num_chrs_copied = uESPparseStrUntilToken(
             &aps->ssid[0], (const char *)*curr_chr_pp, ESP_CFG_MAX_SSID_LEN, ESP_ASCII_DOUBLE_QUOTE
         );
+        ESP_ASSERT(num_chrs_copied >= 0);
         *curr_chr_pp += 1; // skip double quote
     } else {
         num_chrs_copied = uESPparseStrUntilToken(
             &aps->ssid[0], (const char *)*curr_chr_pp, ESP_CFG_MAX_SSID_LEN, ESP_ASCII_DOT
         );
+        if (num_chrs_copied < 0) {
+            return espERRMEM;
+        } // TODO, consider error variant specific for data corruption
     }
     *curr_chr_pp += num_chrs_copied;
     // check whether the currently found AP is what we are looking for ?
@@ -131,27 +132,23 @@ static espRes_t eESPparseFoundAP(uint8_t **curr_chr_pp, espMsg_t *msg) {
     } else {
         vESPparseMACfromStr(curr_chr_pp, &(aps->mac));
     }
-    aps->ch = (uint8_t)iESPparseFirstNumFromStr(
-        curr_chr_pp,
-        ESP_DIGIT_BASE_DECIMAL
-    ); // WiFi channel used on access point
+    // WiFi channel used on access point
+    aps->ch = (uint8_t)iESPparseFirstNumFromStr(curr_chr_pp, ESP_DIGIT_BASE_DECIMAL);
     aps->offset = (int8_t)iESPparseFirstNumFromStr(curr_chr_pp, ESP_DIGIT_BASE_DECIMAL);
-    aps->cal = (uint8_t)iESPparseFirstNumFromStr(
-        curr_chr_pp,
-        ESP_DIGIT_BASE_DECIMAL
-    );                                                                     // Calibration value
-    *curr_chr_pp = (uint8_t *)strstr((const char *)*curr_chr_pp, ",") + 1; // skip pwc
-    *curr_chr_pp = (uint8_t *)strstr((const char *)*curr_chr_pp, ",") + 1; // skip gc
-    aps->bgn = (uint8_t)iESPparseFirstNumFromStr(
-        curr_chr_pp,
-        ESP_DIGIT_BASE_DECIMAL
-    ); // Information about 802.11[b|g|n] support
-    aps->wps = (uint8_t)iESPparseFirstNumFromStr(
-        curr_chr_pp,
-        ESP_DIGIT_BASE_DECIMAL
-    ); // Status if WPS function is supported
-    idx++;
-    *(msg->body.ap_list.num_ap_found) = idx;
+    // Calibration value
+    aps->cal = (uint8_t)iESPparseFirstNumFromStr(curr_chr_pp, ESP_DIGIT_BASE_DECIMAL);
+    // skip comma chars following the fields `calibration`, `pairwise-cipher` (pwc),
+    // and `group-cipher` (gc)
+    for (uint8_t jdx = 0; jdx < 3; jdx++) {
+        char *pat = strstr((const char *)*curr_chr_pp, ESP_CHR_COMMA);
+        *curr_chr_pp = (uint8_t *)pat + 1;
+    }
+    // Information about 802.11[b|g|n] support
+    aps->bgn = (uint8_t)iESPparseFirstNumFromStr(curr_chr_pp, ESP_DIGIT_BASE_DECIMAL);
+    // Status if WPS function is supported
+    aps->wps = (uint8_t)iESPparseFirstNumFromStr(curr_chr_pp, ESP_DIGIT_BASE_DECIMAL);
+
+    *msg->body.ap_list.num_ap_found = ++idx;
     // if the given array msg->body.ap_list.aps[] is full, then we skip the AP
     // we find subsequently.
     if (idx == max_num) {
@@ -161,8 +158,8 @@ static espRes_t eESPparseFoundAP(uint8_t **curr_chr_pp, espMsg_t *msg) {
 } // end of eESPparseFoundAP
 
 static void vESPparseJoinedAP(uint8_t **curr_chr_pp, espMsg_t *msg) {
-    uint16_t        num_chrs_copied;
-    espStaInfoAP_t *info;
+    short           num_chrs_copied = 0;
+    espStaInfoAP_t *info = NULL;
 
     info = msg->body.sta_info_ap.info;
     *curr_chr_pp = (uint8_t *)strstr((const char *)*curr_chr_pp, "+CWJAP_CUR:") + 11;
@@ -171,11 +168,13 @@ static void vESPparseJoinedAP(uint8_t **curr_chr_pp, espMsg_t *msg) {
         num_chrs_copied = uESPparseStrUntilToken(
             &info->ssid[0], (const char *)*curr_chr_pp, ESP_CFG_MAX_SSID_LEN, ESP_ASCII_DOUBLE_QUOTE
         );
+        ESP_ASSERT(num_chrs_copied >= 0);
         *curr_chr_pp += 1; // skip double quote
     } else {
         num_chrs_copied = uESPparseStrUntilToken(
             &info->ssid[0], (const char *)*curr_chr_pp, ESP_CFG_MAX_SSID_LEN, ESP_ASCII_DOT
         );
+        ESP_ASSERT(num_chrs_copied >= 0);
     }
     *curr_chr_pp += num_chrs_copied;
     *curr_chr_pp += 1; // skip dot char,
@@ -196,12 +195,12 @@ static void vESPparseJoinStatus(espNetAttr_t *d, espStaConnStatus_t status) {
     d->has_ip = 0;
 }
 
-static espRes_t eESPparseStaJoinResult(uint8_t **curr_chr_pp, espMsg_t *msg) {
+static espRes_t
+eESPparseStaJoinResult(espNetAttr_t *netattr, uint8_t **curr_chr_pp, espMsg_t *msg) {
     espRes_t response = espERR;
     uint8_t  error_num = 0;
-    if (strncmp((const char *)*curr_chr_pp, "+CWJAP_", 7) ==
-        0) {                // when CPU gets herem that means something wrong happened when
-                            // connecting the AP
+    if (strncmp((const char *)*curr_chr_pp, "+CWJAP_", 7) == 0) {
+        // when CPU gets herem that means something wrong happened when connecting the AP
         *curr_chr_pp += 11; // skip first few words +CWJAP_CUR:
         error_num = (uint8_t)iESPparseFirstNumFromStr(curr_chr_pp, ESP_DIGIT_BASE_DECIMAL);
         msg->body.sta_join.error_num = error_num;
@@ -225,17 +224,17 @@ static espRes_t eESPparseStaJoinResult(uint8_t **curr_chr_pp, espMsg_t *msg) {
     }
     if (strncmp((const char *)*curr_chr_pp, "WIFI CONNECTED", 14) == 0) {
         response = espOK;
-        vESPparseJoinStatus(&(espGlobal.dev.sta), ESP_STATION_CONNECTED);
+        vESPparseJoinStatus(netattr, ESP_STATION_CONNECTED);
     }
     return response;
 } // end of  eESPparseStaJoinResult
 
-static espRes_t eESPparseStaQuitResult(uint8_t **curr_chr_pp) {
+static espRes_t eESPparseStaQuitResult(espNetAttr_t *netattr, uint8_t **curr_chr_pp) {
     // TODO: figure out why ESP quits from AP without response.
     espRes_t response = espERR;
     if (strncmp((const char *)*curr_chr_pp, "WIFI DISCONNECT", 15) == 0) {
         response = espOK;
-        vESPparseJoinStatus(&(espGlobal.dev.sta), ESP_STATION_DISCONNECTED);
+        vESPparseJoinStatus(netattr, ESP_STATION_DISCONNECTED);
     }
     return response;
 }
@@ -248,14 +247,12 @@ static void vESPparsePing(uint8_t **curr_chr_pp, espMsg_t *msg) {
     }
 }
 
-static void vESPparseTCPmuxConn(espMsg_t *msg) {
-    espGlobal.status.flg.mux_conn = msg->body.tcpip_attri.mux;
+static void vESPparseTCPmuxConn(espGlbl_t *gbl, espMsg_t *msg) {
+    gbl->status.flg.mux_conn = msg->body.tcpip_attri.mux;
 }
 
-static void vESPparseTCPserverEn(espMsg_t *msg, uint8_t is_ok) {
-    if (is_ok == 1) {
-        espGlobal.evt_server = msg->body.tcpip_server.cb;
-    }
+static void vESPparseTCPserverEn(espGlbl_t *gbl, espMsg_t *msg) {
+    gbl->evt_server = msg->body.tcpip_server.cb;
 }
 
 static espRes_t eESPparseConnSend(const uint8_t *curr_chr_p, uint8_t *isEndOfATresp) {
@@ -270,12 +267,13 @@ static espRes_t eESPparseConnSend(const uint8_t *curr_chr_p, uint8_t *isEndOfATr
     return response;
 }
 
-void vESPparseRecvATrespLine(uint8_t *data_line_buf, uint16_t buf_idx, uint8_t *isEndOfATresp) {
-    uint8_t   is_ok = 0;
-    uint8_t   is_err = 0;
-    uint8_t   is_rdy = 0;
+void vESPparseRecvATrespLine(
+    espGlbl_t *gbl, uint8_t *data_line_buf, uint16_t buf_idx, uint8_t *isEndOfATresp
+) {
+    int       result = 0;
+    uint8_t   is_ok = 0, is_err = 0, is_rdy = 0;
     uint8_t  *curr_chr_p = data_line_buf;
-    espMsg_t *msg = espGlobal.msg;
+    espMsg_t *msg = gbl->msg;
     if (msg == NULL) {
         return;
     }
@@ -288,21 +286,18 @@ void vESPparseRecvATrespLine(uint8_t *data_line_buf, uint16_t buf_idx, uint8_t *
         return;
     }
     // check end of response line we've received for the AT command.
-    is_ok =
-        (strncmp((const char *)data_line_buf, "OK" ESP_CHR_CR ESP_CHR_LF, buf_idx) == 0 ? 1 : 0);
+    result = strncmp((const char *)data_line_buf, "OK" ESP_CHR_CR ESP_CHR_LF, buf_idx);
+    is_ok = (result == 0 ? 1 : 0);
     if (is_ok == 0) {
-        is_err =
-            (strncmp((const char *)data_line_buf, "ERROR" ESP_CHR_CR ESP_CHR_LF, buf_idx) == 0 ? 1
-                                                                                               : 0);
+        result = strncmp((const char *)data_line_buf, "ERROR" ESP_CHR_CR ESP_CHR_LF, buf_idx);
+        is_err = (result == 0 ? 1 : 0);
         if (is_err == 0) {
-            is_rdy =
-                (strncmp((const char *)data_line_buf, "ready" ESP_CHR_CR ESP_CHR_LF, buf_idx) == 0
-                     ? 1
-                     : 0);
-        } else {                // if is_err is NOT equal to zero
-            switch (msg->res) { // few status below can cover espERR, they mean
-                                // error reported by API function with extra
-                                // information.
+            result = strncmp((const char *)data_line_buf, "ready" ESP_CHR_CR ESP_CHR_LF, buf_idx);
+            is_rdy = (result == 0 ? 1 : 0);
+        } else {
+            // if is_err is NOT equal to zero, few status below can cover espERR, they
+            // mean error reported by API function with extra information.
+            switch (msg->res) {
             case espBUSY:
             case espERRMEM:
             case espERRNOIP:
@@ -351,28 +346,32 @@ void vESPparseRecvATrespLine(uint8_t *data_line_buf, uint16_t buf_idx, uint8_t *
         // or starts with 'SDK version'
         if (strncmp((const char *)curr_chr_p, "AT version", 10) == 0) {
             curr_chr_p += 10;
-            eESPparseVersion(&curr_chr_p, &espGlobal.dev.version_at);
+            eESPparseVersion(&curr_chr_p, &gbl->dev.version_at);
             // we can confirm that the ESP device is present & ready ONLY when
             // we get correct response of AT+GMR command.
-            espGlobal.status.flg.dev_present = 1;
+            gbl->status.flg.dev_present = 1;
         } else if (strncmp((const char *)curr_chr_p, "SDK version", 11) == 0) {
             curr_chr_p += 11;
-            eESPparseVersion(&curr_chr_p, &espGlobal.dev.version_sdk);
+            eESPparseVersion(&curr_chr_p, &gbl->dev.version_sdk);
         }
         break;
 #if (ESP_CFG_MODE_STATION != 0)
     case ESP_CMD_WIFI_CWLAP:
-        msg->res = eESPparseFoundAP(&curr_chr_p, msg);
+        if (*isEndOfATresp == 0) {
+            msg->res = eESPparseFoundAP(&curr_chr_p, msg);
+        }
         break;
     case ESP_CMD_WIFI_CWJAP_GET:
-        vESPparseJoinedAP(&curr_chr_p, msg);
+        if (is_ok == 0) {
+            vESPparseJoinedAP(&curr_chr_p, msg);
+        }
         break;
     case ESP_CMD_WIFI_CWJAP:
-        msg->res = eESPparseStaJoinResult(&curr_chr_p, msg);
+        msg->res = eESPparseStaJoinResult(&gbl->dev.sta, &curr_chr_p, msg);
         *isEndOfATresp = 1;
         break;
     case ESP_CMD_WIFI_CWQAP:
-        msg->res = eESPparseStaQuitResult(&curr_chr_p);
+        msg->res = eESPparseStaQuitResult(&gbl->dev.sta, &curr_chr_p);
         if (msg->res == espOK) {
             *isEndOfATresp = 1;
         }
@@ -381,16 +380,24 @@ void vESPparseRecvATrespLine(uint8_t *data_line_buf, uint16_t buf_idx, uint8_t *
         curr_chr_p += 12; // skip first few characters +CIPSTA_xxx:
         vESPparseAPstaIP(&curr_chr_p, msg);
         break;
-    case ESP_CMD_TCPIP_CIPMUX: // copy the setting to mux_conn flag in ESP
-                               // global structure
-        vESPparseTCPmuxConn(msg);
+    case ESP_CMD_TCPIP_CIPMUX:
+        // copy the setting to mux_conn flag in ESP global structure
+        vESPparseTCPmuxConn(gbl, msg);
         break;
     case ESP_CMD_TCPIP_CIPSTATUS:
-        eESPparseCIPstatus(&curr_chr_p, &espGlobal.dev);
+        eESPparseCIPstatus(&curr_chr_p, &gbl->dev);
         break;
 #endif // ESP_CFG_MODE_STATION
     case ESP_CMD_TCPIP_CIPSERVER:
-        vESPparseTCPserverEn(msg, is_ok);
+        if (is_ok == 1) {
+            vESPparseTCPserverEn(gbl, msg);
+        }
+        break;
+    case ESP_CMD_TCPIP_CIPSTO:
+    case ESP_CMD_TCPIP_CIPSTART:
+    case ESP_CMD_TCPIP_CIPCLOSE:
+    case ESP_CMD_TCPIP_CIPDINFO:
+    case ESP_CMD_SYSMSG:
         break;
     case ESP_CMD_WIFI_CWLIF:
         break;
@@ -413,31 +420,69 @@ void vESPparseRecvATrespLine(uint8_t *data_line_buf, uint16_t buf_idx, uint8_t *
         curr_chr_p += 11; // skip first few characters +CIPAP_xxx:
         vESPparseAPstaIP(&curr_chr_p, msg);
         break;
-#endif // ESP_CFG_MODE_ACCESS_POINT
-    default:
+#endif       // ESP_CFG_MODE_ACCESS_POINT
+    default: // unknown commands
+        msg->res = espSKIP;
+        *isEndOfATresp = 1;
         break;
     } // end of switch-case-statement
-
 } // end of vESPparseRecvATrespLine
+
+static espRes_t eESPparseConnExtension(espConn_t *c, uint8_t *curr_chr_p) {
+    char  proto_label_raw[4] = {0};
+    char *quote_begin = strchr((const char *)curr_chr_p, ESP_ASCII_DOUBLE_QUOTE);
+    if (!quote_begin) {
+        return espERRMEM;
+    } // TODO, consider specific error for data corruption
+    curr_chr_p = (uint8_t *)quote_begin + 1;
+    short tok_result = uESPparseStrUntilToken(
+        proto_label_raw, (const char *)curr_chr_p, 4, ESP_ASCII_DOUBLE_QUOTE
+    );
+    if (tok_result < 0) {
+        return espERRMEM;
+    }
+    if (!strncmp(proto_label_raw, "TCP", 3)) {
+        c->type = ESP_CONN_TYPE_TCP;
+    } else if (!strncmp(proto_label_raw, "UDP", 3)) {
+        c->type = ESP_CONN_TYPE_UDP;
+    } else if (!strncmp(proto_label_raw, "SSL", 3)) {
+        c->type = ESP_CONN_TYPE_SSL;
+    } else {
+        return espERRMEM;
+    }
+    uint8_t conn4server = (uint8_t)iESPparseFirstNumFromStr(&curr_chr_p, ESP_DIGIT_BASE_DECIMAL);
+    c->status.flg.client = (conn4server ? 0 : 1);
+    vESPparseIPfromStr(&curr_chr_p, &c->remote_ip);
+    c->remote_port = (espPort_t)iESPparseFirstNumFromStr(&curr_chr_p, ESP_DIGIT_BASE_DECIMAL);
+    c->local_port = (espPort_t)iESPparseFirstNumFromStr(&curr_chr_p, ESP_DIGIT_BASE_DECIMAL);
+    return espOK;
+} // end of eESPparseConnExtension
 
 // current ESP8266 device supports up to 5 active connections at the same time,
 // also in this ESP AT software, multiple connection mode is always enabled,
 // so we can simply assume that ESP device only uses recv_data_line_buf[0] to
 // represent the link ID used by ESP devive.
-espRes_t eESPparseNetConnStatus(uint8_t *data_line_buf) {
-    uint8_t   *curr_chr_p = data_line_buf;
-    espConn_t *c = NULL;
-    uint8_t    link_id = 0;
-    uint8_t    is_connect = (strncmp((const char *)&curr_chr_p[1], ",CONNECT", 8) == 0) ? 1 : 0;
-    uint8_t    is_close = (strncmp((const char *)&curr_chr_p[1], ",CLOSED", 7) == 0) ? 1 : 0;
-    uint8_t    is_connect_ext =
-        (strncmp((const char *)&curr_chr_p[0], "+LINK_CONN:", 11) == 0) ? 1 : 0;
+espRes_t eESPparseNetConnStatus(espGlbl_t *glb, uint8_t *data_line_buf) {
+#define CONN_EXT_MSG_PREFIX    "+LINK_CONN:"
+#define CONN_EXT_MSG_PREFIX_SZ sizeof(CONN_EXT_MSG_PREFIX) - 1
+    uint8_t *curr_chr_p = data_line_buf, link_id = 0;
+    uint8_t  is_connect = (strncmp((const char *)&curr_chr_p[1], ",CONNECT", 8) == 0) ? 1 : 0;
+    uint8_t  is_close = (strncmp((const char *)&curr_chr_p[1], ",CLOSED", 7) == 0) ? 1 : 0;
+    uint8_t  is_connect_ext =
+        (strncmp((const char *)&curr_chr_p[0], CONN_EXT_MSG_PREFIX, CONN_EXT_MSG_PREFIX_SZ) == 0)
+             ? 1
+             : 0;
 
     if (is_connect == 0 && is_close == 0 && is_connect_ext == 0) {
         return espSKIP;
     }
-    if (is_connect_ext != 0) {
-        curr_chr_p += 11;
+    if (is_connect_ext) {
+        curr_chr_p += CONN_EXT_MSG_PREFIX_SZ;
+        uint8_t establish_fail =
+            (uint8_t)iESPparseFirstNumFromStr(&curr_chr_p, ESP_DIGIT_BASE_DECIMAL);
+        if (establish_fail) {
+            return espERRCONNFAIL;
+        } // "+LINK_CONN:0,0,\"TCP\",1,\"192.168.2.145\",58072,80\r\n23,0,4,4,7,1)\r\n"
         link_id = (uint8_t)iESPparseFirstNumFromStr(&curr_chr_p, ESP_DIGIT_BASE_DECIMAL);
     } else {
         link_id = ESP_CHARTONUM(curr_chr_p[0]);
@@ -445,72 +490,79 @@ espRes_t eESPparseNetConnStatus(uint8_t *data_line_buf) {
     if (link_id >= ESP_CFG_MAX_CONNS) {
         return espERR;
     }
-    c = &espGlobal.dev.conns[link_id];
-    if (is_connect != 0) {
+    espConn_t *c = &glb->dev.conns[link_id];
+    if (is_connect || is_connect_ext) {
         c->status.flg.active = ESP_CONN_ESTABLISHED;
         // check whether the new active connection acts as client (e.g.
         // AT+CIPSTART, AT+CIPSEND) or a server (e.g. AT+CIPSERVER) on ESP
         // device's side, then parse callback function
-        espMsg_t *msg = espGlobal.msg;
-        // TODO: test following statement
-        if (msg != NULL && GET_CURR_CMD(msg) == ESP_CMD_TCPIP_CIPSTART) {
-            c->status.flg.client = 1;
+        espMsg_t *msg = glb->msg;
+        if (is_connect_ext) {
+            espRes_t result = eESPparseConnExtension(c, curr_chr_p);
+            if (result != espOK) {
+                return result;
+            }
+        } else if (is_connect) {
+            if (msg != NULL && GET_CURR_CMD(msg) == ESP_CMD_TCPIP_CIPSTART) {
+                c->status.flg.client = 1;
+            }
         }
-        if (c->status.flg.client == 0) { // the new connection acts as server
-            c->cb = espGlobal.evt_server;
-        } else { // the new connection acts as client,
-            c->cb = msg->body.conn_start.cb;
+        glb->dev.active_conns |= (1 << link_id);
+        if (c->status.flg.client) { // the new connection acts as client
+            if (msg) {
+                c->cb = msg->body.conn_start.cb;
+            }
+        } else { // the new connection acts as server
+            c->cb = glb->evt_server;
         }
-    } else if (is_connect_ext != 0) {
-        // TODO: implement this part
     } else if (is_close != 0) {
         // reset values of previous network connection (also clear active flag)
         ESP_MEMSET(c, 0x00, sizeof(espConn_t));
+        glb->dev.active_conns &= ~(1 << link_id);
     }
     return espOK;
+#undef CONN_EXT_MSG_PREFIX
+#undef CONN_EXT_MSG_PREFIX_SZ
 } // end of  eESPparseNetConnStatus
 
-espRes_t eESPparseIPDsetup(uint8_t *metadata) {
-    uint8_t    link_id = 0;
-    uint32_t   len = 0;
-    espIPD_t  *ipdp = &espGlobal.dev.ipd;
-    espConn_t *c = NULL;
-
-    if (ipdp->read == 1) {
-        return espBUSY;
-    }
-    if (espGlobal.status.flg.mux_conn == ESP_TCP_MULTIPLE_CONNECTION) {
+espRes_t eESPparseIPDsetup(espGlbl_t *glb, uint8_t *metadata, espIPD_t **ipd_chosen) {
+    uint8_t link_id = 0;
+    if (glb->status.flg.mux_conn == ESP_TCP_MULTIPLE_CONNECTION) {
         link_id = (uint8_t)iESPparseFirstNumFromStr(&metadata, ESP_DIGIT_BASE_DECIMAL);
         if (link_id >= ESP_CFG_MAX_CONNS) {
             return espERR;
         }
     }
-    // looking for available espConn_t object, in order to store
-    c = &espGlobal.dev.conns[link_id];
+    espConn_t *c = &glb->dev.conns[link_id];
+    espIPD_t  *ipdp = &c->ipd;
+    if (ipdp->read == 1) {
+        return espBUSY;
+    }
     c->status.flg.data_received = 1;
-    // get total length of current IPD data
-    len = (uint32_t)iESPparseFirstNumFromStr(&metadata, ESP_DIGIT_BASE_DECIMAL);
-    // get IP address / port number of remote sender
-    vESPparseIPfromStr(&metadata, &(c->remote_ip));
-    c->remote_port = (espPort_t)iESPparseFirstNumFromStr(&metadata, ESP_DIGIT_BASE_DECIMAL);
-    ESP_MEMCPY(&(ipdp->ip), &(c->remote_ip), sizeof(espIp_t));
-    ipdp->port = c->remote_port;
+    uint32_t len = (uint32_t)iESPparseFirstNumFromStr(&metadata, ESP_DIGIT_BASE_DECIMAL);
+    // retrieve and save IP address / port number of remote sender
+    // , this works if CIPDINFO is set to 1
+    uint8_t ip_zeros[4] = {0};
+    if (strncmp((const char *)ip_zeros, (const char *)c->remote_ip.ip, 4) == 0) {
+        vESPparseIPfromStr(&metadata, &c->remote_ip);
+    }
+    if (c->remote_port == 0) {
+        c->remote_port = (espPort_t)iESPparseFirstNumFromStr(&metadata, ESP_DIGIT_BASE_DECIMAL);
+    }
     ipdp->tot_len = len;
     ipdp->rem_len = len;
     ipdp->conn = c;
     ipdp->pbuf_head = NULL;
     ipdp->read = 1;
+    *ipd_chosen = ipdp;
     return espOK;
 } // end of eESPparseIPDsetup
 
-espRes_t eESPparseIPDcopyData(const uint8_t *data, uint32_t *data_len) {
+espRes_t eESPparseIPDcopyData(espIPD_t *ipdp, const uint8_t *data, uint32_t *data_len) {
     espRes_t   response = espINPROG;
-    espIPD_t  *ipdp = &espGlobal.dev.ipd;
-    uint32_t   remain_len = ipdp->rem_len;
-    uint32_t   copy_len = 0;
+    uint32_t   remain_len = ipdp->rem_len, copy_len = 0;
     uint8_t    chain_cnt = 0;
-    espPbuf_t *prev_p = NULL;
-    espPbuf_t *curr_p = NULL;
+    espPbuf_t *prev_p = NULL, *curr_p = NULL;
     // loop through all packet buffer & find out the last one
     curr_p = ipdp->pbuf_head;
     while (curr_p != NULL) {
@@ -521,10 +573,7 @@ espRes_t eESPparseIPDcopyData(const uint8_t *data, uint32_t *data_len) {
     // create new packet buffer to hold IPD
     copy_len = ESP_MIN(*data_len, remain_len);
     curr_p = (espPbuf_t *)pxESPpktBufCreate(copy_len);
-    // then copy IP address, port number, and associated connection object to
-    // this packet buffer item
-    ESP_MEMCPY(&(curr_p->ip), &(ipdp->ip), sizeof(espIp_t));
-    curr_p->port = ipdp->port;
+    // copy associated connection object to this packet buffer item
     curr_p->conn = ipdp->conn;
     // append the new packet buffer to the last of the chain
     if (prev_p != NULL) {
@@ -548,8 +597,8 @@ espRes_t eESPparseIPDcopyData(const uint8_t *data, uint32_t *data_len) {
     return response;
 } // end of eESPparseIPDcopyData
 
-espRes_t eESPparseIPDreset(void) {
-    espIPD_t *ipdp = &espGlobal.dev.ipd;
+espRes_t eESPparseIPDreset(espIPD_t *ipdp) {
+    ipdp->conn->status.flg.data_received = 0;
     ESP_MEMSET(ipdp, 0x00, sizeof(espIPD_t));
     ////ipdp->read  = 0;
     return espOK;

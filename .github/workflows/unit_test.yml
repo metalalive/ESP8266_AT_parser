@@ -1,0 +1,51 @@
+name: ESP Library Unit Tests
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'common.mk'
+      - 'Makefile'
+      - 'src/**'
+      - 'include/**'
+      - 'tests/unit/**'
+  pull_request:
+    branches: ["master"]
+
+jobs:
+  run-unit-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        # build-essential includes gcc, make, etc.
+        sudo apt-get install -y build-essential valgrind
+
+    - name: Cache Unity Test Framework
+      id: cache-unity
+      uses: actions/cache@v4
+      with:
+        # Cache path is now relative to GITHUB_WORKSPACE, which is the repository root
+        path: unity-clone
+        # Key based on OS and a version string, as hashFiles on a URL is not valid
+        key: ${{ runner.os }}-unity-v1
+        restore-keys: |
+          ${{ runner.os }}-unity-
+
+    - name: Clone Unity Test Framework (if not cached)
+      # This step only runs if the cache was not hit
+      if: steps.cache-unity.outputs.cache-hit != 'true'
+      run: |
+        mkdir -p unity-clone
+        git clone --depth 1 https://github.com/ThrowTheSwitch/Unity/ unity-clone
+
+    - name: Run Unit Tests
+      run: |
+        make unit_test UTEST_UNITY_PATH=${{ github.workspace }}/unity-clone VERBOSE=1
+

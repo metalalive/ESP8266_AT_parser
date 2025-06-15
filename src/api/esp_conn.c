@@ -114,7 +114,7 @@ espNetConnPtr pxESPnetconnCreate(espConn_t *conn_in) {
     }
     nc = ESP_MALLOC(sizeof(espNetConn_t));
     if (nc != NULL) {
-        nc->type = conn_in->type;
+        nc->type = (espNetConnType_t)conn_in->type;
         nc->conn = conn_in;
         nc->mbox_recv = xESPsysMboxCreate(ESP_CFG_NETCONN_RECV_Q_LEN);
         if (nc->mbox_recv == NULL) {
@@ -202,20 +202,20 @@ espRes_t eESPsetServerTimeout(
     return response;
 } // end of eESPsetServerTimeout
 
-uint8_t ucESPconnGetID(espConn_t *conn) {
+uint8_t ucESPconnGetID(espConn_t *conn, espGlbl_t *gbl) {
     uint8_t    idx = 0;
     espConn_t *c = NULL;
-    espDev_t  *devp = &espGlobal.dev;
+    espDev_t  *devp = &gbl->dev;
     for (idx = 0; idx < ESP_CFG_MAX_CONNS; idx++) {
         c = &devp->conns[idx];
         if (c == conn)
             break;
     }
     return idx;
-} // end of ucESPconnGetID
+}
 
-espConn_t *pxESPgetNxtAvailConn(void) {
-    espDev_t  *devp = &espGlobal.dev;
+espConn_t *pxESPgetNxtAvailConn(espGlbl_t *gbl) {
+    espDev_t  *devp = &gbl->dev;
     espConn_t *c = NULL, *out = NULL;
     uint8_t    idx = 0;
     for (idx = 0; idx < ESP_CFG_MAX_CONNS; idx++) {
@@ -226,7 +226,7 @@ espConn_t *pxESPgetNxtAvailConn(void) {
         }
     }
     return out;
-} // end of pxESPgetNxtAvailConn
+}
 
 espRes_t eESPconnClientStart(
     espConn_t *conn_in, espConnType_t type, const char *const host, uint16_t host_len,
@@ -374,13 +374,13 @@ eESPstartServer(espNetConnPtr serverconn, espPort_t port, espEvtCbFn evt_cb, uin
     }
     response = eESPsetServerTimeout(serverconn, timeout, NULL, NULL, ESP_AT_CMD_BLOCKING);
     return response;
-} // end of eESPstartServer
+}
 
 espRes_t eESPstopServer(espNetConnPtr serverconn) {
     espRes_t response = espOK;
     response = eESPsetServer(serverconn, ESP_DISABLE, 0, NULL, NULL, NULL, ESP_AT_CMD_BLOCKING);
     return response;
-} // end of eESPstopServer
+}
 
 espRes_t eESPnetconnRecvPkt(espNetConnPtr nc, espPbuf_t *pbuf) {
     espNetConn_t *nconn = (espNetConn_t *)nc;

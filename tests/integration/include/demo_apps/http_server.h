@@ -6,6 +6,7 @@ extern "C" {
 #endif
 
 #include "esp/esp.h"
+#include "esp/esp_private.h"
 
 // ----------- function declaration -----------
 

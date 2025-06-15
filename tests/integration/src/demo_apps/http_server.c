@@ -20,6 +20,8 @@ static espNetConnPtr serverconn;
 
 static httpTestMsg_t http_msg;
 
+extern espGlbl_t espGlobal;
+
 static const char resp_msg_header1[] =
     ""
     "HTTP/1.1 200 OK" ESP_CHR_CR ESP_CHR_LF "Content-Type: text/html " ESP_CHR_CR ESP_CHR_LF
@@ -158,7 +160,7 @@ static void vESPtestHttpServerTask(void *params) {
     uint8_t        devPresent;
 
     // setup data structure required for this simplified server
-    espConn_t *conn = pxESPgetNxtAvailConn();
+    espConn_t *conn = pxESPgetNxtAvailConn(&espGlobal);
     conn->type = ESP_CONN_TYPE_TCP;
     serverconn = pxESPnetconnCreate(conn);
     if (serverconn == NULL) {

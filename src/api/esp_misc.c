@@ -127,7 +127,7 @@ espRes_t eESPenterDeepSleep(
 ) {
 // in general, ESP-01 device does not support wake up from deep sleep mode.
 // unless you manually solder GPIO16 (XPD_DCDC pin on the chip) to the RST pin
-#if defined(ESP_CFG_DEV_ESP01)
+#if (ESP_CFG_DEV_ESP01)
     return espERR;
 #else
     espRes_t  response = espOK;
@@ -145,26 +145,26 @@ espRes_t eESPenterDeepSleep(
 
 espRes_t eESPcloseDevice(void) {
     espRes_t response = espOK;
-    eESPcoreLock();
+    eESPcoreLock(&espGlobal);
     if (espGlobal.status.flg.dev_present == 1) {
-        eESPcoreUnlock();
+        eESPcoreUnlock(&espGlobal);
 #if (ESP_CFG_MODE_STATION != 0)
         // disconnect wifi if the ESP in station mode connected another AP.
         response = eESPstaQuit(NULL, NULL, ESP_AT_CMD_BLOCKING);
 #endif // ESP_CFG_MODE_STATION
        // TODO:
        // * close all the established network connections in the ESP device.
-        eESPcoreLock();
+        eESPcoreLock(&espGlobal);
         espGlobal.status.flg.dev_present = 0;
     }
-    eESPcoreUnlock();
+    eESPcoreUnlock(&espGlobal);
     return response;
-} // end of eESPcloseDevice
+}
 
 espRes_t eESPdeviceIsPresent(void) {
     uint8_t present = 0;
-    eESPcoreLock();
+    eESPcoreLock(&espGlobal);
     present = espGlobal.status.flg.dev_present;
-    eESPcoreUnlock();
+    eESPcoreUnlock(&espGlobal);
     return (present != 0 ? espOK : espERRNODEVICE);
-} // end of eESPdeviceIsPresent
+}
