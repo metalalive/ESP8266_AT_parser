@@ -131,13 +131,11 @@ espRes_t eESPenterDeepSleep(
     return espERR;
 #else
     espRes_t  response = espOK;
-    espMsg_t *msg = NULL;
-    msg = pxESPmsgCreate(ESP_CMD_GSLP, api_cb, api_cb_arg, blocking);
-    if (msg == NULL) {
+    espMsg_t *msg = pxESPmsgCreate(ESP_CMD_GSLP, api_cb, api_cb_arg, blocking);
+    if (msg == NULL)
         return espERRMEM;
-    }
     msg->body.deepslp.ms = sleep_ms;
-    msg->block_time = sleep_ms;
+    msg->block_time = 25;
     response = eESPsendReqToMbox(msg, eESPinitATcmd);
     return response;
 #endif // end of ESP_CFG_DEV_ESP01 == 1

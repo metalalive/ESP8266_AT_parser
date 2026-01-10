@@ -117,8 +117,10 @@ espRes_t eESPlowLvlDevInit(void *params) {
     __HAL_LINKDMA(&haluart3, hdmarx, haldma_usart3_rx);
 
     GPIO_InitTypeDef GPIO_InitStruct = {0};
-    // `PH0` on STM32 board is always pulled HIGH and connected
-    // to `CH_PD` and `GPIO0` pin of ESP device
+    // `PH0`, `PH1` on STM32 board is always pulled HIGH and connected to
+    // the pins below on ESP device :
+    // - `CH_PD` for chip enable
+    // - `GPIO0` boot mode selection, pull HIGH for running mode
     __HAL_RCC_GPIOH_CLK_ENABLE();
     GPIO_InitStruct.Pin = GPIO_PIN_0;
     GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
@@ -191,17 +193,15 @@ void hw_layer_init(void) {
     /* Configure the system clock */
     SystemClock_Config();
     HAL_StatusTypeDef result = TIM2_Init(configLIBRARY_LOWEST_INTERRUPT_PRIORITY);
-    if (result = HAL_OK) {
+    if (result != HAL_OK)
         Error_Handler();
-    }
 }
 
 espRes_t eESPlowLvlRecvStartFn(void) {
     espRes_t          response = espOK;
     HAL_StatusTypeDef status_chk = HAL_ERROR;
-    dma_buf_num_char_copied = 0;
-    dma_buf_cpy_offset_next = 0;
-    dma_buf_cpy_offset_curr = 0;
+    dma_buf_num_char_copied = dma_buf_cpy_offset_next = dma_buf_cpy_offset_curr = 0;
+    __HAL_UART_ENABLE(&haluart3);
     status_chk =
         HAL_UART_Receive_DMA(&haluart3, (uint8_t *)&recv_data_buf[0], ESP_RESP_RECV_BUF_SIZE);
     switch (status_chk) {
@@ -225,8 +225,9 @@ espRes_t eESPlowLvlRecvStartFn(void) {
 }
 
 void vESPlowLvlRecvStopFn(void) {
+    HAL_UART_AbortReceive(&haluart3);
     HAL_UART_DMAStop(&haluart3);
-    ESP_MEMSET((void *)&recv_data_buf, 0x00, ESP_RESP_RECV_BUF_SIZE);
+    // ESP_MEMSET((void *)&recv_data_buf, 0x00, ESP_RESP_RECV_BUF_SIZE);
 }
 
 // the low-level functions that will be called by ESP core functions

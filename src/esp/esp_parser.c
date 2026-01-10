@@ -398,6 +398,7 @@ void vESPparseRecvATrespLine(
     case ESP_CMD_TCPIP_CIPCLOSE:
     case ESP_CMD_TCPIP_CIPDINFO:
     case ESP_CMD_SYSMSG:
+    case ESP_CMD_GSLP:
         break;
     case ESP_CMD_WIFI_CWLIF:
         break;
