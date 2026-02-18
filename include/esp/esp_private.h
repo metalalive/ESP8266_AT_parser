@@ -391,6 +391,7 @@ struct espGlbl_s {
                                         initialized */
             uint8_t dev_present : 1; /*!< Flag indicating if physical device is
                                         connected to host device */
+            uint8_t power_on : 1;    // flag indicating whether device is powered on
         } flg;                       /*!< Flags structure */
     } status;                        /*!< Status structure */
 }; // end of struct espGlbl_s

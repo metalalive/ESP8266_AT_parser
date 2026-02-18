@@ -20,7 +20,6 @@ typedef struct {
 
 static void vESPtestConnAPtask(void *params) {
     ItestResultMonitor_t *monitor = params;
-    monitor->device.cmd_test = espOK;
     for (;;) { // ESP device already reset once before starting this task
         const uint8_t waitUntilConnected = 0x0;
         if (monitor->device.cmd_test == espOK) {
@@ -100,10 +99,10 @@ static espRes_t vESPinitCallBack(espEvt_t *evt) {
 static void vESPtestInitTask(void *params) {
     ItestResultMonitor_t *monitor = params;
 #define isPrivileged 0x1
-    espRes_t response = eESPinit(vESPinitCallBack);
-    if (response == espOK) {
+    monitor->device.cmd_test = eESPinit(vESPinitCallBack);
+    if (monitor->device.cmd_test == espOK) {
         // create the 2 threads for this test
-        response = eESPsysThreadCreate(
+        espRes_t response = eESPsysThreadCreate(
             &monitor->tsk.ping, "espTestPing", vESPtestPingTask, monitor,
             (0x20 + TASK_MIN_STACK_SIZE), ESP_APPS_THREAD_PRIO, isPrivileged
         );

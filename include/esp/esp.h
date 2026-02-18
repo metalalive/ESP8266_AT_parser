@@ -55,6 +55,11 @@ void vESPrunEvtCallbacks(espEvt_t *evtp);
 espRes_t eESPcloseDevice(void);
 espRes_t eESPdeviceIsPresent(void);
 
+espRes_t eESPpowerOff(void);
+// argument `dly_ms` indicates extra delay after complete power on in milliseconds
+espRes_t  eESPpowerOn(unsigned short dly_ms);
+espFnEn_t eESPgetPowerStatus(void);
+
 // the entry point to process the received data from ESP device and analyze the
 // result of the previously sent AT command.
 espRes_t eESPprocessRecvDataFromDev(const void *data, size_t len);

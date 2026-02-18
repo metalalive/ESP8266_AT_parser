@@ -144,7 +144,11 @@ espRes_t eESPinit(espEvtCbFn cb) {
             vESPrunEvtCallbacks(&espGlobal.evt);
         }
     }
-
+    if (init_fail == 0) {
+        response = eESPpowerOn(ESP_CFG_POWERUP_DLY_DEFAULT);
+        if (response != espOK)
+            init_fail++;
+    }
     if (init_fail == 0) {
         eESPcoreUnlock(&espGlobal);
 #if (ESP_CFG_RESTORE_ON_INIT != 0)

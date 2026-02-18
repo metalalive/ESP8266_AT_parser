@@ -166,3 +166,31 @@ espRes_t eESPdeviceIsPresent(void) {
     eESPcoreUnlock(&espGlobal);
     return (present != 0 ? espOK : espERRNODEVICE);
 }
+
+espRes_t eESPpowerOff(void) {
+    eESPcoreLock(&espGlobal);
+    espRes_t response = eESPlowLvlPower(ESP_DISABLE);
+    if (response == espOK) {
+        espGlobal.dev.version_at = (espFwVer_t){0};
+        espGlobal.dev.version_sdk = (espFwVer_t){0};
+        espGlobal.status.flg.dev_present = 0;
+        espGlobal.status.flg.power_on = 0;
+    }
+    eESPcoreUnlock(&espGlobal);
+    return response;
+}
+
+espRes_t eESPpowerOn(unsigned short dly_ms) {
+    eESPcoreLock(&espGlobal);
+    espRes_t response = eESPlowLvlPower(ESP_ENABLE);
+    eESPcoreUnlock(&espGlobal);
+    if (response == espOK) {
+        vESPsysDelay((const uint32_t)dly_ms);
+        espGlobal.status.flg.power_on = 1;
+    }
+    return response;
+}
+
+espFnEn_t eESPgetPowerStatus(void) {
+    return espGlobal.status.flg.power_on == 1 ? ESP_ENABLE : ESP_DISABLE;
+}

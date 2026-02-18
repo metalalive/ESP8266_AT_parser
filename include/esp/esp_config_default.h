@@ -68,10 +68,9 @@
 #define ESP_CFG_RST_ON_DEV_PRESENT 1
 #endif
 
-// Default delay time (in milliseconds) before sending first AT command on reset
-// sequence
-#ifndef ESP_CFG_RST_DLY_DEFAULT
-#define ESP_CFG_RST_DLY_DEFAULT 500
+// Default delay time (in milliseconds) after power up
+#ifndef ESP_CFG_POWERUP_DLY_DEFAULT
+#define ESP_CFG_POWERUP_DLY_DEFAULT 12
 #endif
 
 // maximum number of characters for SSID

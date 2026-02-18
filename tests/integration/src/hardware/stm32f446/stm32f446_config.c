@@ -117,24 +117,28 @@ espRes_t eESPlowLvlDevInit(void *params) {
     __HAL_LINKDMA(&haluart3, hdmarx, haldma_usart3_rx);
 
     GPIO_InitTypeDef GPIO_InitStruct = {0};
-    // `PH0`, `PH1` on STM32 board is always pulled HIGH and connected to
+    // `PH0` on STM32 board is always pulled HIGH and connected to
     // the pins below on ESP device :
     // - `CH_PD` for chip enable
     // - `GPIO0` boot mode selection, pull HIGH for running mode
+    //
+    // `PH1` on STM32 board is toggled to control remote power switch
+    // (e.g. MOSFET, relay ...etc)
     __HAL_RCC_GPIOH_CLK_ENABLE();
-    GPIO_InitStruct.Pin = GPIO_PIN_0;
+    GPIO_InitStruct.Pin = GPIO_PIN_0 | GPIO_PIN_1;
     GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
     GPIO_InitStruct.Pull = GPIO_PULLUP;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     HAL_GPIO_Init(GPIOH, &GPIO_InitStruct);
     HAL_GPIO_WritePin(GPIOH, GPIO_PIN_0, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(GPIOH, GPIO_PIN_1, GPIO_PIN_RESET);
 
     // ------ initialize RST pin of ESP device -------
     __HAL_RCC_GPIOB_CLK_ENABLE();
     GPIO_InitStruct.Pin = GPIO_PIN_9;
-    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
+    GPIO_InitStruct.Pull = GPIO_NOPULL; // use external pull-up instead
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_MEDIUM;
     HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
     return espOK;
 } // end of  eESPlowLvlDevInit
@@ -262,6 +266,11 @@ espRes_t eESPlowLvlRstFn(uint8_t state) {
     GPIO_PinState pinstate = state == 0x0 ? GPIO_PIN_RESET : GPIO_PIN_SET;
     HAL_GPIO_WritePin(GPIOB, GPIO_PIN_9, pinstate);
     return espOK;
-} // end of eESPlowLvlRstFn
+}
 
+espRes_t eESPlowLvlPower(espFnEn_t en) {
+    GPIO_PinState pinstate = en == ESP_ENABLE ? GPIO_PIN_SET : GPIO_PIN_RESET;
+    HAL_GPIO_WritePin(GPIOH, GPIO_PIN_1, pinstate);
+    return espOK;
+}
 #undef ESP_RESP_RECV_BUF_SIZE
