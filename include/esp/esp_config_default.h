@@ -73,6 +73,14 @@
 #define ESP_CFG_POWERUP_DLY_DEFAULT 12
 #endif
 
+#ifndef ESP_CFG_RST_DEASSERT_DLY_MS
+#define ESP_CFG_RST_DEASSERT_DLY_MS 1200
+#endif
+
+#ifndef ESP_CFG_NET_INIT_DLY_MS
+#define ESP_CFG_NET_INIT_DLY_MS 2000
+#endif
+
 // maximum number of characters for SSID
 #ifndef ESP_CFG_MAX_SSID_LEN
 #define ESP_CFG_MAX_SSID_LEN 21

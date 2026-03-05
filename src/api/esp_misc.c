@@ -62,7 +62,8 @@ espRes_t eESPresetWithDelay(uint32_t dly_ms, const espApiCmdCbFn cb, void *const
         return response;
     }
     msg->block_time = 1000;
-    msg->body.reset.delay = dly_ms;
+    msg->body.reset.assert_dly_ms = dly_ms;
+    msg->body.reset.deassert_dly_ms = ESP_CFG_RST_DEASSERT_DLY_MS;
     response = eESPsendReqToMbox(msg, eESPinitATcmd);
     if (response != espOKNOCMDREQ && response != espOK) {
         return response;
@@ -93,6 +94,7 @@ espRes_t eESPresetWithDelay(uint32_t dly_ms, const espApiCmdCbFn cb, void *const
     eESPsetIPDextraMsg(ESP_ENABLE);
     // read TCP/IP connection status
     response = eESPgetConnStatus(ESP_AT_CMD_BLOCKING);
+    vESPsysDelay(ESP_CFG_NET_INIT_DLY_MS);
     return response;
 } // end of eESPresetWithDelay
 

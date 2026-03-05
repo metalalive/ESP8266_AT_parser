@@ -135,9 +135,10 @@ typedef struct espMsg {
 
     union {
         struct {
-            uint32_t delay; /*!< Delay in units of milliseconds before executing
-                               first RESET command */
-        } reset;            /*!< Reset device */
+            // Delay in units of milliseconds before and after reset
+            uint16_t assert_dly_ms;
+            uint16_t deassert_dly_ms;
+        } reset; /*!< Reset device */
         struct {
             uint32_t ms;
         } deepslp;

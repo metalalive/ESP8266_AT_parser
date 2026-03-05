@@ -51,6 +51,11 @@ espRes_t eESPlowLvlDevDeInit(void *params) {
     return ut_sys_mock_returns.eESPlowLvlDevDeInit_ret;
 }
 
+espRes_t eESPlowLvlPower(espFnEn_t en) {
+    (void)en;
+    return espOK;
+}
+
 espRes_t eESPlowLvlSendFn(void *data, size_t len, uint32_t timeout) {
     (void)data;
     (void)len;
