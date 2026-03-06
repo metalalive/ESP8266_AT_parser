@@ -62,17 +62,16 @@ espRes_t eESPinitATcmd(espMsg_t *msg, espGlbl_t *gbl) {
         // perform low-level reset function to ESP device
         if (gbl->ll.reset_fn != NULL) {
             gbl->ll.reset_fn(ESP_HW_RST_ASSERT);
-            vESPsysDelay(msg->body.reset.delay);
+            vESPsysDelay(msg->body.reset.assert_dly_ms);
             gbl->ll.reset_fn(ESP_HW_RST_DEASSERT);
             // TODO: find way to determine delay after reset de-assertion
             // (should be long enough)
-            vESPsysDelay(1000);
+            vESPsysDelay(msg->body.reset.deassert_dly_ms);
             response = espOKNOCMDREQ;
             msg->res = response;
         } else {
             // TODO: should we set the delay after reset de-assertion if ESP
-            // device is reset by
-            //       AT command.
+            // device is reset by AT command.
             AT_APPEND_STR(&cmd_str_p, (const uint8_t *)&("+RST"), 4);
         }
         break;

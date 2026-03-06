@@ -55,9 +55,9 @@ TEST(EspATcmd, HardwareReset) {
 
     msg.cmd = ESP_CMD_RESET;
     msg.is_blocking = ESP_AT_CMD_BLOCKING;
-    msg.block_time = 1000;      // Example block time
-    msg.body.reset.delay = 500; // Delay for hardware reset
-
+    msg.block_time = 1000;              // Example block time
+    msg.body.reset.assert_dly_ms = 500; // Delay for hardware reset
+    msg.body.reset.deassert_dly_ms = 450;
     gbl.ll.send_fn = mock_ll_send_fn;
     gbl.ll.reset_fn = mock_ll_reset_fn;
 
@@ -82,14 +82,12 @@ TEST(EspATcmd, ATReset) {
 
     msg.cmd = ESP_CMD_RESET;
     msg.is_blocking = ESP_AT_CMD_BLOCKING;
-    msg.block_time = 1000;    // Example block time
-    msg.body.reset.delay = 0; // Not relevant for AT reset path
-
+    msg.block_time = 1000;            // Example block time
+    msg.body.reset.assert_dly_ms = 0; // Not relevant for AT reset path
     gbl.ll.send_fn = mock_ll_send_fn;
     gbl.ll.reset_fn = NULL; // Simulate no hardware reset function
 
     espRes_t result = eESPinitATcmd(&msg, &gbl);
-
     TEST_ASSERT_EQUAL(espOK, result);  // Expect espOK because command is sent
     TEST_ASSERT_EQUAL(espOK, msg.res); // Message result should also be updated
 

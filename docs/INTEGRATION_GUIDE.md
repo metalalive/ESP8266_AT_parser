@@ -94,6 +94,8 @@ The table below lists all integration test cases located at `tests/integration/s
 |`ap_ping`       | send a ICMP ping request to specific host  |
 |`http_server`   | turn on TCP server mode, demonstrate basic capability of HTTP/1.1 handshaking process. |
 |`mqtt_client`   | start TCP connection, demonstrate publishing/subscribing capability of MQTT v5.0 handshaking process. |
+|`deepsleep`     | perform ESP's built-in deep-sleep function then wake it later |
+|`power_cycle`   | perform complete power cycle on ESP device, extra hardware swtich required |
 
 - Once the test program `http_server` has started successfully, use tools that support HTTP (e.g. `curl`, `wget`) to send HTTP requests to this test server running on the ESP device.
 - Before starting the test program `mqtt_client`, run MQTT broker (e.g. `Eclipse Mosquitto`) and subscriber tool (e.g. `mosquitto_sub`) on other devices, in order to interact with this test MQTT client.

@@ -53,6 +53,7 @@ espRes_t eESPlowLvlSendFn(void *data, size_t len, uint32_t timeout);
 espRes_t eESPlowLvlRecvStartFn(void);
 void     vESPlowLvlRecvStopFn(void);
 espRes_t eESPlowLvlRstFn(uint8_t state);
+espRes_t eESPlowLvlPower(espFnEn_t);
 
 // get current time, the format depends on system implementation, (it can be
 // ticks, ms, us... etc)

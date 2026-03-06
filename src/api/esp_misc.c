@@ -62,7 +62,8 @@ espRes_t eESPresetWithDelay(uint32_t dly_ms, const espApiCmdCbFn cb, void *const
         return response;
     }
     msg->block_time = 1000;
-    msg->body.reset.delay = dly_ms;
+    msg->body.reset.assert_dly_ms = dly_ms;
+    msg->body.reset.deassert_dly_ms = ESP_CFG_RST_DEASSERT_DLY_MS;
     response = eESPsendReqToMbox(msg, eESPinitATcmd);
     if (response != espOKNOCMDREQ && response != espOK) {
         return response;
@@ -93,6 +94,7 @@ espRes_t eESPresetWithDelay(uint32_t dly_ms, const espApiCmdCbFn cb, void *const
     eESPsetIPDextraMsg(ESP_ENABLE);
     // read TCP/IP connection status
     response = eESPgetConnStatus(ESP_AT_CMD_BLOCKING);
+    vESPsysDelay(ESP_CFG_NET_INIT_DLY_MS);
     return response;
 } // end of eESPresetWithDelay
 
@@ -131,13 +133,11 @@ espRes_t eESPenterDeepSleep(
     return espERR;
 #else
     espRes_t  response = espOK;
-    espMsg_t *msg = NULL;
-    msg = pxESPmsgCreate(ESP_CMD_GSLP, api_cb, api_cb_arg, blocking);
-    if (msg == NULL) {
+    espMsg_t *msg = pxESPmsgCreate(ESP_CMD_GSLP, api_cb, api_cb_arg, blocking);
+    if (msg == NULL)
         return espERRMEM;
-    }
     msg->body.deepslp.ms = sleep_ms;
-    msg->block_time = sleep_ms;
+    msg->block_time = 25;
     response = eESPsendReqToMbox(msg, eESPinitATcmd);
     return response;
 #endif // end of ESP_CFG_DEV_ESP01 == 1
@@ -167,4 +167,32 @@ espRes_t eESPdeviceIsPresent(void) {
     present = espGlobal.status.flg.dev_present;
     eESPcoreUnlock(&espGlobal);
     return (present != 0 ? espOK : espERRNODEVICE);
+}
+
+espRes_t eESPpowerOff(void) {
+    eESPcoreLock(&espGlobal);
+    espRes_t response = eESPlowLvlPower(ESP_DISABLE);
+    if (response == espOK) {
+        espGlobal.dev.version_at = (espFwVer_t){0};
+        espGlobal.dev.version_sdk = (espFwVer_t){0};
+        espGlobal.status.flg.dev_present = 0;
+        espGlobal.status.flg.power_on = 0;
+    }
+    eESPcoreUnlock(&espGlobal);
+    return response;
+}
+
+espRes_t eESPpowerOn(unsigned short dly_ms) {
+    eESPcoreLock(&espGlobal);
+    espRes_t response = eESPlowLvlPower(ESP_ENABLE);
+    eESPcoreUnlock(&espGlobal);
+    if (response == espOK) {
+        vESPsysDelay((const uint32_t)dly_ms);
+        espGlobal.status.flg.power_on = 1;
+    }
+    return response;
+}
+
+espFnEn_t eESPgetPowerStatus(void) {
+    return espGlobal.status.flg.power_on == 1 ? ESP_ENABLE : ESP_DISABLE;
 }

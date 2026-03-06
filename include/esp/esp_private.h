@@ -135,9 +135,10 @@ typedef struct espMsg {
 
     union {
         struct {
-            uint32_t delay; /*!< Delay in units of milliseconds before executing
-                               first RESET command */
-        } reset;            /*!< Reset device */
+            // Delay in units of milliseconds before and after reset
+            uint16_t assert_dly_ms;
+            uint16_t deassert_dly_ms;
+        } reset; /*!< Reset device */
         struct {
             uint32_t ms;
         } deepslp;
@@ -391,6 +392,7 @@ struct espGlbl_s {
                                         initialized */
             uint8_t dev_present : 1; /*!< Flag indicating if physical device is
                                         connected to host device */
+            uint8_t power_on : 1;    // flag indicating whether device is powered on
         } flg;                       /*!< Flags structure */
     } status;                        /*!< Status structure */
 }; // end of struct espGlbl_s

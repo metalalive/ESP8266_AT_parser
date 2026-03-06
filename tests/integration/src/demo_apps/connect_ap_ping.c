@@ -2,39 +2,52 @@
 
 #define TASK_MIN_STACK_SIZE ((unsigned portSHORT)0x7e)
 
-static espSysThread_t itest_tsk_init = NULL;
-static espSysThread_t itest_tsk_ap_conn = NULL;
-static espSysThread_t itest_tsk_ping = NULL;
+typedef struct {
+    struct {
+        espSysThread_t init;
+        espSysThread_t ap_conn;
+        espSysThread_t ping;
+    } tsk;
+    struct {
+        espRes_t response;
+        uint32_t resp_time;
+    } ping;
+    struct {
+        espRes_t net_conn;
+        espRes_t cmd_test;
+    } device;
+} ItestResultMonitor_t;
 
 static void vESPtestConnAPtask(void *params) {
-    espRes_t      response = espOK;
-    const uint8_t waitUntilConnected = 0x0;
+    ItestResultMonitor_t *monitor = params;
     for (;;) { // ESP device already reset once before starting this task
-        if (response == espOK) {
+        const uint8_t waitUntilConnected = 0x0;
+        if (monitor->device.cmd_test == espOK) {
             // Connect to access point.
             // Try unlimited time until access point accepts up.
             // Check for station_manager.c to define preferred access points ESP
             // should connect to
-            eESPtestConnAP(waitUntilConnected);
+            monitor->device.net_conn = eESPtestConnAP(waitUntilConnected);
             vESPsysDelay(20000);
         }
         eESPcloseDevice(); // make device NOT present
         vESPsysDelay(4000);
         // set device to `present` state again
-        response = eESPgetCurrATversion();
+        monitor->device.cmd_test = eESPgetCurrATversion();
     }
 }
 
 static void vESPtestPingTask(void *params) {
+    ItestResultMonitor_t *monitor = params;
 #define PING_HOST "stackoverflow.com"
-    espRes_t response = espOK;
-    uint32_t pingresptime = 0;
     for (;;) {
-        pingresptime = 0;
-        response =
-            eESPping(PING_HOST, sizeof(PING_HOST), &pingresptime, NULL, NULL, ESP_AT_CMD_BLOCKING);
-        (void)response;
-        vESPsysDelay(1500);
+        monitor->ping.resp_time = 0;
+        monitor->ping.response = eESPping(
+            PING_HOST, sizeof(PING_HOST), &monitor->ping.resp_time, NULL, NULL, ESP_AT_CMD_BLOCKING
+        );
+        if (monitor->ping.response == espOK)
+            ESP_ASSERT(monitor->ping.resp_time > 0);
+        vESPsysDelay(1700);
     }
 #undef PING_HOST
 }
@@ -71,7 +84,7 @@ static espRes_t vESPinitCallBack(espEvt_t *evt) {
         printf("[INFO] ping response time : \r\n");
         response = evt->body.ping.res;
         if (response == espOK) {
-            printf("Ping successful in %d milliseconds!\r\n", *(evt->body.ping.resptime));
+            printf("Ping successful in %ld milliseconds!\r\n", *(evt->body.ping.resptime));
         } else {
             printf("Ping error with res: %d\r\n", (int)response);
         }
@@ -84,33 +97,39 @@ static espRes_t vESPinitCallBack(espEvt_t *evt) {
 } // end of vESPinitCallBack
 
 static void vESPtestInitTask(void *params) {
-    uint8_t  isPrivileged = 0x1;
-    espRes_t response = eESPinit(vESPinitCallBack);
-    if (response == espOK) {
+    ItestResultMonitor_t *monitor = params;
+#define isPrivileged 0x1
+    monitor->device.cmd_test = eESPinit(vESPinitCallBack);
+    if (monitor->device.cmd_test == espOK) {
         // create the 2 threads for this test
-        response = eESPsysThreadCreate(
-            &itest_tsk_ping, "espTestPing", vESPtestPingTask, NULL, (0x20 + TASK_MIN_STACK_SIZE),
-            ESP_APPS_THREAD_PRIO, isPrivileged
+        espRes_t response = eESPsysThreadCreate(
+            &monitor->tsk.ping, "espTestPing", vESPtestPingTask, monitor,
+            (0x20 + TASK_MIN_STACK_SIZE), ESP_APPS_THREAD_PRIO, isPrivileged
         );
         response = eESPsysThreadCreate(
-            &itest_tsk_ap_conn, "espTestConnAP", vESPtestConnAPtask, NULL,
+            &monitor->tsk.ap_conn, "espTestConnAP", vESPtestConnAPtask, monitor,
             (0x20 + TASK_MIN_STACK_SIZE), (ESP_APPS_THREAD_PRIO + 1), isPrivileged
         );
         ESP_ASSERT(response == espOK);
-        ESP_ASSERT(itest_tsk_ap_conn);
-        ESP_ASSERT(itest_tsk_ping);
+        ESP_ASSERT(monitor->tsk.ping);
+        ESP_ASSERT(monitor->tsk.ap_conn);
+    } else {
+        ESP_MEMFREE(monitor);
     }
     eESPsysThreadDelete(NULL);
+#undef isPrivileged
 } // end of vESPinitTask
 
 void vCreateAllTestTasks(void) {
-    uint8_t isPrivileged = 0x1;
+    ItestResultMonitor_t *monitor = ESP_MALLOC(sizeof(ItestResultMonitor_t));
+    *monitor = (ItestResultMonitor_t){0};
     // the ESP initialization thread takes the smae priority as the 2 internal
     // threads working in ESP AT software.
+    uint8_t  isPrivileged = 0x1;
     espRes_t response = eESPsysThreadCreate(
-        &itest_tsk_init, "espInitTask", vESPtestInitTask, NULL, TASK_MIN_STACK_SIZE,
+        &monitor->tsk.init, "espInitTask", vESPtestInitTask, monitor, TASK_MIN_STACK_SIZE,
         ESP_SYS_THREAD_PRIO, isPrivileged
     );
     ESP_ASSERT(response == espOK);
-    ESP_ASSERT(itest_tsk_init);
+    ESP_ASSERT(monitor->tsk.init);
 }

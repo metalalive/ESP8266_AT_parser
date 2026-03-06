@@ -117,22 +117,28 @@ espRes_t eESPlowLvlDevInit(void *params) {
     __HAL_LINKDMA(&haluart3, hdmarx, haldma_usart3_rx);
 
     GPIO_InitTypeDef GPIO_InitStruct = {0};
-    // `PH0` on STM32 board is always pulled HIGH and connected
-    // to `CH_PD` and `GPIO0` pin of ESP device
+    // `PH0` on STM32 board is always pulled HIGH and connected to
+    // the pins below on ESP device :
+    // - `CH_PD` for chip enable
+    // - `GPIO0` boot mode selection, pull HIGH for running mode
+    //
+    // `PH1` on STM32 board is toggled to control remote power switch
+    // (e.g. MOSFET, relay ...etc)
     __HAL_RCC_GPIOH_CLK_ENABLE();
-    GPIO_InitStruct.Pin = GPIO_PIN_0;
+    GPIO_InitStruct.Pin = GPIO_PIN_0 | GPIO_PIN_1;
     GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
     GPIO_InitStruct.Pull = GPIO_PULLUP;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     HAL_GPIO_Init(GPIOH, &GPIO_InitStruct);
     HAL_GPIO_WritePin(GPIOH, GPIO_PIN_0, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(GPIOH, GPIO_PIN_1, GPIO_PIN_RESET);
 
     // ------ initialize RST pin of ESP device -------
     __HAL_RCC_GPIOB_CLK_ENABLE();
     GPIO_InitStruct.Pin = GPIO_PIN_9;
-    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
+    GPIO_InitStruct.Pull = GPIO_NOPULL; // use external pull-up instead
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_MEDIUM;
     HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
     return espOK;
 } // end of  eESPlowLvlDevInit
@@ -191,17 +197,15 @@ void hw_layer_init(void) {
     /* Configure the system clock */
     SystemClock_Config();
     HAL_StatusTypeDef result = TIM2_Init(configLIBRARY_LOWEST_INTERRUPT_PRIORITY);
-    if (result = HAL_OK) {
+    if (result != HAL_OK)
         Error_Handler();
-    }
 }
 
 espRes_t eESPlowLvlRecvStartFn(void) {
     espRes_t          response = espOK;
     HAL_StatusTypeDef status_chk = HAL_ERROR;
-    dma_buf_num_char_copied = 0;
-    dma_buf_cpy_offset_next = 0;
-    dma_buf_cpy_offset_curr = 0;
+    dma_buf_num_char_copied = dma_buf_cpy_offset_next = dma_buf_cpy_offset_curr = 0;
+    __HAL_UART_ENABLE(&haluart3);
     status_chk =
         HAL_UART_Receive_DMA(&haluart3, (uint8_t *)&recv_data_buf[0], ESP_RESP_RECV_BUF_SIZE);
     switch (status_chk) {
@@ -225,8 +229,9 @@ espRes_t eESPlowLvlRecvStartFn(void) {
 }
 
 void vESPlowLvlRecvStopFn(void) {
+    HAL_UART_AbortReceive(&haluart3);
     HAL_UART_DMAStop(&haluart3);
-    ESP_MEMSET((void *)&recv_data_buf, 0x00, ESP_RESP_RECV_BUF_SIZE);
+    // ESP_MEMSET((void *)&recv_data_buf, 0x00, ESP_RESP_RECV_BUF_SIZE);
 }
 
 // the low-level functions that will be called by ESP core functions
@@ -261,6 +266,11 @@ espRes_t eESPlowLvlRstFn(uint8_t state) {
     GPIO_PinState pinstate = state == 0x0 ? GPIO_PIN_RESET : GPIO_PIN_SET;
     HAL_GPIO_WritePin(GPIOB, GPIO_PIN_9, pinstate);
     return espOK;
-} // end of eESPlowLvlRstFn
+}
 
+espRes_t eESPlowLvlPower(espFnEn_t en) {
+    GPIO_PinState pinstate = en == ESP_ENABLE ? GPIO_PIN_SET : GPIO_PIN_RESET;
+    HAL_GPIO_WritePin(GPIOH, GPIO_PIN_1, pinstate);
+    return espOK;
+}
 #undef ESP_RESP_RECV_BUF_SIZE
